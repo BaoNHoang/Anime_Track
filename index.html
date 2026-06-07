@@ -5,11 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="A private, mobile-ready anime tracker powered by Jikan."
+      content="Banime is a private, mobile-ready anime tracker and news hub powered by Jikan."
     />
     <meta name="theme-color" content="#11101a" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-    <title>Kitsu Log</title>
+    <script>
+      (() => {
+        const saved = localStorage.getItem("banime:theme");
+        const theme =
+          saved === "light" || saved === "dark"
+            ? saved
+            : matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <title>Banime</title>
   </head>
   <body>
     <div id="root"></div>

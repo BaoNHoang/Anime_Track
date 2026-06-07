@@ -1,6 +1,6 @@
 import { Check, Minus, Plus } from "lucide-react";
-import { useAnimePanel } from "../../context/AnimePanelContext";
-import { useTracker } from "../../context/TrackerContext";
+import { useAnimePanel } from "../../hooks/useAnimePanel";
+import { useTracker } from "../../hooks/useTracker";
 import type { TrackedAnime } from "../../domain/tracker/types";
 
 function ContinueItem({ item }: { item: TrackedAnime }) {

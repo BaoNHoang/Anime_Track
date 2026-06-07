@@ -2,6 +2,7 @@ import {
   Compass,
   LibraryBig,
   LayoutDashboard,
+  Newspaper,
   Settings2
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
@@ -9,6 +10,7 @@ import { NavLink } from "react-router-dom";
 const links = [
   { to: "/", label: "Home", icon: LayoutDashboard },
   { to: "/discover", label: "Discover", icon: Compass },
+  { to: "/news", label: "News", icon: Newspaper },
   { to: "/library", label: "Library", icon: LibraryBig },
   { to: "/settings", label: "Settings", icon: Settings2 }
 ];

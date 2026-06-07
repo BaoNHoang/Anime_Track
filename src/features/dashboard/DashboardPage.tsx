@@ -3,14 +3,14 @@ import { AnimeCard } from "../../components/AnimeCard";
 import { ErrorState } from "../../components/ErrorState";
 import { LoadingState } from "../../components/LoadingState";
 import { SectionHeader } from "../../components/SectionHeader";
-import { useTracker } from "../../context/TrackerContext";
 import { useCurrentSeason } from "../../hooks/useAnimeQueries";
+import { useTracker } from "../../hooks/useTracker";
 import { ContinueWatching } from "./ContinueWatching";
+import { NextAiring } from "./NextAiring";
 
 export function DashboardPage() {
   const { stats } = useTracker();
   const season = useCurrentSeason();
-
   const statCards = [
     {
       label: "Watching",
@@ -42,15 +42,9 @@ export function DashboardPage() {
     <div className="page-stack">
       <section className="hero">
         <div>
-          <span className="eyebrow">Saturday, your watchlist awaits</span>
-          <h1>Pick up where you left off.</h1>
-          <p>
-            Keep your season organized, one episode at a time.
-          </p>
-        </div>
-        <div className="hero__stamp" aria-hidden="true">
-          <span>今</span>
-          <small>NOW</small>
+          <span className="eyebrow">Your library</span>
+          <h1>Track what you watch.</h1>
+          <p>Update episode progress and see what airs next.</p>
         </div>
       </section>
 
@@ -68,9 +62,11 @@ export function DashboardPage() {
         ))}
       </section>
 
+      {season.data && <NextAiring items={season.data.items} />}
+
       <section>
         <SectionHeader
-          eyebrow="Your queue"
+          eyebrow="In progress"
           title="Continue watching"
           action={{ label: "Open library", to: "/library" }}
         />
@@ -79,7 +75,7 @@ export function DashboardPage() {
 
       <section>
         <SectionHeader
-          eyebrow="Fresh picks"
+          eyebrow="Current season"
           title="This season"
           action={{ label: "Discover all", to: "/discover" }}
         />

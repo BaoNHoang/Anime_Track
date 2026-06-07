@@ -7,14 +7,15 @@ import {
   X
 } from "lucide-react";
 import { useEffect } from "react";
-import { useAnimePanel } from "../../context/AnimePanelContext";
-import { useTracker } from "../../context/TrackerContext";
+import { formatNextAiring } from "../../domain/anime/airing";
 import {
   STATUS_LABELS,
   TRACKING_STATUSES,
   type TrackingStatus
 } from "../../domain/tracker/types";
 import { useAnimeDetails } from "../../hooks/useAnimeQueries";
+import { useAnimePanel } from "../../hooks/useAnimePanel";
+import { useTracker } from "../../hooks/useTracker";
 
 export function AnimeDetailPanel() {
   const { selectedAnime, closeAnime } = useAnimePanel();
@@ -22,6 +23,7 @@ export function AnimeDetailPanel() {
   const anime = details.data ?? selectedAnime;
   const { addAnime, getTracked, updateAnime, removeAnime } = useTracker();
   const tracked = anime ? getTracked(anime.id) : undefined;
+  const nextAiring = anime ? formatNextAiring(anime) : undefined;
 
   useEffect(() => {
     if (!selectedAnime) return;
@@ -60,8 +62,10 @@ export function AnimeDetailPanel() {
         </button>
         <div className="detail-panel__hero">
           <img src={anime.largeImageUrl} alt="" />
-          <div className="detail-panel__gradient" />
-          <div className="detail-panel__heading">
+        </div>
+
+        <div className="detail-panel__body">
+          <header className="detail-panel__heading">
             <div className="detail-panel__tags">
               <span>{anime.type}</span>
               {anime.year && <span>{anime.year}</span>}
@@ -78,10 +82,7 @@ export function AnimeDetailPanel() {
             {anime.titleEnglish && anime.titleEnglish !== anime.title && (
               <p className="detail-panel__alt-title">{anime.title}</p>
             )}
-          </div>
-        </div>
-
-        <div className="detail-panel__body">
+          </header>
           <div className="detail-panel__facts">
             <div>
               <span>Episodes</span>
@@ -102,6 +103,14 @@ export function AnimeDetailPanel() {
               <span key={genre}>{genre}</span>
             ))}
           </div>
+
+          {nextAiring && (
+            <div className="airing-callout">
+              <span className="eyebrow">Next scheduled broadcast</span>
+              <strong>{nextAiring}</strong>
+              {anime.broadcast?.label && <small>{anime.broadcast.label}</small>}
+            </div>
+          )}
 
           <section>
             <span className="eyebrow">Synopsis</span>

@@ -10,17 +10,24 @@ export function useCurrentSeason() {
   return useQuery({
     queryKey: ["anime", "season", "now"],
     queryFn: ({ signal }) => getCurrentSeason(signal),
-    staleTime: 15 * 60 * 1000
+    staleTime: 15 * 60 * 1000,
+    refetchInterval: 15 * 60 * 1000
   });
 }
 
 export function useTopAnime(
   filter: "airing" | "upcoming" | "bypopularity"
 ) {
+  const cacheTime =
+    filter === "bypopularity" ? 60 * 60 * 1000 : 15 * 60 * 1000;
+
   return useQuery({
     queryKey: ["anime", "top", filter],
     queryFn: ({ signal }) => getTopAnime(filter, signal),
-    staleTime: 15 * 60 * 1000
+    staleTime: cacheTime,
+    gcTime: 2 * 60 * 60 * 1000,
+    refetchInterval: cacheTime,
+    placeholderData: (previousData) => previousData
   });
 }
 

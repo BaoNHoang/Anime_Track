@@ -15,6 +15,12 @@ export interface Anime {
   duration?: string;
   year?: number;
   season?: string;
+  broadcast?: {
+    day?: string;
+    time?: string;
+    timezone?: string;
+    label?: string;
+  };
   genres: string[];
   studios: string[];
   trailerUrl?: string;

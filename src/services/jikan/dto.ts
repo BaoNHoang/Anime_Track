@@ -23,6 +23,12 @@ export interface JikanAnimeDto {
   synopsis?: string | null;
   season?: string | null;
   year?: number | null;
+  broadcast?: {
+    day?: string | null;
+    time?: string | null;
+    timezone?: string | null;
+    string?: string | null;
+  } | null;
   genres?: Array<{ name: string }>;
   studios?: Array<{ name: string }>;
 }

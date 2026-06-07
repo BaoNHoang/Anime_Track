@@ -1,12 +1,12 @@
 export function Brand() {
   return (
-    <div className="brand" aria-label="Kitsu Log home">
+    <div className="brand" aria-label="Banime home">
       <span className="brand__mark" aria-hidden="true">
-        K
+        B
       </span>
       <span>
-        <strong>Kitsu</strong>
-        <small>Log</small>
+        <strong>Banime</strong>
+        <small>Anime tracker</small>
       </span>
     </div>
   );

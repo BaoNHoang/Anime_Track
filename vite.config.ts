@@ -9,13 +9,17 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["icon.svg"],
       manifest: {
-        name: "Kitsu Log",
-        short_name: "Kitsu Log",
-        description: "A private, mobile-ready anime tracker powered by Jikan.",
+        name: "Banime",
+        short_name: "Banime",
+        description:
+          "A private, mobile-ready anime tracker and news hub powered by Jikan.",
         theme_color: "#11101a",
         background_color: "#11101a",
         display: "standalone",
         start_url: "/",
+        scope: "/",
+        orientation: "portrait-primary",
+        categories: ["entertainment", "lifestyle"],
         icons: [
           {
             src: "icon.svg",

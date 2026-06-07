@@ -20,6 +20,14 @@ export function mapJikanAnime(dto: JikanAnimeDto): Anime {
     duration: dto.duration ?? undefined,
     year: dto.year ?? undefined,
     season: dto.season ?? undefined,
+    broadcast: dto.broadcast
+      ? {
+          day: dto.broadcast.day ?? undefined,
+          time: dto.broadcast.time ?? undefined,
+          timezone: dto.broadcast.timezone ?? undefined,
+          label: dto.broadcast.string ?? undefined
+        }
+      : undefined,
     genres: dto.genres?.map((genre) => genre.name) ?? [],
     studios: dto.studios?.map((studio) => studio.name) ?? [],
     trailerUrl: dto.trailer?.url ?? undefined,

@@ -1,12 +1,14 @@
 import { Check, Plus, Star } from "lucide-react";
+import { formatAiringRelative } from "../domain/anime/airing";
 import type { Anime } from "../domain/anime/types";
-import { useAnimePanel } from "../context/AnimePanelContext";
-import { useTracker } from "../context/TrackerContext";
+import { useAnimePanel } from "../hooks/useAnimePanel";
+import { useTracker } from "../hooks/useTracker";
 
 export function AnimeCard({ anime }: { anime: Anime }) {
   const { openAnime } = useAnimePanel();
   const { addAnime, getTracked } = useTracker();
   const tracked = getTracked(anime.id);
+  const nextAiring = formatAiringRelative(anime);
 
   return (
     <article className="anime-card">
@@ -41,7 +43,11 @@ export function AnimeCard({ anime }: { anime: Anime }) {
         </button>
         <div className="anime-card__footer">
           <span>
-            {anime.episodes ? `${anime.episodes} eps` : anime.status}
+            {nextAiring
+              ? `Next ${nextAiring}`
+              : anime.episodes
+                ? `${anime.episodes} eps`
+                : anime.status}
           </span>
           <button
             className={`quick-add${tracked ? " is-added" : ""}`}

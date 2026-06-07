@@ -4,11 +4,17 @@ import type {
 } from "../../domain/tracker/types";
 import type { Anime } from "../../domain/anime/types";
 
-const STORAGE_KEY = "kitsu-log:library:v1";
+const STORAGE_KEY = "banime:library:v1";
+const LEGACY_STORAGE_KEY = "kitsu-log:library:v1";
 
 function readLibrary(): TrackedAnime[] {
   try {
-    const value = window.localStorage.getItem(STORAGE_KEY);
+    const value =
+      window.localStorage.getItem(STORAGE_KEY) ??
+      window.localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (value && !window.localStorage.getItem(STORAGE_KEY)) {
+      window.localStorage.setItem(STORAGE_KEY, value);
+    }
     return value ? (JSON.parse(value) as TrackedAnime[]) : [];
   } catch {
     return [];

@@ -1,5 +1,6 @@
 const API_BASE_URL = "https://api.jikan.moe/v4";
 const MIN_REQUEST_INTERVAL_MS = 350;
+const CACHE_STORAGE_PREFIX = "banime:jikan-cache:v1:";
 
 let requestQueue = Promise.resolve();
 let lastRequestStartedAt = 0;
@@ -7,6 +8,11 @@ const responseCache = new Map<
   string,
   { expiresAt: number; value: unknown }
 >();
+
+interface CachedResponse {
+  expiresAt: number;
+  value: unknown;
+}
 
 export class JikanApiError extends Error {
   constructor(
@@ -25,22 +31,70 @@ async function waitForRateLimit() {
   );
 
   if (waitTime > 0) {
-    await new Promise((resolve) => window.setTimeout(resolve, waitTime));
+    await new Promise((resolve) => setTimeout(resolve, waitTime));
   }
 
   lastRequestStartedAt = Date.now();
+}
+
+function getStorageKey(path: string) {
+  return `${CACHE_STORAGE_PREFIX}${encodeURIComponent(path)}`;
+}
+
+function readCachedResponse<T>(path: string): T | undefined {
+  const memoryValue = responseCache.get(path);
+  if (memoryValue?.expiresAt && memoryValue.expiresAt > Date.now()) {
+    return memoryValue.value as T;
+  }
+
+  if (typeof window === "undefined") return undefined;
+
+  try {
+    const storedValue = window.sessionStorage.getItem(getStorageKey(path));
+    if (!storedValue) return undefined;
+
+    const parsedValue = JSON.parse(storedValue) as CachedResponse;
+    if (parsedValue.expiresAt <= Date.now()) {
+      window.sessionStorage.removeItem(getStorageKey(path));
+      return undefined;
+    }
+
+    responseCache.set(path, parsedValue);
+    return parsedValue.value as T;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeCachedResponse(
+  path: string,
+  value: unknown,
+  cacheMs: number
+) {
+  const cachedValue: CachedResponse = {
+    expiresAt: Date.now() + cacheMs,
+    value
+  };
+  responseCache.set(path, cachedValue);
+
+  if (typeof window === "undefined") return;
+
+  try {
+    window.sessionStorage.setItem(
+      getStorageKey(path),
+      JSON.stringify(cachedValue)
+    );
+  } catch {
+    // Memory caching still works when browser storage is unavailable or full.
+  }
 }
 
 export async function jikanGet<T>(
   path: string,
   options: { signal?: AbortSignal; cacheMs?: number } = {}
 ): Promise<T> {
-  const cacheKey = path;
-  const cached = responseCache.get(cacheKey);
-
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.value as T;
-  }
+  const cached = readCachedResponse<T>(path);
+  if (cached !== undefined) return cached;
 
   requestQueue = requestQueue.then(waitForRateLimit, waitForRateLimit);
   await requestQueue;
@@ -60,10 +114,11 @@ export async function jikanGet<T>(
   }
 
   const data = (await response.json()) as T;
-  responseCache.set(cacheKey, {
-    expiresAt: Date.now() + (options.cacheMs ?? 5 * 60 * 1000),
-    value: data
-  });
+  writeCachedResponse(
+    path,
+    data,
+    options.cacheMs ?? 5 * 60 * 1000
+  );
 
   return data;
 }

@@ -1,6 +1,6 @@
 import { Minus, Plus, Star, Trash2 } from "lucide-react";
-import { useAnimePanel } from "../../context/AnimePanelContext";
-import { useTracker } from "../../context/TrackerContext";
+import { useAnimePanel } from "../../hooks/useAnimePanel";
+import { useTracker } from "../../hooks/useTracker";
 import {
   STATUS_LABELS,
   TRACKING_STATUSES,
@@ -23,7 +23,7 @@ export function LibraryCard({ item }: { item: TrackedAnime }) {
       <div className="library-card__content">
         <div>
           <span className="eyebrow">
-            {item.anime.type} · {item.anime.year ?? "Year unknown"}
+            {item.anime.type} / {item.anime.year ?? "Year unknown"}
           </span>
           <button
             className="library-card__title"
@@ -91,7 +91,7 @@ export function LibraryCard({ item }: { item: TrackedAnime }) {
                 max="10"
                 step="0.5"
                 value={item.userScore ?? ""}
-                placeholder="—"
+                placeholder="-"
                 onChange={(event) =>
                   updateAnime(item.anime.id, {
                     userScore: event.target.value
