@@ -249,6 +249,7 @@ export function SettingsPage() {
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
                       autoComplete="email"
+                      maxLength={320}
                       required
                     />
                   </label>
@@ -264,6 +265,7 @@ export function SettingsPage() {
                           : "new-password"
                       }
                       minLength={6}
+                      maxLength={128}
                       required
                     />
                   </label>

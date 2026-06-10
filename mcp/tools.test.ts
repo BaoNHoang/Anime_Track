@@ -1,18 +1,10 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { afterEach, describe, expect, it } from "vitest";
-import type { McpConfig } from "./config";
+import { createTestConfig } from "./testConfig";
 import { createBanimeMcpServer } from "./tools";
 
-const config: McpConfig = {
-  port: 8787,
-  publicUrl: "https://mcp.example.com/mcp",
-  protectedResourceMetadataUrl:
-    "https://mcp.example.com/.well-known/oauth-protected-resource/mcp",
-  supabaseUrl: "https://example.supabase.co",
-  supabaseKey: "test-key",
-  authorizationServer: "https://example.supabase.co/auth/v1"
-};
+const config = createTestConfig();
 
 const closeCallbacks: Array<() => Promise<void>> = [];
 
@@ -62,5 +54,20 @@ describe("Banime MCP tools", () => {
     expect(result._meta?.["mcp/www_authenticate"]).toContain(
       config.protectedResourceMetadataUrl
     );
+  });
+
+  it("rejects unknown fields and unsafe control characters", async () => {
+    const client = await connectClient();
+    const unknownField = await client.callTool({
+      name: "search_anime",
+      arguments: { query: "Naruto", unexpected: true }
+    });
+    const unsafeText = await client.callTool({
+      name: "search_anime",
+      arguments: { query: "Naruto\u0000" }
+    });
+
+    expect(unknownField.isError).toBe(true);
+    expect(unsafeText.isError).toBe(true);
   });
 });

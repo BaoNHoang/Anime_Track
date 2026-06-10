@@ -4,11 +4,13 @@ import type {
   TrackingStatus
 } from "../src/domain/tracker/types";
 import type { Anime } from "../src/domain/anime/types";
+import { escapePostgresLikePattern } from "../src/domain/security/validation";
 
 interface LibraryQuery {
   status?: TrackingStatus;
   search?: string;
   limit: number;
+  offset?: number;
 }
 
 export interface LibraryUpdates {
@@ -62,7 +64,8 @@ function toCloudRow(userId: string, item: TrackedAnime) {
 export class McpLibraryRepository {
   constructor(
     private readonly client: SupabaseClient,
-    private readonly userId: string
+    private readonly userId: string,
+    private readonly signal?: AbortSignal
   ) {}
 
   async getAll(query: LibraryQuery): Promise<TrackedAnime[]> {
@@ -71,14 +74,19 @@ export class McpLibraryRepository {
       .select("item")
       .eq("user_id", this.userId)
       .order("updated_at", { ascending: false })
-      .limit(query.limit);
+      .range(
+        query.offset ?? 0,
+        (query.offset ?? 0) + query.limit - 1
+      );
 
     if (query.status) {
       request = request.eq("tracking_status", query.status);
     }
     if (query.search?.trim()) {
-      request = request.ilike("anime_title", `%${query.search.trim()}%`);
+      const pattern = escapePostgresLikePattern(query.search.trim());
+      request = request.ilike("anime_title", `%${pattern}%`);
     }
+    if (this.signal) request = request.abortSignal(this.signal);
 
     const { data, error } = await request;
     if (error) throw error;
@@ -86,12 +94,13 @@ export class McpLibraryRepository {
   }
 
   async getByAnimeId(animeId: number): Promise<TrackedAnime | undefined> {
-    const { data, error } = await this.client
+    let request = this.client
       .from("tracked_anime")
       .select("item")
       .eq("user_id", this.userId)
-      .eq("anime_id", animeId)
-      .maybeSingle();
+      .eq("anime_id", animeId);
+    if (this.signal) request = request.abortSignal(this.signal);
+    const { data, error } = await request.maybeSingle();
 
     if (error) throw error;
     return data?.item as TrackedAnime | undefined;
@@ -113,9 +122,11 @@ export class McpLibraryRepository {
       addedAt: now,
       updatedAt: now
     };
-    const { error } = await this.client
+    let request = this.client
       .from("tracked_anime")
       .insert(toCloudRow(this.userId, item));
+    if (this.signal) request = request.abortSignal(this.signal);
+    const { error } = await request;
 
     if (error) throw error;
     return { item, created: true };
@@ -129,11 +140,13 @@ export class McpLibraryRepository {
     if (!existing) return undefined;
 
     const item = applyLibraryUpdates(existing, updates);
-    const { error } = await this.client
+    let request = this.client
       .from("tracked_anime")
       .upsert(toCloudRow(this.userId, item), {
         onConflict: "user_id,anime_id"
       });
+    if (this.signal) request = request.abortSignal(this.signal);
+    const { error } = await request;
 
     if (error) throw error;
     return item;
@@ -143,11 +156,13 @@ export class McpLibraryRepository {
     const existing = await this.getByAnimeId(animeId);
     if (!existing) return false;
 
-    const { error } = await this.client
+    let request = this.client
       .from("tracked_anime")
       .delete()
       .eq("user_id", this.userId)
       .eq("anime_id", animeId);
+    if (this.signal) request = request.abortSignal(this.signal);
+    const { error } = await request;
 
     if (error) throw error;
     return true;

@@ -4,6 +4,7 @@ const CACHE_STORAGE_PREFIX = "banime:jikan-cache:v1:";
 
 let requestQueue = Promise.resolve();
 let lastRequestStartedAt = 0;
+let externalRequestGate: (() => Promise<void>) | undefined;
 const responseCache = new Map<
   string,
   { expiresAt: number; value: unknown }
@@ -24,7 +25,14 @@ export class JikanApiError extends Error {
   }
 }
 
+export function configureJikanRequestGate(
+  gate: (() => Promise<void>) | undefined
+) {
+  externalRequestGate = gate;
+}
+
 async function waitForRateLimit() {
+  await externalRequestGate?.();
   const waitTime = Math.max(
     0,
     MIN_REQUEST_INTERVAL_MS - (Date.now() - lastRequestStartedAt)

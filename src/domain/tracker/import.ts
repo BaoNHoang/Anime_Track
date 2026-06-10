@@ -1,4 +1,8 @@
 import type { Anime } from "../anime/types";
+import {
+  isBoundedText,
+  safeExternalUrl
+} from "../security/validation";
 import { mergeTrackedAnime } from "./merge";
 import {
   TRACKING_STATUSES,
@@ -7,6 +11,12 @@ import {
 } from "./types";
 
 type JsonRecord = Record<string, unknown>;
+const MAX_LIBRARY_ITEMS = 5000;
+const MAX_TITLE_LENGTH = 500;
+const MAX_SHORT_TEXT_LENGTH = 200;
+const MAX_SYNOPSIS_LENGTH = 20_000;
+const MAX_NOTES_LENGTH = 2000;
+const MAX_LIST_ITEMS = 50;
 
 export class LibraryImportError extends Error {
   constructor(message: string) {
@@ -19,9 +29,13 @@ function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function optionalString(value: unknown, field: string) {
+function optionalString(
+  value: unknown,
+  field: string,
+  maxLength = MAX_SHORT_TEXT_LENGTH
+) {
   if (value === undefined || value === null) return undefined;
-  if (typeof value !== "string") {
+  if (typeof value !== "string" || !isBoundedText(value, maxLength)) {
     throw new LibraryImportError(`${field} must be text.`);
   }
   return value;
@@ -35,12 +49,38 @@ function optionalNumber(value: unknown, field: string) {
   return value;
 }
 
+function optionalBoundedNumber(
+  value: unknown,
+  field: string,
+  minimum: number,
+  maximum: number,
+  integer = false
+) {
+  const parsed = optionalNumber(value, field);
+  if (parsed === undefined) return undefined;
+  if (
+    parsed < minimum ||
+    parsed > maximum ||
+    (integer && !Number.isInteger(parsed))
+  ) {
+    throw new LibraryImportError(`${field} is outside the allowed range.`);
+  }
+  return parsed;
+}
+
 function stringArray(value: unknown, field: string) {
   if (
     !Array.isArray(value) ||
-    value.some((entry) => typeof entry !== "string")
+    value.length > MAX_LIST_ITEMS ||
+    value.some(
+      (entry) =>
+        typeof entry !== "string" ||
+        !isBoundedText(entry, MAX_SHORT_TEXT_LENGTH)
+    )
   ) {
-    throw new LibraryImportError(`${field} must be a list of text values.`);
+    throw new LibraryImportError(
+      `${field} must be a bounded list of text values.`
+    );
   }
   return value;
 }
@@ -48,22 +88,41 @@ function stringArray(value: unknown, field: string) {
 function requiredString(
   value: unknown,
   field: string,
-  allowEmpty = false
+  allowEmpty = false,
+  maxLength = MAX_SHORT_TEXT_LENGTH
 ) {
   if (
     typeof value !== "string" ||
-    (!allowEmpty && value.trim().length === 0)
+    (!allowEmpty && value.trim().length === 0) ||
+    !isBoundedText(value, maxLength)
   ) {
     throw new LibraryImportError(`${field} is required.`);
   }
   return value;
 }
 
+function externalUrl(
+  value: unknown,
+  field: string,
+  allowEmpty = false
+) {
+  if (allowEmpty && value === "") return "";
+  const url = safeExternalUrl(value);
+  if (!url) {
+    throw new LibraryImportError(`${field} must be a valid HTTPS URL.`);
+  }
+  return url;
+}
+
 function parseAnime(value: unknown, index: number): Anime {
   if (!isRecord(value)) {
     throw new LibraryImportError(`Item ${index + 1} has no anime record.`);
   }
-  if (!Number.isInteger(value.id) || Number(value.id) <= 0) {
+  if (
+    !Number.isInteger(value.id) ||
+    Number(value.id) <= 0 ||
+    Number(value.id) > 10_000_000
+  ) {
     throw new LibraryImportError(
       `Item ${index + 1} has an invalid anime ID.`
     );
@@ -82,17 +141,23 @@ function parseAnime(value: unknown, index: number): Anime {
 
   return {
     id: Number(value.id),
-    title: requiredString(value.title, `Item ${index + 1} anime title`),
+    title: requiredString(
+      value.title,
+      `Item ${index + 1} anime title`,
+      false,
+      MAX_TITLE_LENGTH
+    ),
     titleEnglish: optionalString(
       value.titleEnglish,
-      `Item ${index + 1} English title`
+      `Item ${index + 1} English title`,
+      MAX_TITLE_LENGTH
     ),
-    imageUrl: requiredString(
+    imageUrl: externalUrl(
       value.imageUrl,
       `Item ${index + 1} image URL`,
       true
     ),
-    largeImageUrl: requiredString(
+    largeImageUrl: externalUrl(
       value.largeImageUrl,
       `Item ${index + 1} large image URL`,
       true
@@ -100,17 +165,35 @@ function parseAnime(value: unknown, index: number): Anime {
     synopsis: requiredString(
       value.synopsis,
       `Item ${index + 1} synopsis`,
+      true,
+      MAX_SYNOPSIS_LENGTH
+    ),
+    score: optionalBoundedNumber(
+      value.score,
+      `Item ${index + 1} score`,
+      0,
+      10
+    ),
+    rank: optionalBoundedNumber(
+      value.rank,
+      `Item ${index + 1} rank`,
+      1,
+      10_000_000,
       true
     ),
-    score: optionalNumber(value.score, `Item ${index + 1} score`),
-    rank: optionalNumber(value.rank, `Item ${index + 1} rank`),
-    popularity: optionalNumber(
+    popularity: optionalBoundedNumber(
       value.popularity,
-      `Item ${index + 1} popularity`
+      `Item ${index + 1} popularity`,
+      1,
+      10_000_000,
+      true
     ),
-    episodes: optionalNumber(
+    episodes: optionalBoundedNumber(
       value.episodes,
-      `Item ${index + 1} episode count`
+      `Item ${index + 1} episode count`,
+      0,
+      100_000,
+      true
     ),
     status: requiredString(
       value.status,
@@ -122,7 +205,13 @@ function parseAnime(value: unknown, index: number): Anime {
       value.duration,
       `Item ${index + 1} duration`
     ),
-    year: optionalNumber(value.year, `Item ${index + 1} year`),
+    year: optionalBoundedNumber(
+      value.year,
+      `Item ${index + 1} year`,
+      1900,
+      2100,
+      true
+    ),
     season: optionalString(value.season, `Item ${index + 1} season`),
     broadcast: isRecord(broadcast)
       ? {
@@ -146,11 +235,14 @@ function parseAnime(value: unknown, index: number): Anime {
       : undefined,
     genres: stringArray(value.genres, `Item ${index + 1} genres`),
     studios: stringArray(value.studios, `Item ${index + 1} studios`),
-    trailerUrl: optionalString(
-      value.trailerUrl,
-      `Item ${index + 1} trailer URL`
-    ),
-    url: requiredString(value.url, `Item ${index + 1} anime URL`, true)
+    trailerUrl:
+      value.trailerUrl === undefined || value.trailerUrl === null
+        ? undefined
+        : externalUrl(
+            value.trailerUrl,
+            `Item ${index + 1} trailer URL`
+          ),
+    url: externalUrl(value.url, `Item ${index + 1} anime URL`, true)
   };
 }
 
@@ -169,7 +261,9 @@ function parseTrackedAnime(value: unknown, index: number): TrackedAnime {
   if (
     typeof value.progress !== "number" ||
     !Number.isFinite(value.progress) ||
-    value.progress < 0
+    !Number.isInteger(value.progress) ||
+    value.progress < 0 ||
+    value.progress > 100_000
   ) {
     throw new LibraryImportError(
       `Item ${index + 1} has invalid episode progress.`
@@ -210,7 +304,8 @@ function parseTrackedAnime(value: unknown, index: number): TrackedAnime {
     notes: requiredString(
       value.notes,
       `Item ${index + 1} notes`,
-      true
+      true,
+      MAX_NOTES_LENGTH
     ),
     addedAt,
     updatedAt
@@ -231,6 +326,11 @@ export function parseLibraryImport(value: unknown): TrackedAnime[] {
   }
   if (!source.length) {
     throw new LibraryImportError("This library file contains no anime.");
+  }
+  if (source.length > MAX_LIBRARY_ITEMS) {
+    throw new LibraryImportError(
+      `A library import cannot contain more than ${MAX_LIBRARY_ITEMS} items.`
+    );
   }
 
   return mergeTrackedAnime(

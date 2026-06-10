@@ -9,12 +9,34 @@ export interface AuthenticatedUser {
   client: SupabaseClient;
 }
 
+let verifier:
+  | {
+      supabaseUrl: string;
+      supabaseKey: string;
+      timeoutMs: number;
+      client: SupabaseClient;
+    }
+  | undefined;
+
+function timeoutFetch(timeoutMs: number): typeof fetch {
+  return async (input, init) => {
+    const timeoutSignal = AbortSignal.timeout(timeoutMs);
+    const signal = init?.signal
+      ? AbortSignal.any([init.signal, timeoutSignal])
+      : timeoutSignal;
+    return fetch(input, { ...init, signal });
+  };
+}
+
 export function extractBearerToken(
   authorizationHeader: string | undefined
 ) {
   if (!authorizationHeader) return undefined;
-  const [scheme, token] = authorizationHeader.split(/\s+/, 2);
-  return scheme?.toLowerCase() === "bearer" && token ? token : undefined;
+  const match = /^Bearer ([A-Za-z0-9\-._~+/]+=*)$/i.exec(
+    authorizationHeader
+  );
+  const token = match?.[1];
+  return token && token.length <= 8192 ? token : undefined;
 }
 
 function includesAudience(
@@ -32,13 +54,27 @@ export async function authenticateToken(
   config: McpConfig,
   token: string
 ): Promise<AuthenticatedUser | undefined> {
-  const authClient = createClient(config.supabaseUrl, config.supabaseKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false
-    }
-  });
+  if (
+    !verifier ||
+    verifier.supabaseUrl !== config.supabaseUrl ||
+    verifier.supabaseKey !== config.supabaseKey ||
+    verifier.timeoutMs !== config.upstreamTimeoutMs
+  ) {
+    verifier = {
+      supabaseUrl: config.supabaseUrl,
+      supabaseKey: config.supabaseKey,
+      timeoutMs: config.upstreamTimeoutMs,
+      client: createClient(config.supabaseUrl, config.supabaseKey, {
+        global: { fetch: timeoutFetch(config.upstreamTimeoutMs) },
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
+      })
+    };
+  }
+  const authClient = verifier.client;
   const { data, error } = await authClient.auth.getClaims(token);
   const claims = data?.claims;
 
@@ -46,6 +82,9 @@ export async function authenticateToken(
     return undefined;
   }
   if (claims.iss !== config.authorizationServer) {
+    return undefined;
+  }
+  if (claims.role !== "authenticated") {
     return undefined;
   }
   if (
@@ -59,6 +98,7 @@ export async function authenticateToken(
     userId: claims.sub,
     client: createClient(config.supabaseUrl, config.supabaseKey, {
       accessToken: async () => token,
+      global: { fetch: timeoutFetch(config.upstreamTimeoutMs) },
       auth: {
         persistSession: false,
         autoRefreshToken: false,

@@ -11,3 +11,11 @@ services:
         sync: false
       - key: MCP_PUBLIC_URL
         sync: false
+      - key: MCP_TRUST_PROXY
+        value: "true"
+      - key: MCP_ALLOWED_ORIGINS
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false

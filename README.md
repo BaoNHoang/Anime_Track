@@ -118,15 +118,19 @@ HTTPS endpoint, so local execution is for development and MCP client tests.
 2. Deploy `Dockerfile.mcp` as a separate public web service. `render.yaml` is
    included as one option.
 3. Set `MCP_PUBLIC_URL` to the complete public `/mcp` URL.
-4. In Supabase Auth, enable the OAuth 2.1 server.
-5. Set the OAuth authorization path to the deployed Banime PWA URL ending in
+4. Set `MCP_TRUST_PROXY=true` only when the service is behind a trusted proxy
+   that replaces `X-Forwarded-For` and `X-Forwarded-Host`.
+5. Set `MCP_ALLOWED_ORIGINS` to the exact Banime web origins that may call the
+   endpoint. Do not use `*`.
+6. In Supabase Auth, enable the OAuth 2.1 server.
+7. Set the OAuth authorization path to the deployed Banime PWA URL ending in
    `/oauth/consent`.
-6. Enable dynamic client registration, or register the ChatGPT OAuth client
+8. Enable dynamic client registration, or register the ChatGPT OAuth client
    manually.
-7. Add `VITE_MCP_URL` to the PWA deployment and rebuild it.
-8. In ChatGPT, open **Settings > Apps & Connectors > Advanced settings**,
+9. Add `VITE_MCP_URL` to the PWA deployment and rebuild it.
+10. In ChatGPT, open **Settings > Apps & Connectors > Advanced settings**,
    enable developer mode, create an app, and enter the public MCP URL.
-9. Connect the app and approve access on Banime's consent page.
+11. Connect the app and approve access on Banime's consent page.
 
 For production, use a Supabase access-token hook to issue a resource-specific
 audience and set the same value in `MCP_EXPECTED_AUDIENCE`. Until that is
@@ -139,6 +143,74 @@ Official setup references:
 - [Connect an MCP server to ChatGPT](https://developers.openai.com/apps-sdk/deploy/connect-chatgpt)
 - [OpenAI Apps SDK authentication](https://developers.openai.com/apps-sdk/build/auth)
 - [Supabase MCP OAuth authentication](https://supabase.com/docs/guides/auth/oauth-server/mcp-authentication)
+
+### MCP security controls
+
+The public MCP edge applies:
+
+- Exact host and optional browser-origin allow lists
+- Per-IP request limits and additional hashed-token limits
+- A separate tool-call quota
+- A shared Jikan budget capped at 60 requests per minute
+- A 64 KiB JSON body cap and 16 KiB header cap by default
+- Strict JSON content type, method, encoding, and URL-path checks
+- Concurrent request, header, request, and upstream timeouts
+- Strict Zod schemas that reject unknown keys, control characters, oversized
+  text, invalid IDs, and invalid numeric ranges
+- Generic client errors so Supabase and internal details are not leaked
+- Supabase JWT issuer, authenticated-role, signature/expiry, and optional
+  audience checks
+- Parameterized Supabase/PostgREST filters with escaped `ILIKE` wildcards
+- RLS enforcement using the caller's token rather than a service-role key
+
+Rate limits default to in-memory counters, which are suitable for one MCP
+process. For multiple replicas, configure `UPSTASH_REDIS_REST_URL` and
+`UPSTASH_REDIS_REST_TOKEN`. This shares request, tool, and Jikan limits across
+all replicas. The server fails closed with `503` when a configured distributed
+rate-limit store is unavailable.
+
+The PWA deployment files add CSP, HSTS, frame blocking, MIME sniffing
+protection, referrer controls, and a restrictive permissions policy. The
+theme bootstrap is an external same-origin file so CSP does not require
+`unsafe-inline`.
+
+### Input and storage validation
+
+- JSON imports are limited to 5 MB by the UI and 5,000 records by the parser.
+- Imported text, arrays, IDs, scores, years, progress, and timestamps are
+  bounded and validated.
+- External links must be credential-free HTTPS URLs. Unsafe links are rejected
+  on import and removed from Jikan responses.
+- Local storage is validated again when read, so manually altered persisted
+  data is not trusted.
+- The Supabase schema limits JSON records to 100 KB and adds title/type length
+  checks.
+
+Rerun `supabase/schema.sql` after this security update. The new constraints can
+fail if existing rows exceed the limits; inspect and repair those rows before
+retrying rather than removing the checks.
+
+### Scaling model
+
+Recommended production layout:
+
+1. TLS/WAF or hosting proxy
+2. One or more stateless Banime MCP containers
+3. Upstash Redis for distributed rate limits
+4. Supabase Auth/Postgres with RLS
+5. Jikan as the read-only catalog source
+
+The MCP transport is stateless, so replicas do not require sticky sessions.
+The Supabase verifier client is reused within each process, library reads are
+paginated, and Postgres has user/status/date/type/score/title indexes. Keep the
+shared Jikan limiter enabled when adding replicas; otherwise each replica
+would multiply traffic against Jikan's official 3-per-second and 60-per-minute
+limits.
+
+Operational scaling still requires edge DDoS protection, request metrics,
+central logs with token redaction, alerts, database connection monitoring, and
+load testing. Application rate limiting is not a substitute for a provider
+WAF.
 
 ## Install on a phone
 

@@ -183,9 +183,11 @@ export function AnimeDetailPanel() {
                 <Play size={16} /> Trailer
               </a>
             )}
-            <a href={anime.url} target="_blank" rel="noreferrer">
-              <ExternalLink size={16} /> MyAnimeList
-            </a>
+            {anime.url && (
+              <a href={anime.url} target="_blank" rel="noreferrer">
+                <ExternalLink size={16} /> MyAnimeList
+              </a>
+            )}
           </div>
         </div>
       </aside>

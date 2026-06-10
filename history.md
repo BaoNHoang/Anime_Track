@@ -140,7 +140,18 @@ As of 2026-06-10:
 - Library search covers titles, studios, genres, and notes, with status, type,
   genre, score, and sort controls.
 - Vercel and Netlify SPA route rewrites are included.
-- The current automated suite contains 15 tests across 10 files.
+- MCP traffic is protected by host/origin checks, body/header/concurrency
+  limits, per-IP and per-token quotas, a separate tool quota, and a shared
+  60-per-minute Jikan budget.
+- Rate limits use bounded in-memory counters for one process and optional
+  Upstash Redis counters across multiple replicas.
+- JSON imports, local storage, upstream URLs, OAuth inputs, and MCP schemas are
+  bounded and validated before use.
+- The PWA deployment configuration includes CSP, HSTS, frame, MIME, referrer,
+  and permissions headers.
+- The MCP production image is multi-stage, runs as a non-root user, and
+  installs only runtime dependencies.
+- The current automated suite contains 26 tests across 13 files.
 - Production build, ESLint, tests, local route checks, PWA manifest checks, and
   live Jikan endpoint checks passed.
 - A real Supabase project was not configured during development, so
@@ -164,6 +175,8 @@ As of 2026-06-10:
 | Model Context Protocol SDK | `1.29.0` | Streamable HTTP MCP server and protocol types |
 | Zod | `4.4.3` | MCP tool input validation |
 | dotenv | `17.4.2` | MCP server environment loading |
+| Upstash Rate Limit | `2.0.8` | Optional distributed request, tool, and Jikan quotas |
+| Upstash Redis | `1.38.0` | HTTP-based shared rate-limit storage |
 | Lucide React | `1.17.0` | Interface icons |
 
 ### Development Dependencies
@@ -179,6 +192,7 @@ As of 2026-06-10:
 | React plugin for Vite | `6.0.2` | React transform and refresh |
 | tsx | `4.22.4` | TypeScript execution for the MCP service |
 | Node types | `25.9.2` | Node HTTP and process type declarations |
+| esbuild | `0.28.0` | Bundles the production MCP server artifact |
 
 Dependency versions are recorded in `package-lock.json`. Update this section
 when dependencies change materially.
@@ -374,6 +388,8 @@ Owns the ChatGPT/MCP boundary and is independently deployable from the PWA.
 - `config.ts`
   - Loads server-only configuration from `.env.mcp.local`, `.env.local`, or
     process environment variables.
+  - Validates HTTPS/local URLs, origins, hosts, limits, timeouts, proxy mode,
+    and optional distributed-store configuration.
 - `auth.ts`
   - Extracts bearer tokens, verifies Supabase JWT claims, checks issuer and an
     optional resource audience, and creates an RLS-bound Supabase client.
@@ -382,11 +398,15 @@ Owns the ChatGPT/MCP boundary and is independently deployable from the PWA.
 - `recommendations.ts`
   - Pure ranking based on library genres, studios, status, and user scores.
 - `tools.ts`
-  - Registers eight tools with Zod schemas, security metadata, and accurate
-    read-only/destructive/open-world annotations.
+  - Registers eight tools with strict bounded Zod schemas, security metadata,
+    sanitized output, generic errors, and accurate annotations.
+- `rateLimiter.ts`
+  - Provides bounded process-local counters or Upstash sliding windows for
+    request, tool, and global Jikan budgets.
 - `server.ts`
-  - Hosts stateless Streamable HTTP at `/mcp`, health output, CORS, and OAuth
-    protected-resource metadata.
+  - Hosts stateless Streamable HTTP at `/mcp`, applies host/origin validation,
+    quotas, concurrency, body/header limits, security headers, health output,
+    and OAuth protected-resource metadata.
 - `index.ts`
   - Starts and stops the Node HTTP process.
 
@@ -984,13 +1004,17 @@ Included SPA fallbacks:
 The MCP server is a separate long-running Node service and must not be
 deployed as static files.
 
-- Entry command: `npm run mcp:start`.
+- Development entry command: `npm run mcp:start`.
+- Production build/start: `npm run mcp:build` then
+  `npm run mcp:start:prod`.
 - Default port: `8787`, overridden by `PORT`.
 - MCP endpoint: `/mcp`.
 - Health endpoint: `/health`.
 - OAuth metadata:
   `/.well-known/oauth-protected-resource/mcp`.
 - Container definition: `Dockerfile.mcp`.
+- The final container stage runs as the non-root `node` user and excludes
+  development dependencies.
 - Example Render infrastructure file: `render.yaml`.
 
 ### Required Deployment Configuration
@@ -1001,6 +1025,9 @@ deployed as static files.
 - Set `VITE_MCP_URL` on the PWA deployment after the MCP URL is known.
 - Set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `MCP_PUBLIC_URL` on the
   MCP service.
+- Set exact `MCP_ALLOWED_ORIGINS`; enable `MCP_TRUST_PROXY` only behind a
+  trusted proxy that overwrites forwarded headers.
+- Configure both Upstash values before running multiple replicas.
 - Add the deployed origin to Supabase Auth redirect URLs.
 - Use HTTPS for PWA installation and service workers.
 
@@ -1038,12 +1065,15 @@ No production deployment has completed this checklist yet.
 | `mcp/recommendations.test.ts` | Preference ranking, tracked-title exclusion, and explicit filters |
 | `mcp/libraryRepository.test.ts` | Partial updates, score clearing, and progress clamping |
 | `mcp/tools.test.ts` | MCP tool discovery and OAuth challenge metadata through an in-memory client |
+| `mcp/server.test.ts` | Security headers, origin rejection, body caps, and rotating-token rate-limit resistance |
+| `mcp/rateLimiter.test.ts` | Independent request, tool, and shared Jikan budgets |
+| `domain/security/validation.test.ts` | HTTPS URL, control-character, truncation, and wildcard escaping rules |
 
 Current result:
 
 ```text
-Test files: 10 passed
-Tests: 15 passed
+Test files: 13 passed
+Tests: 26 passed
 ```
 
 ### Static Checks
@@ -1110,20 +1140,41 @@ Banime does not send personal tracking data to Jikan or MyAnimeList.
 - Protected tools advertise OAuth security metadata and return an OAuth
   challenge when no valid token is present.
 - Mutation tools are marked destructive where they overwrite or remove data.
+- Host validation rejects unexpected forwarded or direct host names.
+- Browser CORS uses exact configured origins and rejects wildcard setup.
+- Every MCP request is charged to an IP quota; bearer-shaped requests also
+  receive a token-hash quota so rotating fake tokens cannot bypass IP limits.
+- Tool calls and outbound Jikan requests have independent budgets.
+- Upstash can share all limits across stateless replicas.
+- Request bodies, headers, concurrent work, request reading, and upstream
+  calls are bounded.
+- MCP Zod objects are strict and reject unknown keys, unsafe controls,
+  excessive lengths, and invalid numeric ranges.
+- Supabase and internal errors are logged without request data and returned as
+  generic client messages.
+- Imported and upstream URLs must be credential-free HTTPS URLs.
+- Local storage is validated on every read instead of trusted as typed JSON.
+- Vercel and Netlify configurations provide CSP and other security headers.
+- Postgres checks cap JSON row size and normalized title/type lengths.
+- The production MCP container runs as non-root with development dependencies
+  removed.
+- Current-tree and three-commit credential-pattern scans found no secret-like
+  values outside documentation text.
+- `npm audit` reported zero known vulnerable dependencies on 2026-06-10.
 
 ### Security Work Still Needed
 
 - Verify RLS policies with two distinct test users.
-- Add Content Security Policy and other hosting security headers.
-- Add dependency vulnerability scanning.
-- Add auth rate-limit and abuse expectations to operations documentation.
+- Automate dependency and secret scanning in CI instead of relying on manual
+  checks.
 - Define account deletion and data-retention behavior.
 - Decide whether notes can contain sensitive personal information.
 - Add explicit confirmation for destructive library removal if desired.
 - Configure a resource-specific OAuth token audience and enforce it with
   `MCP_EXPECTED_AUDIENCE`.
-- Add production host validation, request limits, structured audit logs, and
-  abuse monitoring for the public MCP endpoint.
+- Add structured audit logs, provider WAF rules, central metrics, and abuse
+  monitoring for the public MCP endpoint.
+- Complete load tests and tune quotas against measured traffic.
 
 ## Reliability and Performance
 
@@ -1151,13 +1202,20 @@ Banime does not send personal tracking data to Jikan or MyAnimeList.
   implementation as the PWA services.
 - Recommendation ranking is pure and deterministic for the same library and
   candidate set.
+- MCP library reads support bounded offset pagination.
+- The Supabase JWT verifier client is reused within each MCP process.
+- The shared Jikan budget preserves the official 60-per-minute ceiling across
+  replicas when Upstash is configured.
+- The direct `ILIKE` title query has a matching trigram index.
+- Rate-limit memory is capped to prevent unbounded identity-map growth.
 
 ### Last Recorded Production Build
 
 ```text
 Main CSS: 29.68 kB, 6.37 kB gzip
-Main JS: 389.19 kB, 120.01 kB gzip
+Main JS: 391.03 kB, 120.74 kB gzip
 Supabase lazy chunk: 199.77 kB, 51.03 kB gzip
+MCP production bundle: 51.2 kB
 ```
 
 These values are development evidence, not a permanent performance budget.
@@ -1169,9 +1227,11 @@ These values are development evidence, not a permanent performance budget.
   local copy remains.
 - No retry backoff or manual retry exists.
 - No offline mutation tombstones exist.
-- No server health monitoring exists.
+- A health endpoint and container health check exist, but no external alerting
+  or uptime monitor is configured.
 - No Jikan fallback data source exists.
-- `localStorage` parsing failures silently return an empty library.
+- Invalid local storage is rejected and currently falls back to an empty
+  library without a user-facing recovery prompt.
 - There is no corruption recovery or import restore.
 
 ## Accessibility and UX
@@ -1231,6 +1291,10 @@ These values are development evidence, not a permanent performance budget.
 | ADR-0024 | 2026-06-10 | Reuse Supabase OAuth and RLS for MCP identity and authorization | Accepted | Avoids a second account system and keeps user row policies authoritative |
 | ADR-0025 | 2026-06-10 | Keep Jikan tools public and require OAuth only for personal library tools | Accepted | Catalog information is public while tracking data and mutations are private |
 | ADR-0026 | 2026-06-10 | Generate recommendation candidates with deterministic local ranking | Accepted for the first MCP version | Uses existing library signals without sending private history to another recommendation service |
+| ADR-0027 | 2026-06-10 | Apply layered limits at the MCP HTTP edge | Accepted | IP/token/tool quotas, payload caps, concurrency, timeouts, and allow lists reduce abuse and resource exhaustion |
+| ADR-0028 | 2026-06-10 | Use optional Upstash Redis for distributed quotas | Accepted | Stateless replicas require shared counters to prevent per-instance bypass |
+| ADR-0029 | 2026-06-10 | Treat imported, stored, OAuth, and Jikan content as untrusted input | Accepted | Validation must cover persisted links and external data, not only SQL arguments |
+| ADR-0030 | 2026-06-10 | Bundle the MCP server into a minimal non-root production image | Accepted | Removes development tooling from runtime and supports repeatable replica startup |
 
 ### Superseded Decision Note
 
@@ -1263,6 +1327,11 @@ resulting stack selection.
 | RISK-0019 | High | Public service | MCP endpoint has no production rate limiting, audit sink, or abuse monitoring | Add proxy limits, structured logs, alerts, and a documented incident process |
 | RISK-0020 | Medium | OAuth tokens | Resource-specific audience enforcement is optional until a Supabase token hook is configured | Add the hook and set `MCP_EXPECTED_AUDIENCE` before production use |
 | RISK-0021 | Medium | Recommendations | Candidate pool is limited to current season and top-popularity feeds | Add Jikan recommendation or genre-specific candidate sources if results are too narrow |
+| RISK-0022 | High | Operations | Application limits do not replace edge DDoS protection or monitoring | Add provider WAF rules, metrics, logs, alerts, and incident response |
+| RISK-0023 | Medium | Scaling | In-memory quotas are per process when Upstash is not configured | Configure Upstash before running more than one replica |
+| RISK-0024 | Medium | Recovery | Invalid local data falls back to an empty library without an in-app recovery path | Quarantine corrupt data and offer export/reset recovery |
+| RISK-0025 | Medium | Migration | New database size constraints may reject oversized legacy rows | Inspect and repair affected rows before rerunning the schema |
+| RISK-0026 | Medium | Verification | Security controls are unit/integration tested locally but not penetration or load tested | Run deployed DAST, two-user RLS tests, and sustained load tests |
 
 ## Prioritized Roadmap
 
@@ -1374,6 +1443,14 @@ Log rather than treated as application incidents.
 | 2026-06-10 | OAuth consent route | HTTP request to `/oauth/consent` | Status 200 |
 | 2026-06-10 | MCP consent and Settings visual UI | Two in-app browser attempts | Not completed because the browser webview did not attach |
 | 2026-06-10 | Real ChatGPT OAuth connection | No public MCP deployment or Supabase OAuth server was configured | Not verified |
+| 2026-06-10 | Dependency vulnerability audit | `NODE_OPTIONS=--use-system-ca npm.cmd audit --json` | Zero known vulnerabilities across 617 dependencies |
+| 2026-06-10 | Current-tree secret scan | Credential-pattern scan excluding dependencies and build output | No credential-like values found outside documentation text |
+| 2026-06-10 | Git-history secret scan | Pattern scan across all three commits | No credential-like values found |
+| 2026-06-10 | Security and rate-limit tests | `npm.cmd test` | 13 test files and 26 tests passed |
+| 2026-06-10 | Hardened production build | `npm.cmd run build` and `npm.cmd run mcp:build` | PWA/PWA service worker and 51.2 kB MCP bundle built successfully |
+| 2026-06-10 | Bundled MCP HTTP security | Started `mcp-dist/index.js` and sent local requests | Health 200, invalid origin 403, oversized body 413, security headers and OAuth metadata correct |
+| 2026-06-10 | Bundled rotating-token rate limit | Two requests with different fake bearer values under a one-request IP quota | First reached MCP validation; second returned 429 |
+| 2026-06-10 | MCP container build | Docker daemon was not running on the development machine | Not verified; Dockerfile was type/build checked indirectly through its commands |
 
 ## Definition of Done
 
@@ -1759,6 +1836,74 @@ A future change is complete only when all applicable checks are satisfied:
     resource-specific token audiences.
 - References: `ADR-0023` through `ADR-0026`, `RISK-0018` through `RISK-0021`,
   `GOAL-0013`
+
+### HIST-0011 - 2026-06-10 - Security hardening and scaling controls
+
+- Status: Completed locally; deployed penetration/load testing remains open.
+- Goal: Audit Banime for credential exposure, injection, abuse, and scaling
+  risks, then add enforceable controls at each public or persisted input
+  boundary.
+- Audit findings:
+  - No committed credential-like values were found in the working tree or all
+    three Git commits.
+  - `npm audit` reported zero known dependency vulnerabilities.
+  - Supabase queries were already parameterized and RLS-scoped; no raw SQL,
+    shell execution, `eval`, or raw HTML rendering path was found.
+  - The MCP edge lacked quotas, payload limits, allow lists, and concurrency
+    bounds.
+  - JSON imports and local storage trusted unbounded text and URL schemes.
+  - Jikan per-second spacing did not enforce its official 60-request minute
+    limit or coordinate multiple replicas.
+- HTTP and abuse controls:
+  - Added exact host validation and configurable exact-origin CORS.
+  - Added per-IP request quotas, additional token-hash quotas, and a separate
+    tool-call quota.
+  - Ensured fake/rotated bearer values cannot bypass the IP quota.
+  - Added bounded in-memory counters and optional Upstash distributed
+    counters.
+  - Added a shared 60-per-minute outbound Jikan budget.
+  - Added JSON body, header, concurrency, request, header, and upstream limits.
+  - Rejected unsupported methods, content types, compressed requests, invalid
+    URLs, and oversized chunked or declared bodies.
+- Input and injection controls:
+  - Made all MCP Zod object schemas strict.
+  - Added control-character, length, range, duplicate, and maximum-ID rules.
+  - Escaped Postgres `ILIKE` wildcard metacharacters; Supabase continues to
+    parameterize the request.
+  - Replaced detailed backend errors with generic client errors.
+  - Bounded and sanitized external Jikan text before returning or rendering.
+  - Required credential-free HTTPS for imported and upstream external URLs.
+  - Added bounded import records, arrays, text, progress, years, scores, and
+    episode values.
+  - Validated local storage on every read.
+  - Validated OAuth authorization IDs, redirect protocols, logo URLs, and
+    credential field lengths.
+- Browser/deployment controls:
+  - Added CSP, HSTS, frame denial, MIME sniffing protection, referrer policy,
+    and permissions policy for Vercel and Netlify.
+  - Moved theme initialization to a same-origin external script so CSP does
+    not need `unsafe-inline`.
+  - Converted the MCP image to a multi-stage production build running as the
+    non-root Node user with development dependencies removed.
+  - Added a container health check.
+- Database and scale:
+  - Added JSON object/100 KB size and normalized title/type length checks.
+  - Added a direct `anime_title gin_trgm_ops` index matching `ILIKE`.
+  - Added bounded offset pagination to MCP library reads.
+  - Reused the Supabase verifier client per process.
+  - Documented the stateless replica + Upstash + Supabase deployment model.
+- Verification:
+  - TypeScript, ESLint, PWA build, MCP bundle, and `git diff --check` passed.
+  - Thirteen test files and 26 tests passed.
+  - HTTP tests cover security headers, invalid origins, oversized requests,
+    rate limiting, and rotating fake-token resistance.
+- Residual risk:
+  - No production WAF, centralized logs, metrics, alerting, DAST, or load test
+    has been completed.
+  - Real Supabase OAuth, audience hooks, and two-user RLS tests remain open.
+  - New SQL constraints must be applied and may require cleanup of oversized
+    existing rows.
+- References: `ADR-0027` through `ADR-0030`, `RISK-0022` through `RISK-0026`
 
 ## Release History
 

@@ -9,18 +9,7 @@
     />
     <meta name="theme-color" content="#11101a" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-    <script>
-      (() => {
-        const saved = localStorage.getItem("banime:theme");
-        const theme =
-          saved === "light" || saved === "dark"
-            ? saved
-            : matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light";
-        document.documentElement.dataset.theme = theme;
-      })();
-    </script>
+    <script src="/theme-init.js"></script>
     <title>Banime</title>
   </head>
   <body>

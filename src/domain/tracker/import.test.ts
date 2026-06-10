@@ -33,4 +33,31 @@ describe("parseLibraryImport", () => {
       parseLibraryImport({ items: [{ ...item, status: "invalid" }] })
     ).toThrow(LibraryImportError);
   });
+
+  it("rejects unsafe URLs and control characters", () => {
+    expect(() =>
+      parseLibraryImport({
+        items: [
+          {
+            ...item,
+            anime: { ...item.anime, url: "javascript:alert(1)" }
+          }
+        ]
+      })
+    ).toThrow("valid HTTPS URL");
+
+    expect(() =>
+      parseLibraryImport({
+        items: [{ ...item, notes: "hidden\u0000text" }]
+      })
+    ).toThrow(LibraryImportError);
+  });
+
+  it("rejects oversized imports", () => {
+    expect(() =>
+      parseLibraryImport({
+        items: Array.from({ length: 5001 }, () => item)
+      })
+    ).toThrow("cannot contain more than 5000 items");
+  });
 });

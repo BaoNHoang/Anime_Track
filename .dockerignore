@@ -1,6 +1,7 @@
 node_modules
 dist
 coverage
+mcp-dist
 .git
 .env
 .env.local

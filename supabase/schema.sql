@@ -24,6 +24,18 @@ create table if not exists public.tracked_anime (
   constraint tracked_anime_progress_check check (progress >= 0),
   constraint tracked_anime_score_check check (
     user_score is null or (user_score >= 0 and user_score <= 10)
+  ),
+  constraint tracked_anime_item_object_check check (
+    jsonb_typeof(item) = 'object'
+  ),
+  constraint tracked_anime_item_size_check check (
+    octet_length(item::text) <= 100000
+  ),
+  constraint tracked_anime_title_length_check check (
+    char_length(anime_title) <= 500
+  ),
+  constraint tracked_anime_type_length_check check (
+    char_length(anime_type) <= 100
   )
 );
 
@@ -116,6 +128,54 @@ begin
         user_score is null or (user_score >= 0 and user_score <= 10)
       );
   end if;
+
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'tracked_anime_item_object_check'
+      and conrelid = 'public.tracked_anime'::regclass
+  ) then
+    alter table public.tracked_anime
+      add constraint tracked_anime_item_object_check check (
+        jsonb_typeof(item) = 'object'
+      );
+  end if;
+
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'tracked_anime_item_size_check'
+      and conrelid = 'public.tracked_anime'::regclass
+  ) then
+    alter table public.tracked_anime
+      add constraint tracked_anime_item_size_check check (
+        octet_length(item::text) <= 100000
+      );
+  end if;
+
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'tracked_anime_title_length_check'
+      and conrelid = 'public.tracked_anime'::regclass
+  ) then
+    alter table public.tracked_anime
+      add constraint tracked_anime_title_length_check check (
+        char_length(anime_title) <= 500
+      );
+  end if;
+
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'tracked_anime_type_length_check'
+      and conrelid = 'public.tracked_anime'::regclass
+  ) then
+    alter table public.tracked_anime
+      add constraint tracked_anime_type_length_check check (
+        char_length(anime_type) <= 100
+      );
+  end if;
 end
 $$;
 
@@ -141,6 +201,10 @@ create index if not exists tracked_anime_user_score_idx
 create index if not exists tracked_anime_title_search_idx
   on public.tracked_anime
   using gin (lower(anime_title) gin_trgm_ops);
+
+create index if not exists tracked_anime_title_ilike_idx
+  on public.tracked_anime
+  using gin (anime_title gin_trgm_ops);
 
 alter table public.tracked_anime enable row level security;
 

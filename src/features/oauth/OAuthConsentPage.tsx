@@ -1,5 +1,6 @@
 import { Check, LockKeyhole, X } from "lucide-react";
 import {
+  useCallback,
   useEffect,
   useState,
   type FormEvent
@@ -7,6 +8,7 @@ import {
 import { Brand } from "../../components/Brand";
 import { useCloudAuth } from "../../hooks/useCloudAuth";
 import { getSupabaseClient } from "../../services/supabase/client";
+import { safeExternalUrl } from "../../domain/security/validation";
 
 interface AuthorizationDetails {
   authorization_id: string;
@@ -26,9 +28,14 @@ interface AuthorizationDetails {
 
 export function OAuthConsentPage() {
   const { configured, initialized, user, signIn } = useCloudAuth();
-  const authorizationId = new URLSearchParams(window.location.search).get(
+  const rawAuthorizationId = new URLSearchParams(window.location.search).get(
     "authorization_id"
   );
+  const authorizationId =
+    rawAuthorizationId &&
+    /^[A-Za-z0-9._~-]{16,512}$/.test(rawAuthorizationId)
+      ? rawAuthorizationId
+      : undefined;
   const [details, setDetails] = useState<AuthorizationDetails>();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,6 +48,27 @@ export function OAuthConsentPage() {
       : initialized && !authorizationId
         ? "This authorization request is missing its ID."
         : "";
+
+  const redirectToClient = useCallback((url: string) => {
+    try {
+      const parsed = new URL(url);
+      const localHttp =
+        parsed.protocol === "http:" &&
+        ["localhost", "127.0.0.1", "::1"].includes(parsed.hostname);
+      if (
+        (parsed.protocol !== "https:" && !localHttp) ||
+        parsed.username ||
+        parsed.password
+      ) {
+        throw new Error("Unsafe OAuth redirect.");
+      }
+      window.location.assign(parsed.toString());
+    } catch {
+      setMessage("The OAuth server returned an invalid redirect URL.");
+      setLoading(false);
+      setWorking(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!initialized || !configured || !authorizationId || !user) return;
@@ -57,7 +85,7 @@ export function OAuthConsentPage() {
         return;
       }
       if ("redirect_url" in data) {
-        window.location.assign(data.redirect_url);
+        redirectToClient(data.redirect_url);
         return;
       }
       setDetails(data);
@@ -67,7 +95,13 @@ export function OAuthConsentPage() {
     return () => {
       active = false;
     };
-  }, [authorizationId, configured, initialized, user]);
+  }, [
+    authorizationId,
+    configured,
+    initialized,
+    redirectToClient,
+    user
+  ]);
 
   const handleSignIn = async (event: FormEvent) => {
     event.preventDefault();
@@ -104,7 +138,7 @@ export function OAuthConsentPage() {
       setWorking(false);
       return;
     }
-    window.location.assign(result.data.redirect_url);
+    redirectToClient(result.data.redirect_url);
   };
 
   const scopes = details?.scope.split(/\s+/).filter(Boolean) ?? [];
@@ -147,6 +181,7 @@ export function OAuthConsentPage() {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   autoComplete="email"
+                  maxLength={320}
                   required
                 />
               </label>
@@ -157,6 +192,7 @@ export function OAuthConsentPage() {
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   autoComplete="current-password"
+                  maxLength={128}
                   required
                 />
               </label>
@@ -172,10 +208,10 @@ export function OAuthConsentPage() {
           </>
         ) : details ? (
           <>
-            {details.client.logo_uri && (
+            {safeExternalUrl(details.client.logo_uri) && (
               <img
                 className="oauth-client-logo"
-                src={details.client.logo_uri}
+                src={safeExternalUrl(details.client.logo_uri)}
                 alt=""
               />
             )}
