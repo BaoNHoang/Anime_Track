@@ -59,10 +59,6 @@ export function NextAiring({ items }: { items: Anime[] }) {
           </button>
         ))}
       </div>
-      <p className="schedule-note">
-        Times use Jikan's weekly broadcast schedule and may differ from
-        streaming-platform release times.
-      </p>
     </section>
   );
 }

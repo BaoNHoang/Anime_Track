@@ -17,6 +17,8 @@ optionally sync across devices through Supabase.
 - Optionally sync the same library between desktop and phone
 - Install as a Progressive Web App from a phone home screen
 - Import or export validated Banime JSON library backups
+- Connect ChatGPT through MCP to search anime, read or update the synced
+  library, pull news, and request recommendations
 
 ## Update cadence
 
@@ -81,6 +83,63 @@ The publishable key is intended for browser use. Do not put a Supabase secret
 or service-role key in any `VITE_` environment variable. Row-level security in
 the provided schema limits each signed-in user to their own records.
 
+## Connect ChatGPT with MCP
+
+Banime includes a separate Streamable HTTP MCP server under `mcp/`. Public
+Jikan tools can search anime, load details, and pull title news. Library tools
+use Supabase OAuth and the existing row-level security policies.
+
+Available tools:
+
+- `search_anime`
+- `get_anime_details`
+- `get_anime_news`
+- `get_library`
+- `add_to_library`
+- `update_library_item`
+- `remove_from_library`
+- `get_recommendation_candidates`
+
+### Run the MCP server locally
+
+Copy `.env.mcp.example` to `.env.mcp.local`, add the same Supabase project URL
+and publishable key used by the PWA, then run:
+
+```bash
+npm run mcp:dev
+```
+
+The default endpoint is `http://localhost:8787/mcp`. ChatGPT requires a public
+HTTPS endpoint, so local execution is for development and MCP client tests.
+
+### Deploy and authorize it
+
+1. Deploy the Banime PWA over HTTPS and keep its Supabase browser variables.
+2. Deploy `Dockerfile.mcp` as a separate public web service. `render.yaml` is
+   included as one option.
+3. Set `MCP_PUBLIC_URL` to the complete public `/mcp` URL.
+4. In Supabase Auth, enable the OAuth 2.1 server.
+5. Set the OAuth authorization path to the deployed Banime PWA URL ending in
+   `/oauth/consent`.
+6. Enable dynamic client registration, or register the ChatGPT OAuth client
+   manually.
+7. Add `VITE_MCP_URL` to the PWA deployment and rebuild it.
+8. In ChatGPT, open **Settings > Apps & Connectors > Advanced settings**,
+   enable developer mode, create an app, and enter the public MCP URL.
+9. Connect the app and approve access on Banime's consent page.
+
+For production, use a Supabase access-token hook to issue a resource-specific
+audience and set the same value in `MCP_EXPECTED_AUDIENCE`. Until that is
+configured, leave `MCP_EXPECTED_AUDIENCE` unset. RLS still limits every token
+to its own user's rows.
+
+Official setup references:
+
+- [OpenAI Apps SDK MCP server guide](https://developers.openai.com/apps-sdk/build/mcp-server)
+- [Connect an MCP server to ChatGPT](https://developers.openai.com/apps-sdk/deploy/connect-chatgpt)
+- [OpenAI Apps SDK authentication](https://developers.openai.com/apps-sdk/build/auth)
+- [Supabase MCP OAuth authentication](https://supabase.com/docs/guides/auth/oauth-server/mcp-authentication)
+
 ## Install on a phone
 
 A phone can install Banime as an app after it is deployed over HTTPS.
@@ -106,6 +165,8 @@ when deployed to Vercel or Netlify.
 - `src/hooks`: Query, install, authentication, and utility hooks
 - `src/features`: Dashboard, discovery, news, library, details, and settings
 - `src/components`: Shared presentation components
+- `mcp`: Streamable HTTP server, OAuth token validation, tool registration,
+  Supabase library repository, and recommendation ranking
 
 Jikan is read-only. Personal tracking data is never sent to Jikan or
 MyAnimeList.

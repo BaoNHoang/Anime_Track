@@ -9,6 +9,7 @@ import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { DiscoverPage } from "./features/discover/DiscoverPage";
 import { LibraryPage } from "./features/library/LibraryPage";
 import { NewsPage } from "./features/news/NewsPage";
+import { OAuthConsentPage } from "./features/oauth/OAuthConsentPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 
 const queryClient = new QueryClient({
@@ -21,6 +22,10 @@ const queryClient = new QueryClient({
 });
 
 const router = createBrowserRouter([
+  {
+    path: "/oauth/consent",
+    element: <OAuthConsentPage />
+  },
   {
     element: <AppShell />,
     children: [

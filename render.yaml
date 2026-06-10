@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: banime-mcp
+    runtime: docker
+    dockerfilePath: ./Dockerfile.mcp
+    healthCheckPath: /health
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: MCP_PUBLIC_URL
+        sync: false

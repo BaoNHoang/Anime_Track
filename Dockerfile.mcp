@@ -1,0 +1,18 @@
+FROM node:22-alpine
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY mcp ./mcp
+COPY src/domain ./src/domain
+COPY src/services/jikan ./src/services/jikan
+COPY tsconfig.mcp.json ./
+
+ENV NODE_ENV=production
+ENV PORT=8787
+
+EXPOSE 8787
+
+CMD ["npm", "run", "mcp:start"]

@@ -41,11 +41,13 @@ is incorrect, add a dated correction rather than silently changing the event.
 
 ## Project Purpose
 
-Banime is a personal anime application with three primary responsibilities:
+Banime is a personal anime application with four primary responsibilities:
 
 1. Discover anime through the Jikan v4 API.
 2. Track a private watch library, episode progress, status, and scores.
 3. Present anime-related news and promotional videos.
+4. Expose approved search, library, and recommendation actions to ChatGPT
+   through MCP.
 
 The application is designed to work as:
 
@@ -53,6 +55,8 @@ The application is designed to work as:
 - An installable Progressive Web App on Android and iPhone.
 - A local-only tracker when no backend is configured.
 - A cross-device tracker when Supabase is configured and the user signs in.
+- A private ChatGPT data source and library tool when MCP and Supabase OAuth
+  are deployed.
 
 ### Current Product Goals
 
@@ -64,12 +68,13 @@ The application is designed to work as:
 | GOAL-0004 | Run as an installable phone application | Implemented as PWA, not yet deployed | Manifest, service worker, install UI, responsive navigation |
 | GOAL-0005 | Sync one personal library across desktop and phone | Implemented but not end-to-end verified | Optional Supabase Auth, Postgres repository, merge and write queue |
 | GOAL-0006 | Maintain modular boundaries for future native/mobile work | Implemented | Domain, service, context, hook, feature, and component layers |
-| GOAL-0007 | Maintain reproducible quality checks | Implemented at basic level | Build, lint, and seven unit tests |
+| GOAL-0007 | Maintain reproducible quality checks | Implemented at basic level | Build, lint, and 15 unit/protocol tests |
 | GOAL-0008 | Support accessible light and dark themes | Implemented | Persisted theme provider and device-level controls |
 | GOAL-0009 | Restore a library from JSON | Implemented | Validated merge import in Settings |
 | GOAL-0010 | Show the next scheduled broadcast | Implemented with source limitations | Jikan weekly broadcast metadata converted to local time |
 | GOAL-0011 | Provide direct, efficient catalog and library filtering | Implemented | Memoized client filters and indexed Supabase query columns |
 | GOAL-0012 | Reduce repeated Jikan work and News wait time | Implemented | Session cache, progressive News queries, and offscreen rendering containment |
+| GOAL-0013 | Let ChatGPT search anime and manage the approved private library | Implemented locally, not deployment-verified | Eight MCP tools, Supabase OAuth consent, RLS-bound repository, and protocol tests |
 
 ### Current Non-Goals
 
@@ -79,8 +84,7 @@ documentation:
 - Streaming or hosting anime episodes.
 - Editing MyAnimeList user lists.
 - A native iOS or Android binary.
-- Social features, public profiles, comments, or recommendations based on
-  personal data.
+- Social features, public profiles, or comments.
 - Server-side aggregation of arbitrary anime news sources.
 - Real-time cross-device synchronization.
 - Multi-user administration.
@@ -88,12 +92,12 @@ documentation:
 
 ## Current-State Summary
 
-As of 2026-06-06:
+As of 2026-06-10:
 
 - The project is a React 19 and TypeScript single-page application built with
   Vite.
-- React Router provides five routes: Home, Discover, News, Library, and
-  Settings.
+- React Router provides Home, Discover, News, Library, Settings, and OAuth
+  consent routes.
 - TanStack React Query manages remote Jikan query state.
 - Jikan v4 provides catalog, seasonal, detail, news, and promotional data.
 - Jikan list responses are deduplicated by MAL ID before entering feature code.
@@ -111,6 +115,12 @@ As of 2026-06-06:
 - Supabase Postgres stores one JSON tracker aggregate plus indexed query
   columns per user and anime.
 - Row-level security restricts authenticated users to their own rows.
+- A separate Streamable HTTP MCP server exposes modular Jikan search, detail,
+  news, library, mutation, and recommendation tools.
+- Public MCP tools do not require an account. Library tools validate a
+  Supabase OAuth access token and execute through the caller's RLS session.
+- The PWA hosts `/oauth/consent`, where the signed-in user can approve or deny
+  ChatGPT's Supabase OAuth request.
 - The Supabase package is dynamically imported so local-only users do not load
   it in the initial JavaScript bundle.
 - The application is configured as an auto-updating PWA using
@@ -130,7 +140,7 @@ As of 2026-06-06:
 - Library search covers titles, studios, genres, and notes, with status, type,
   genre, score, and sort controls.
 - Vercel and Netlify SPA route rewrites are included.
-- The current automated suite contains nine tests across seven files.
+- The current automated suite contains 15 tests across 10 files.
 - Production build, ESLint, tests, local route checks, PWA manifest checks, and
   live Jikan endpoint checks passed.
 - A real Supabase project was not configured during development, so
@@ -151,6 +161,9 @@ As of 2026-06-06:
 | React Router DOM | `7.17.0` | SPA routing |
 | TanStack React Query | `5.101.0` | Remote data fetching, stale state, cancellation, and cache coordination |
 | Supabase JS | `2.107.0` | Optional browser authentication and Postgres access |
+| Model Context Protocol SDK | `1.29.0` | Streamable HTTP MCP server and protocol types |
+| Zod | `4.4.3` | MCP tool input validation |
+| dotenv | `17.4.2` | MCP server environment loading |
 | Lucide React | `1.17.0` | Interface icons |
 
 ### Development Dependencies
@@ -164,6 +177,8 @@ As of 2026-06-06:
 | TypeScript ESLint | `8.60.1` | TypeScript lint rules |
 | Vite PWA | `1.3.0` | Manifest and generated service worker |
 | React plugin for Vite | `6.0.2` | React transform and refresh |
+| tsx | `4.22.4` | TypeScript execution for the MCP service |
+| Node types | `25.9.2` | Node HTTP and process type declarations |
 
 Dependency versions are recorded in `package-lock.json`. Update this section
 when dependencies change materially.
@@ -201,6 +216,26 @@ Domain models and pure logic     Service adapters
                          |                          |
                          v                          v
                     Jikan API             localStorage / Supabase
+```
+
+The ChatGPT integration is a separate deployable process:
+
+```text
+ChatGPT
+   |
+   | MCP Streamable HTTP + OAuth bearer token
+   v
+mcp/server.ts -> mcp/tools.ts
+   |                 |
+   |                 +--> Jikan services (public read tools)
+   |
+   +--> Supabase token validation
+           |
+           +--> tracked_anime through the caller's RLS session
+
+Supabase OAuth authorization
+   |
+   +--> Banime PWA /oauth/consent
 ```
 
 ### Architectural Boundaries
@@ -314,6 +349,7 @@ Feature-owned pages and components:
 | `library` | Filtering, status editing, progress, scores, deletion |
 | `anime` | Detail side panel and tracker controls |
 | `settings` | PWA installation, cloud auth, sync status, JSON export |
+| `oauth` | Supabase OAuth consent and ChatGPT connection approval |
 
 #### `src/components`
 
@@ -330,6 +366,32 @@ Shared presentation components:
 
 Contains the complete visual system and responsive behavior. This is currently
 a single global stylesheet rather than CSS modules or a token package.
+
+#### `mcp`
+
+Owns the ChatGPT/MCP boundary and is independently deployable from the PWA.
+
+- `config.ts`
+  - Loads server-only configuration from `.env.mcp.local`, `.env.local`, or
+    process environment variables.
+- `auth.ts`
+  - Extracts bearer tokens, verifies Supabase JWT claims, checks issuer and an
+    optional resource audience, and creates an RLS-bound Supabase client.
+- `libraryRepository.ts`
+  - Performs indexed library reads and user-scoped add, update, and removal.
+- `recommendations.ts`
+  - Pure ranking based on library genres, studios, status, and user scores.
+- `tools.ts`
+  - Registers eight tools with Zod schemas, security metadata, and accurate
+    read-only/destructive/open-world annotations.
+- `server.ts`
+  - Hosts stateless Streamable HTTP at `/mcp`, health output, CORS, and OAuth
+    protected-resource metadata.
+- `index.ts`
+  - Starts and stops the Node HTTP process.
+
+The MCP service imports domain contracts and Jikan service functions but does
+not import React, browser state, or local storage.
 
 ## Application Bootstrap and Provider Order
 
@@ -364,6 +426,7 @@ This order is intentional:
 | `/news` | `NewsPage` | Current-title news and popular promotions |
 | `/library` | `LibraryPage` | Search, filter, sort, and manage saved records |
 | `/settings` | `SettingsPage` | Install, sync, account, and export |
+| `/oauth/consent` | `OAuthConsentPage` | Sign in and approve or deny an external OAuth client |
 
 There is currently no explicit 404 route or route-level error boundary.
 
@@ -570,6 +633,7 @@ resurrected later because deletions have no versioned tombstone.
 ```env
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+VITE_MCP_URL=https://your-banime-mcp-host.example/mcp
 ```
 
 The client also accepts `VITE_SUPABASE_ANON_KEY` as a compatibility fallback.
@@ -649,13 +713,15 @@ Current supported operations:
 - Sign-out.
 - Persisted and refreshed sessions.
 - Email confirmation redirect to the current origin.
+- Supabase OAuth 2.1 consent handling for MCP clients.
+- OAuth approval and denial through `/oauth/consent`.
 
 Not implemented:
 
 - Password reset.
 - Email change.
 - Account deletion.
-- OAuth providers.
+- Third-party login providers.
 - Multi-factor authentication.
 - Reauthentication for sensitive actions.
 
@@ -671,6 +737,8 @@ Not implemented:
 - No generated database TypeScript types.
 - No automated Supabase integration test.
 - No migration framework beyond the current SQL file.
+- Supabase OAuth server settings and token audience hardening still require
+  deployment-specific configuration.
 
 ## Progressive Web App and Mobile Design
 
@@ -752,8 +820,6 @@ most portable parts.
 - Shows six current-season anime cards.
 - Shows up to four nearest weekly broadcasts converted to the device's local
   timezone.
-- Labels the schedule as a Jikan broadcast estimate because streaming release
-  times can differ.
 
 ### Discover
 
@@ -850,15 +916,24 @@ The development server was run with:
 npm.cmd run dev -- --host 127.0.0.1
 ```
 
+Run the MCP service in a second terminal after creating
+`.env.mcp.local`:
+
+```powershell
+npm.cmd run mcp:dev
+```
+
 ### Quality Checks
 
 ```powershell
 npm.cmd run build
 npm.cmd run lint
 npm.cmd test
+npm.cmd run mcp:check
 ```
 
-`npm run build` performs TypeScript project checking before the Vite build.
+`npm run build` checks both browser and MCP TypeScript projects before the
+Vite build.
 
 ### Optional Cloud Setup
 
@@ -869,13 +944,29 @@ npm.cmd test
 5. Add local and deployed origins to the Supabase Auth redirect allow list.
 6. Restart Vite after changing environment variables.
 
+### Optional MCP and ChatGPT Setup
+
+1. Copy `.env.mcp.example` to `.env.mcp.local`.
+2. Set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and the complete
+   `MCP_PUBLIC_URL`.
+3. Enable the Supabase OAuth 2.1 server.
+4. Set its authorization path to the deployed PWA's `/oauth/consent` route.
+5. Enable dynamic client registration or register ChatGPT manually.
+6. Deploy the MCP service over public HTTPS.
+7. Add that endpoint to ChatGPT developer mode under Apps & Connectors.
+8. Connect and approve the request with the intended Banime account.
+
 ### Environment and Secret Rules
 
 - `.env.local` is ignored by `*.local`.
+- `.env.mcp.local` is ignored by the same rule.
 - `.env.example` contains placeholders only.
+- `.env.mcp.example` contains MCP server placeholders only.
 - Never commit passwords or secret/service-role keys.
 - Treat a publishable key as public configuration and rely on RLS.
 - Review built assets if adding any new `VITE_` variable.
+- `MCP_EXPECTED_AUDIENCE` must match the audience produced by a configured
+  Supabase access-token hook; leave it unset until that hook exists.
 
 ## Deployment
 
@@ -888,17 +979,34 @@ Included SPA fallbacks:
 - `vercel.json` rewrites all paths to `index.html`.
 - `public/_redirects` provides a Netlify fallback.
 
+### MCP Hosting
+
+The MCP server is a separate long-running Node service and must not be
+deployed as static files.
+
+- Entry command: `npm run mcp:start`.
+- Default port: `8787`, overridden by `PORT`.
+- MCP endpoint: `/mcp`.
+- Health endpoint: `/health`.
+- OAuth metadata:
+  `/.well-known/oauth-protected-resource/mcp`.
+- Container definition: `Dockerfile.mcp`.
+- Example Render infrastructure file: `render.yaml`.
+
 ### Required Deployment Configuration
 
 - Build command: `npm run build`.
 - Output directory: `dist`.
 - Add Supabase public environment variables if cloud sync is required.
+- Set `VITE_MCP_URL` on the PWA deployment after the MCP URL is known.
+- Set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `MCP_PUBLIC_URL` on the
+  MCP service.
 - Add the deployed origin to Supabase Auth redirect URLs.
 - Use HTTPS for PWA installation and service workers.
 
 ### Deployment Verification Checklist
 
-1. Open all five routes directly, not only through client navigation.
+1. Open all six routes directly, not only through client navigation.
 2. Confirm the service worker and manifest load without errors.
 3. Confirm install UI on Android and manual instructions on iOS.
 4. Create a test user.
@@ -908,6 +1016,10 @@ Included SPA fallbacks:
 8. Test sign-out and local-only behavior.
 9. Test Jikan failure and rate-limit states.
 10. Confirm RLS blocks access to another user's rows.
+11. Confirm the MCP protected-resource metadata is public and correct.
+12. Add the MCP URL to ChatGPT and complete OAuth consent.
+13. Verify search, library read, add, update, remove, news, and recommendation
+    tool calls against a non-production test account.
 
 No production deployment has completed this checklist yet.
 
@@ -923,12 +1035,15 @@ No production deployment has completed this checklist yet.
 | `domain/anime/dedupe.test.ts` | Duplicate MAL IDs are removed |
 | `domain/anime/airing.test.ts` | Weekly Jikan broadcast time converts to UTC |
 | `domain/tracker/import.test.ts` | Banime exports import and malformed status is rejected |
+| `mcp/recommendations.test.ts` | Preference ranking, tracked-title exclusion, and explicit filters |
+| `mcp/libraryRepository.test.ts` | Partial updates, score clearing, and progress clamping |
+| `mcp/tools.test.ts` | MCP tool discovery and OAuth challenge metadata through an in-memory client |
 
 Current result:
 
 ```text
-Test files: 6 passed
-Tests: 7 passed
+Test files: 10 passed
+Tests: 15 passed
 ```
 
 ### Static Checks
@@ -955,6 +1070,8 @@ Priority test gaps:
 10. Route and UI integration tests.
 11. Keyboard and accessibility tests.
 12. Mobile and desktop visual regression tests.
+13. Real Supabase OAuth authorization and token exchange.
+14. Authenticated MCP mutation tests against a disposable Supabase project.
 
 ## Security and Privacy
 
@@ -985,6 +1102,14 @@ Banime does not send personal tracking data to Jikan or MyAnimeList.
 - Search parameters are encoded with `URLSearchParams`.
 - React escapes rendered text by default.
 - The application does not render raw article HTML.
+- MCP library tools validate signed Supabase JWT claims before repository
+  access.
+- MCP database operations use the caller's access token, so existing RLS
+  policies remain the authorization boundary.
+- No service-role key is used by the MCP server.
+- Protected tools advertise OAuth security metadata and return an OAuth
+  challenge when no valid token is present.
+- Mutation tools are marked destructive where they overwrite or remove data.
 
 ### Security Work Still Needed
 
@@ -995,6 +1120,10 @@ Banime does not send personal tracking data to Jikan or MyAnimeList.
 - Define account deletion and data-retention behavior.
 - Decide whether notes can contain sensitive personal information.
 - Add explicit confirmation for destructive library removal if desired.
+- Configure a resource-specific OAuth token audience and enforce it with
+  `MCP_EXPECTED_AUDIENCE`.
+- Add production host validation, request limits, structured audit logs, and
+  abuse monitoring for the public MCP endpoint.
 
 ## Reliability and Performance
 
@@ -1017,12 +1146,17 @@ Banime does not send personal tracking data to Jikan or MyAnimeList.
   filter/sort work.
 - Postgres query columns and indexes support user, status, date, type, score,
   and partial-title retrieval.
+- MCP calls are stateless at the HTTP transport layer.
+- Jikan data requested by MCP reuses the same in-process throttling and cache
+  implementation as the PWA services.
+- Recommendation ranking is pure and deterministic for the same library and
+  candidate set.
 
 ### Last Recorded Production Build
 
 ```text
-Main CSS: 27.85 kB, 6.06 kB gzip
-Main JS: 383.89 kB, 118.69 kB gzip
+Main CSS: 29.68 kB, 6.37 kB gzip
+Main JS: 389.19 kB, 120.01 kB gzip
 Supabase lazy chunk: 199.77 kB, 51.03 kB gzip
 ```
 
@@ -1093,6 +1227,10 @@ These values are development evidence, not a permanent performance budget.
 | ADR-0020 | 2026-06-06 | Use flat surfaces, one product accent, and one system font stack | Accepted | Keeps hierarchy readable without gradients, glass effects, or decorative template elements |
 | ADR-0021 | 2026-06-06 | Keep the JSON aggregate and add indexed query columns | Accepted | Preserves simple hydration while enabling efficient Postgres retrieval and future server-side pagination |
 | ADR-0022 | 2026-06-06 | Cache Jikan responses per tab and split News into progressive queries | Accepted | Reduces repeated API work and allows useful content to render before every rate-limited request finishes |
+| ADR-0023 | 2026-06-10 | Expose ChatGPT capabilities through a separate Streamable HTTP MCP service | Accepted | Keeps the PWA static while providing a standard, independently deployable tool interface |
+| ADR-0024 | 2026-06-10 | Reuse Supabase OAuth and RLS for MCP identity and authorization | Accepted | Avoids a second account system and keeps user row policies authoritative |
+| ADR-0025 | 2026-06-10 | Keep Jikan tools public and require OAuth only for personal library tools | Accepted | Catalog information is public while tracking data and mutations are private |
+| ADR-0026 | 2026-06-10 | Generate recommendation candidates with deterministic local ranking | Accepted for the first MCP version | Uses existing library signals without sending private history to another recommendation service |
 
 ### Superseded Decision Note
 
@@ -1121,6 +1259,10 @@ resulting stack selection.
 | RISK-0015 | Low | Mobile | Only SVG app icon is supplied | Add 192 px and 512 px PNG icons and Apple touch icon |
 | RISK-0016 | Low | CSS | One large global stylesheet increases collision risk | Introduce feature styles or CSS modules when growth justifies it |
 | RISK-0017 | Process | Git | Current changes are uncommitted | Review and create a baseline commit before further large changes |
+| RISK-0018 | High | MCP auth | Supabase OAuth and authenticated tool calls are not verified against a real deployed project | Complete OAuth, RLS, and mutation tests with a disposable user |
+| RISK-0019 | High | Public service | MCP endpoint has no production rate limiting, audit sink, or abuse monitoring | Add proxy limits, structured logs, alerts, and a documented incident process |
+| RISK-0020 | Medium | OAuth tokens | Resource-specific audience enforcement is optional until a Supabase token hook is configured | Add the hook and set `MCP_EXPECTED_AUDIENCE` before production use |
+| RISK-0021 | Medium | Recommendations | Candidate pool is limited to current season and top-popularity feeds | Add Jikan recommendation or genre-specific candidate sources if results are too narrow |
 
 ## Prioritized Roadmap
 
@@ -1132,6 +1274,8 @@ resulting stack selection.
 4. Deploy an HTTPS preview.
 5. Install and test on one Android and one iPhone device.
 6. Add PNG PWA icons and Apple touch metadata.
+7. Deploy the MCP service and configure the Supabase OAuth server.
+8. Verify all eight tools through ChatGPT with a disposable account.
 
 ### Phase 2: Fix Synchronization Semantics
 
@@ -1164,6 +1308,7 @@ resulting stack selection.
 4. Add CSP and hosting security headers.
 5. Define release, rollback, monitoring, and backup procedures.
 6. Measure Core Web Vitals and set bundle budgets.
+7. Add MCP request metrics, rate limits, audit logs, and health monitoring.
 
 ## Experiment and Failure Log
 
@@ -1176,6 +1321,8 @@ resulting stack selection.
 | EXP-0005 | 2026-06-06 | Use in-app browser automation for visual verification | Repeatedly failed because the browser runtime hit Windows `spawn setup refresh` | Used build, HTTP, manifest, and live API checks; retained visual QA as open work |
 | EXP-0006 | 2026-06-06 | Bundle Supabase in the main application chunk | Build produced a JavaScript chunk above 500 kB | Converted Supabase initialization to dynamic import; build split the cloud client into a separate chunk |
 | EXP-0007 | 2026-06-06 | Use Jikan anime news and popular promo endpoints | Live responses matched implemented DTOs | Added the News feature using those endpoints |
+| EXP-0008 | 2026-06-10 | Run npm scripts directly through PowerShell for MCP verification | Failed because `npm.ps1` and `npx.ps1` were blocked by execution policy | Used `npm.cmd` and `npx.cmd`; checks passed |
+| EXP-0009 | 2026-06-10 | Verify MCP compatibility without deployed Supabase credentials | In-memory SDK client listed all tools and received the expected OAuth challenge | Kept real OAuth and database mutation verification as deployment work |
 
 ## Incident Log
 
@@ -1219,6 +1366,14 @@ Log rather than treated as application incidents.
 | 2026-06-06 | Live Most Popular pagination | Four Jikan pages with 25 rows each | Returned 100 rows and 100 unique MAL IDs |
 | 2026-06-06 | Optimized routes | HTTP requests to `/discover` and `/news` | Both returned status 200 |
 | 2026-06-06 | Updated contrast and News UI | In-app browser automation attempt | Not completed due host Windows sandbox failure |
+| 2026-06-10 | MCP TypeScript | `npm.cmd run mcp:check` | Passed with strict Node/MCP type checking |
+| 2026-06-10 | MCP and PWA lint | `npm.cmd run lint` | Passed with no warnings |
+| 2026-06-10 | MCP protocol, repository, and recommendation tests | `npm.cmd test` | 10 test files and 15 tests passed |
+| 2026-06-10 | Combined production build | `npm.cmd run build` | Browser and MCP TypeScript checks, Vite build, and PWA generation passed |
+| 2026-06-10 | Local MCP HTTP service | Health and protected-resource metadata requests plus SDK Streamable HTTP client | Health returned `ok`, metadata matched the resource/auth server, and all eight tools were discovered |
+| 2026-06-10 | OAuth consent route | HTTP request to `/oauth/consent` | Status 200 |
+| 2026-06-10 | MCP consent and Settings visual UI | Two in-app browser attempts | Not completed because the browser webview did not attach |
+| 2026-06-10 | Real ChatGPT OAuth connection | No public MCP deployment or Supabase OAuth server was configured | Not verified |
 
 ## Definition of Done
 
@@ -1234,6 +1389,8 @@ A future change is complete only when all applicable checks are satisfied:
 - Mobile and desktop UI are checked when presentation changes.
 - Accessibility impact is evaluated.
 - PWA caching and deployment impact are evaluated.
+- MCP tool schemas, auth metadata, destructive annotations, and deployment
+  impact are evaluated when the integration changes.
 - Security and privacy impact are evaluated.
 - README and this history document remain accurate.
 - Database migrations and rollback implications are documented.
@@ -1537,6 +1694,71 @@ A future change is complete only when all applicable checks are satisfied:
   - A 100-card result still requires more DOM than a paginated or virtualized
     list, although offscreen containment reduces rendering work.
 - References: `ADR-0022`, `GOAL-0012`
+
+### HIST-0010 - 2026-06-10 - Add ChatGPT MCP integration
+
+- Status: Implemented locally; deployment authorization remains unverified.
+- Goal: Let ChatGPT search anime, pull current information and news, read or
+  update the user's synced Banime list, and produce personalized
+  recommendations.
+- Scope: MCP service, Supabase OAuth consent, library repository, ranking,
+  Settings, environment configuration, container deployment, tests, README,
+  and engineering history.
+- Architecture:
+  - Added a separate stateless Streamable HTTP MCP service under `mcp/`.
+  - Reused existing domain contracts and Jikan adapters.
+  - Reused Supabase Auth and `tracked_anime` RLS instead of adding another
+    identity or database system.
+  - Added `/oauth/consent` to the PWA for Supabase OAuth approval and denial.
+- Tools:
+  - `search_anime`, `get_anime_details`, and `get_anime_news` are public,
+    read-only Jikan tools.
+  - `get_library` is an OAuth-protected read tool with indexed status/title
+    filters.
+  - `add_to_library`, `update_library_item`, and `remove_from_library` mutate
+    the caller's rows through RLS.
+  - `get_recommendation_candidates` ranks untracked current/popular anime from
+    genre, studio, status, and user-score signals.
+- Security:
+  - Access tokens are verified with Supabase `getClaims`.
+  - The issuer is required to match the configured Supabase Auth server.
+  - Optional resource-audience enforcement is available through
+    `MCP_EXPECTED_AUDIENCE`.
+  - The server uses only the publishable key and caller token, never a
+    service-role key.
+  - Protected tools return `mcp/www_authenticate` metadata when authorization
+    is absent or invalid.
+  - Tool security schemes and read-only, destructive, idempotent, and
+    open-world annotations are declared.
+- Deployment:
+  - Added `.env.mcp.example`, `Dockerfile.mcp`, `.dockerignore`, and
+    `render.yaml`.
+  - Added PWA `VITE_MCP_URL` configuration and a Settings status card.
+  - Documented Supabase OAuth server setup and ChatGPT developer-mode
+    connection.
+- Verification:
+  - MCP TypeScript check passed.
+  - ESLint passed.
+  - Ten test files and 15 tests passed.
+  - An in-memory MCP client discovered all eight tools.
+  - A Streamable HTTP SDK client also discovered all eight tools from the
+    local `/mcp` endpoint.
+  - Local health and OAuth protected-resource metadata were correct.
+  - The `/oauth/consent` SPA route returned HTTP 200.
+  - The protected library tool returned the expected OAuth challenge.
+  - Combined browser/MCP production build and PWA generation passed.
+- Not verified:
+  - Real Supabase OAuth consent, token exchange, and audience hook.
+  - Authenticated library operations against a live Supabase project.
+  - Public HTTPS deployment and connection from a real ChatGPT account.
+  - Browser visual checks of the consent and Settings screens.
+- Follow-up:
+  - Configure a disposable Supabase project and public preview URLs.
+  - Run OAuth and two-user RLS integration tests.
+  - Add production rate limits, structured audit logs, monitoring, and
+    resource-specific token audiences.
+- References: `ADR-0023` through `ADR-0026`, `RISK-0018` through `RISK-0021`,
+  `GOAL-0013`
 
 ## Release History
 

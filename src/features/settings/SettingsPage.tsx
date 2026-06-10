@@ -5,6 +5,7 @@ import {
   Download,
   Info,
   LogOut,
+  MessageSquare,
   Moon,
   RefreshCw,
   Smartphone,
@@ -45,6 +46,7 @@ export function SettingsPage() {
     tone: "success" | "error";
     text: string;
   }>();
+  const mcpUrl = import.meta.env.VITE_MCP_URL;
 
   const handleAuth = async (event: FormEvent) => {
     event.preventDefault();
@@ -296,6 +298,33 @@ export function SettingsPage() {
               additional copy, so tracking remains responsive and usable
               during temporary connection problems.
             </p>
+          </div>
+        </article>
+
+        <article className="settings-card">
+          <span className="settings-card__icon">
+            <MessageSquare size={22} />
+          </span>
+          <div className="settings-card__content">
+            <h2>ChatGPT connection</h2>
+            <p>
+              Banime includes an MCP server that lets ChatGPT search Jikan,
+              read your synced library, update tracking, and recommend anime.
+              Library actions require your Banime sign-in and approval.
+            </p>
+            {mcpUrl ? (
+              <>
+                <span className="status-pill status-pill--success">
+                  <CheckCircle2 size={14} /> MCP endpoint configured
+                </span>
+                <code className="settings-code">{mcpUrl}</code>
+              </>
+            ) : (
+              <p className="settings-hint">
+                Deploy the MCP server, then set <code>VITE_MCP_URL</code> to
+                its public HTTPS <code>/mcp</code> URL.
+              </p>
+            )}
           </div>
         </article>
 
