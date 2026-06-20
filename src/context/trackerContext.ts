@@ -20,7 +20,10 @@ export interface TrackerContextValue {
     >
   ) => void;
   removeAnime: (animeId: number) => void;
-  importItems: (items: TrackedAnime[]) => {
+  importItems: (
+    items: TrackedAnime[],
+    options?: { replaceOnEqualUpdatedAt?: boolean }
+  ) => {
     added: number;
     updated: number;
     total: number;

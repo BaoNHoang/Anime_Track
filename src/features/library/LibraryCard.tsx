@@ -1,6 +1,7 @@
-import { Minus, Plus, Star, Trash2 } from "lucide-react";
+import { ExternalLink, Minus, Plus, Star, Trash2 } from "lucide-react";
 import { useAnimePanel } from "../../hooks/useAnimePanel";
 import { useTracker } from "../../hooks/useTracker";
+import { useWatchProvider } from "../../hooks/useWatchProvider";
 import {
   STATUS_LABELS,
   TRACKING_STATUSES,
@@ -11,6 +12,8 @@ import {
 export function LibraryCard({ item }: { item: TrackedAnime }) {
   const { openAnime } = useAnimePanel();
   const { updateAnime, removeAnime } = useTracker();
+  const { provider, getWatchUrl } = useWatchProvider();
+  const watchUrl = getWatchUrl(item.anime);
 
   return (
     <article className="library-card">
@@ -18,7 +21,11 @@ export function LibraryCard({ item }: { item: TrackedAnime }) {
         className="library-card__poster"
         onClick={() => openAnime(item.anime)}
       >
-        <img src={item.anime.imageUrl} alt="" />
+        {item.anime.imageUrl ? (
+          <img src={item.anime.imageUrl} alt="" />
+        ) : (
+          <span className="poster-placeholder">No image</span>
+        )}
       </button>
       <div className="library-card__content">
         <div>
@@ -104,6 +111,15 @@ export function LibraryCard({ item }: { item: TrackedAnime }) {
             </div>
           </label>
         </div>
+        <a
+          className="library-card__watch"
+          href={watchUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <ExternalLink size={13} />
+          Find on {provider.label}
+        </a>
       </div>
       <button
         className="library-card__remove"

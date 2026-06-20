@@ -32,6 +32,14 @@ describe("getTopAnime", () => {
       "/top/anime?filter=bypopularity&limit=25&page=3&sfw=true",
       "/top/anime?filter=bypopularity&limit=25&page=4&sfw=true"
     ]);
+    expect(jikanGetMock.mock.calls.map(([, options]) => options)).toEqual(
+      Array.from({ length: 4 }, () =>
+        expect.objectContaining({
+          cacheMs: 6 * 60 * 60 * 1000,
+          cacheStorage: "local"
+        })
+      )
+    );
   });
 
   it("keeps airing and upcoming feeds to one request", async () => {

@@ -16,14 +16,17 @@ import {
 import { useAnimeDetails } from "../../hooks/useAnimeQueries";
 import { useAnimePanel } from "../../hooks/useAnimePanel";
 import { useTracker } from "../../hooks/useTracker";
+import { useWatchProvider } from "../../hooks/useWatchProvider";
 
 export function AnimeDetailPanel() {
   const { selectedAnime, closeAnime } = useAnimePanel();
   const details = useAnimeDetails(selectedAnime?.id);
   const anime = details.data ?? selectedAnime;
   const { addAnime, getTracked, updateAnime, removeAnime } = useTracker();
+  const { provider, getWatchUrl } = useWatchProvider();
   const tracked = anime ? getTracked(anime.id) : undefined;
   const nextAiring = anime ? formatNextAiring(anime) : undefined;
+  const watchUrl = anime ? getWatchUrl(anime) : "";
 
   useEffect(() => {
     if (!selectedAnime) return;
@@ -61,7 +64,11 @@ export function AnimeDetailPanel() {
           <X size={20} />
         </button>
         <div className="detail-panel__hero">
-          <img src={anime.largeImageUrl} alt="" />
+          {anime.largeImageUrl ? (
+            <img src={anime.largeImageUrl} alt="" />
+          ) : (
+            <span className="poster-placeholder">No image</span>
+          )}
         </div>
 
         <div className="detail-panel__body">
@@ -178,6 +185,11 @@ export function AnimeDetailPanel() {
           )}
 
           <div className="detail-panel__links">
+            {watchUrl && (
+              <a href={watchUrl} target="_blank" rel="noreferrer">
+                <ExternalLink size={16} /> Find on {provider.label}
+              </a>
+            )}
             {anime.trailerUrl && (
               <a href={anime.trailerUrl} target="_blank" rel="noreferrer">
                 <Play size={16} /> Trailer

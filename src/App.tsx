@@ -5,6 +5,7 @@ import { AnimePanelProvider } from "./context/AnimePanelProvider";
 import { CloudAuthProvider } from "./context/CloudAuthProvider";
 import { TrackerProvider } from "./context/TrackerProvider";
 import { ThemeProvider } from "./context/ThemeProvider";
+import { WatchProvider } from "./context/WatchProvider";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { DiscoverPage } from "./features/discover/DiscoverPage";
 import { LibraryPage } from "./features/library/LibraryPage";
@@ -44,9 +45,11 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <CloudAuthProvider>
           <TrackerProvider>
-            <AnimePanelProvider>
-              <RouterProvider router={router} />
-            </AnimePanelProvider>
+            <WatchProvider>
+              <AnimePanelProvider>
+                <RouterProvider router={router} />
+              </AnimePanelProvider>
+            </WatchProvider>
           </TrackerProvider>
         </CloudAuthProvider>
       </QueryClientProvider>

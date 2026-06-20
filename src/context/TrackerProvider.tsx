@@ -159,7 +159,10 @@ export function TrackerProvider({ children }: PropsWithChildren) {
   );
 
   const importItems = useCallback(
-    (importedItems: TrackedAnime[]) => {
+    (
+      importedItems: TrackedAnime[],
+      options: { replaceOnEqualUpdatedAt?: boolean } = {}
+    ) => {
       const currentById = new Map(
         itemsRef.current.map((item) => [item.anime.id, item])
       );
@@ -170,12 +173,18 @@ export function TrackerProvider({ children }: PropsWithChildren) {
         const existing = currentById.get(item.anime.id);
         if (!existing) {
           added += 1;
-        } else if (item.updatedAt > existing.updatedAt) {
+        } else if (
+          item.updatedAt > existing.updatedAt ||
+          (options.replaceOnEqualUpdatedAt &&
+            item.updatedAt === existing.updatedAt)
+        ) {
           updated += 1;
         }
       }
 
-      const merged = mergeTrackedAnime(itemsRef.current, importedItems);
+      const merged = mergeTrackedAnime(itemsRef.current, importedItems, {
+        replaceOnEqualUpdatedAt: options.replaceOnEqualUpdatedAt
+      });
       saveLocal(merged);
       if (user) {
         enqueueCloud(() =>

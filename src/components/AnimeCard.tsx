@@ -17,12 +17,16 @@ export function AnimeCard({ anime }: { anime: Anime }) {
         onClick={() => openAnime(anime)}
         aria-label={`View ${anime.title}`}
       >
-        <img
-          className="anime-card__poster"
-          src={anime.imageUrl}
-          alt=""
-          loading="lazy"
-        />
+        {anime.imageUrl ? (
+          <img
+            className="anime-card__poster"
+            src={anime.imageUrl}
+            alt=""
+            loading="lazy"
+          />
+        ) : (
+          <span className="poster-placeholder">No image</span>
+        )}
         <span className="anime-card__overlay">View details</span>
       </button>
       <div className="anime-card__body">

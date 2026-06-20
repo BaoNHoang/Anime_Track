@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getAnimeById,
   getCurrentSeason,
+  getTopAnimeCacheMs,
   getTopAnime,
   searchAnime
 } from "../services/jikan/animeService";
@@ -18,8 +19,7 @@ export function useCurrentSeason() {
 export function useTopAnime(
   filter: "airing" | "upcoming" | "bypopularity"
 ) {
-  const cacheTime =
-    filter === "bypopularity" ? 60 * 60 * 1000 : 15 * 60 * 1000;
+  const cacheTime = getTopAnimeCacheMs(filter);
 
   return useQuery({
     queryKey: ["anime", "top", filter],

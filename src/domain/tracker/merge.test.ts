@@ -16,9 +16,13 @@ const anime: Anime = {
   url: ""
 };
 
-function item(progress: number, updatedAt: string): TrackedAnime {
+function item(
+  progress: number,
+  updatedAt: string,
+  animeTitle = anime.title
+): TrackedAnime {
   return {
-    anime,
+    anime: { ...anime, title: animeTitle },
     status: "watching",
     progress,
     notes: "",
@@ -36,5 +40,24 @@ describe("mergeTrackedAnime", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].progress).toBe(5);
+  });
+
+  it("keeps same-timestamp local data unless replacement is requested", () => {
+    const result = mergeTrackedAnime(
+      [item(2, "2026-06-01T00:00:00.000Z", "Local title")],
+      [item(2, "2026-06-01T00:00:00.000Z", "Jikan title")]
+    );
+
+    expect(result[0].anime.title).toBe("Local title");
+  });
+
+  it("can replace same-timestamp data for catalog enrichment imports", () => {
+    const result = mergeTrackedAnime(
+      [item(2, "2026-06-01T00:00:00.000Z", "Imported MAL title")],
+      [item(2, "2026-06-01T00:00:00.000Z", "Jikan title")],
+      { replaceOnEqualUpdatedAt: true }
+    );
+
+    expect(result[0].anime.title).toBe("Jikan title");
   });
 });

@@ -7,6 +7,7 @@ import {
   LogOut,
   MessageSquare,
   Moon,
+  PlayCircle,
   RefreshCw,
   Smartphone,
   Sun,
@@ -18,11 +19,14 @@ import {
   LibraryImportError,
   parseLibraryImport
 } from "../../domain/tracker/import";
+import { parseMyAnimeListXml } from "../../domain/tracker/xml";
 import { useAppUpdateStatus } from "../../hooks/useAppUpdateStatus";
 import { useCloudAuth } from "../../hooks/useCloudAuth";
 import { usePwaInstall } from "../../hooks/usePwaInstall";
 import { useTheme } from "../../hooks/useTheme";
 import { useTracker } from "../../hooks/useTracker";
+import { useWatchProvider } from "../../hooks/useWatchProvider";
+import { enrichTrackedAnimeFromJikan } from "../../services/jikan/trackerEnrichment";
 
 type AuthMode = "sign_in" | "sign_up";
 
@@ -32,6 +36,8 @@ export function SettingsPage() {
     useCloudAuth();
   const { canInstall, installed, install, isIos } = usePwaInstall();
   const { theme, setTheme } = useTheme();
+  const { provider, providerId, providers, setProviderId } =
+    useWatchProvider();
   const { lastChecked, intervalMinutes } = useAppUpdateStatus();
   const importInput = useRef<HTMLInputElement>(null);
   const [authMode, setAuthMode] = useState<AuthMode>("sign_in");
@@ -46,6 +52,7 @@ export function SettingsPage() {
     tone: "success" | "error";
     text: string;
   }>();
+  const [importing, setImporting] = useState(false);
   const mcpUrl = import.meta.env.VITE_MCP_URL;
 
   const handleAuth = async (event: FormEvent) => {
@@ -97,24 +104,65 @@ export function SettingsPage() {
       return;
     }
 
+    setImporting(true);
     try {
-      const parsed = JSON.parse(await file.text()) as unknown;
-      const imported = parseLibraryImport(parsed);
-      const result = importItems(imported);
-      setImportMessage({
-        tone: "success",
-        text: `Imported ${result.added} new and ${result.updated} newer title${
-          result.added + result.updated === 1 ? "" : "s"
-        }. Your library now has ${result.total}.`
-      });
+      const text = await file.text();
+      const trimmedText = text.trimStart();
+
+      if (trimmedText.startsWith("{") || trimmedText.startsWith("[")) {
+        const imported = parseLibraryImport(JSON.parse(text) as unknown);
+        const result = importItems(imported);
+        setImportMessage({
+          tone: "success",
+          text: `Imported ${result.added} new and ${result.updated} newer title${
+            result.added + result.updated === 1 ? "" : "s"
+          }. Your library now has ${result.total}.`
+        });
+      } else {
+        const parsedMalItems = parseMyAnimeListXml(text);
+        const savedResult = importItems(parsedMalItems);
+        setImportMessage({
+          tone: "success",
+          text: `Saved ${savedResult.added} new and ${savedResult.updated} newer MyAnimeList title${
+            savedResult.added + savedResult.updated === 1 ? "" : "s"
+          } locally. Checking Jikan for posters and details for ${parsedMalItems.length} title${
+            parsedMalItems.length === 1 ? "" : "s"
+          }...`
+        });
+
+        const enrichment = await enrichTrackedAnimeFromJikan(parsedMalItems, {
+          onProgress: ({ completed, total, enriched, failed }) => {
+            if (completed === 1 || completed % 10 === 0 || completed === total) {
+              setImportMessage({
+                tone: "success",
+                text: `Checking Jikan ${completed}/${total}. Updated ${enriched}; ${failed} kept from MyAnimeList only.`
+              });
+            }
+          }
+        });
+        const enrichedResult = importItems(enrichment.items, {
+          replaceOnEqualUpdatedAt: true
+        });
+        const enrichmentMessage = `Checked Jikan for ${enrichment.enriched + enrichment.failed} title${
+          enrichment.enriched + enrichment.failed === 1 ? "" : "s"
+        }; updated ${enrichment.enriched} with current catalog details${
+          enrichment.failed ? ` and kept ${enrichment.failed} from MyAnimeList only` : ""
+        }.`;
+        setImportMessage({
+          tone: "success",
+          text: `${enrichmentMessage} Your library now has ${enrichedResult.total}.`
+        });
+      }
     } catch (error) {
       setImportMessage({
         tone: "error",
         text:
           error instanceof LibraryImportError
             ? error.message
-            : "This file is not valid JSON."
+            : "This file is not a valid MyAnimeList XML export or Banime JSON backup."
       });
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -332,32 +380,63 @@ export function SettingsPage() {
 
         <article className="settings-card">
           <span className="settings-card__icon">
+            <PlayCircle size={22} />
+          </span>
+          <div className="settings-card__content">
+            <h2>Watch links</h2>
+            <p>
+              Choose where Banime opens "Find on" links from your library and
+              anime detail pages. Banime opens external search or availability
+              pages only; it does not host episodes.
+            </p>
+            <label className="field settings-select">
+              <span>Current provider</span>
+              <select
+                value={providerId}
+                onChange={(event) => setProviderId(event.target.value)}
+              >
+                {providers.map((option) => (
+                  <option value={option.id} key={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="settings-hint">{provider.note}</p>
+          </div>
+        </article>
+
+        <article className="settings-card">
+          <span className="settings-card__icon">
             <Download size={22} />
           </span>
           <div className="settings-card__content">
             <h2>Import or export library</h2>
             <p>
-              Merge a Banime JSON backup into this library or download all{" "}
-              {items.length} current titles.
+              Import a MyAnimeList XML export. Banime will check Jikan for
+              posters and details before saving. You can still export your
+              Banime library as JSON.
             </p>
             <div className="settings-actions">
               <input
                 ref={importInput}
                 className="visually-hidden"
                 type="file"
-                accept="application/json,.json"
+                accept="application/xml,text/xml,application/json,.xml,.json"
                 onChange={(event) => void handleImport(event)}
               />
               <button
                 className="button button--compact"
                 onClick={() => importInput.current?.click()}
+                disabled={importing}
               >
-                <Upload size={15} /> Import JSON
+                <Upload size={15} />
+                {importing ? "Importing..." : "Import MAL XML"}
               </button>
               <button
                 className="button button--ghost button--compact"
                 onClick={exportLibrary}
-                disabled={!items.length}
+                disabled={!items.length || importing}
               >
                 <Download size={15} /> Export JSON
               </button>
@@ -381,8 +460,8 @@ export function SettingsPage() {
             <p>
               Banime checks for a newly deployed app version at startup and
               every {intervalMinutes} minutes while open. Airing and seasonal
-              anime refresh every 15 minutes. Most Popular refreshes hourly,
-              and news and trailers refresh every 2 hours.
+              anime refresh every 15 minutes. Most Popular refreshes every 6
+              hours, and news and trailers refresh every 2 hours.
             </p>
             <span className="status-pill">
               Last app check:{" "}

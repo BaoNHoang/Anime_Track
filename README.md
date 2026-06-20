@@ -12,11 +12,12 @@ optionally sync across devices through Supabase.
 - See the next scheduled weekly broadcast in your local time
 - Track status, episode progress, notes, and personal scores
 - Search and filter your library by status, type, genre, score, and progress
+- Open configurable watch-search links from library and detail pages
 - Use a persisted light or dark theme with a blue accent palette
 - Keep tracking locally with no account or backend required
 - Optionally sync the same library between desktop and phone
 - Install as a Progressive Web App from a phone home screen
-- Import or export validated Banime JSON library backups
+- Import MyAnimeList XML exports, and import or export Banime JSON backups
 - Connect ChatGPT through MCP to search anime, read or update the synced
   library, pull news, and request recommendations
 
@@ -25,9 +26,10 @@ optionally sync across devices through Supabase.
 - Deployed app code is checked at startup and every 60 minutes while Banime is
   open. The generated service worker installs updates automatically.
 - Current-season and airing feeds refresh every 15 minutes while visible.
+- Top 100 popular anime refreshes every 6 hours and uses persistent browser
+  caching because that list changes slowly.
 - News headlines and trailers refresh every 2 hours while visible.
-- Fresh Jikan responses are cached for the current browser tab and survive
-  page reloads until their endpoint-specific expiry time.
+- Fresh Jikan responses are cached until their endpoint-specific expiry time.
 - Returning to a stale browser tab triggers a refresh.
 - Search results are cached for 10 minutes and anime details for 30 minutes.
 
@@ -176,7 +178,14 @@ theme bootstrap is an external same-origin file so CSP does not require
 
 ### Input and storage validation
 
-- JSON imports are limited to 5 MB by the UI and 5,000 records by the parser.
+- MyAnimeList XML imports and Banime JSON imports are limited to 5 MB by the
+  UI and 5,000 records by the parser.
+- MyAnimeList XML imports save the parsed list to local storage before Jikan
+  enrichment starts. If the app is stopped during enrichment, the base list is
+  still available after relaunch.
+- After the checkpoint save, Banime checks Jikan for posters and current
+  catalog details and saves those enriched details when available. Signed-in
+  users also queue the same saves to Supabase.
 - Imported text, arrays, IDs, scores, years, progress, and timestamps are
   bounded and validated.
 - External links must be credential-free HTTPS URLs. Unsafe links are rejected
@@ -189,6 +198,20 @@ theme bootstrap is an external same-origin file so CSP does not require
 Rerun `supabase/schema.sql` after this security update. The new constraints can
 fail if existing rows exceed the limits; inspect and repair those rows before
 retrying rather than removing the checks.
+
+### Watch links
+
+Banime does not host or embed anime episodes. Library cards and anime detail
+pages can open an external search or availability page for the selected title.
+The current provider is stored per browser in Settings. Default providers are
+Anikoto, JustWatch, and Crunchyroll. Anikoto is the default provider and opens
+its filter page for the selected title.
+
+To rotate providers later, update `WATCH_PROVIDERS` in
+`src/domain/watch/providers.ts`. Keep providers to authorized search or
+availability destinations. Direct Anikoto episode links like
+`/watch/{slug}/ep-1` require Anikoto's internal slug or ID, so Banime uses the
+title filter URL unless a stable mapping is added later.
 
 ### Scaling model
 
@@ -230,6 +253,7 @@ when deployed to Vercel or Netlify.
 ## Architecture
 
 - `src/domain`: Framework-independent anime, news, and tracker models
+- `src/domain/watch`: Watch-provider registry and search-link builder
 - `src/services/jikan`: Jikan DTOs, mapping, throttling, news, and API access
 - `src/services/storage`: Local browser repository and legacy data migration
 - `src/services/supabase`: Auth client loading and cloud tracker repository

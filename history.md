@@ -16,7 +16,7 @@ is incorrect, add a dated correction rather than silently changing the event.
 | Version | `0.1.0` development snapshot |
 | Document owner | Project maintainer |
 | Created | 2026-06-06 |
-| Last updated | 2026-06-06 |
+| Last updated | 2026-06-20 |
 | Time zone | America/New_York |
 | Workspace | `C:\Users\bao12\OneDrive\Desktop\Anime_Track` |
 | Status | Active development |
@@ -68,13 +68,14 @@ The application is designed to work as:
 | GOAL-0004 | Run as an installable phone application | Implemented as PWA, not yet deployed | Manifest, service worker, install UI, responsive navigation |
 | GOAL-0005 | Sync one personal library across desktop and phone | Implemented but not end-to-end verified | Optional Supabase Auth, Postgres repository, merge and write queue |
 | GOAL-0006 | Maintain modular boundaries for future native/mobile work | Implemented | Domain, service, context, hook, feature, and component layers |
-| GOAL-0007 | Maintain reproducible quality checks | Implemented at basic level | Build, lint, and 15 unit/protocol tests |
+| GOAL-0007 | Maintain reproducible quality checks | Implemented at basic level | Build, lint, and 26 unit/protocol tests |
 | GOAL-0008 | Support accessible light and dark themes | Implemented | Persisted theme provider and device-level controls |
-| GOAL-0009 | Restore a library from JSON | Implemented | Validated merge import in Settings |
+| GOAL-0009 | Restore a library from MyAnimeList XML or Banime JSON | Implemented | MAL XML parsing, Jikan enrichment, and JSON backup import/export in Settings |
 | GOAL-0010 | Show the next scheduled broadcast | Implemented with source limitations | Jikan weekly broadcast metadata converted to local time |
 | GOAL-0011 | Provide direct, efficient catalog and library filtering | Implemented | Memoized client filters and indexed Supabase query columns |
-| GOAL-0012 | Reduce repeated Jikan work and News wait time | Implemented | Session cache, progressive News queries, and offscreen rendering containment |
+| GOAL-0012 | Reduce repeated Jikan work and News wait time | Implemented | Memory, session, and persistent catalog caches plus progressive News queries |
 | GOAL-0013 | Let ChatGPT search anime and manage the approved private library | Implemented locally, not deployment-verified | Eight MCP tools, Supabase OAuth consent, RLS-bound repository, and protocol tests |
+| GOAL-0014 | Open configurable watch-search links from tracked anime | Implemented with provider limits | Watch provider registry, Settings selector, and library/detail "Find on" links |
 
 ### Current Non-Goals
 
@@ -92,7 +93,7 @@ documentation:
 
 ## Current-State Summary
 
-As of 2026-06-10:
+As of 2026-06-20:
 
 - The project is a React 19 and TypeScript single-page application built with
   Vite.
@@ -104,8 +105,11 @@ As of 2026-06-10:
 - Weekly broadcast metadata is normalized and converted to the user's local
   time for the next scheduled airing display.
 - Tracking writes synchronously to browser `localStorage`.
-- Banime library JSON files are validated and merged by anime ID and
-  `updatedAt`; malformed files are rejected.
+- Banime JSON backups and MyAnimeList XML exports are validated and merged by
+  anime ID and `updatedAt`; malformed files are rejected.
+- MyAnimeList XML imports save a validated base list locally before Jikan
+  enrichment starts. Jikan detail lookups then update the same rows with
+  posters and current catalog fields when the title is returned.
 - Existing data under the former `kitsu-log:library:v1` key is migrated to
   `banime:library:v1` when read.
 - Supabase support is optional and activated only when environment variables
@@ -128,10 +132,11 @@ As of 2026-06-10:
 - App code update checks run at startup and every 60 minutes while open.
 - Active seasonal and airing queries refresh every 15 minutes, and News
   headlines and trailers refresh every two hours.
-- Fresh Jikan responses are cached in memory and `sessionStorage` until each
-  endpoint's expiry, so route changes and page reloads can reuse them.
+- Fresh Jikan responses are cached in memory and browser storage until each
+  endpoint's expiry. Slow-changing Top 100 data uses persistent
+  `localStorage`; most other API responses use `sessionStorage`.
 - Most Popular combines four rate-limited Jikan pages into a deduplicated list
-  of up to 100 titles and refreshes hourly.
+  of up to 100 titles and refreshes every 6 hours.
 - Theme preference is stored locally and applied before React mounts.
 - The visual system uses flat surfaces, one blue product accent, one system
   font stack, and no gradients, glass effects, fake profile controls, or
@@ -139,19 +144,22 @@ As of 2026-06-10:
 - Discover filters results by media type, genre, minimum score, and sort order.
 - Library search covers titles, studios, genres, and notes, with status, type,
   genre, score, and sort controls.
+- Library cards and anime details can open the selected title in the current
+  external watch-search provider. Banime does not host or embed episode
+  streams.
 - Vercel and Netlify SPA route rewrites are included.
 - MCP traffic is protected by host/origin checks, body/header/concurrency
   limits, per-IP and per-token quotas, a separate tool quota, and a shared
   60-per-minute Jikan budget.
 - Rate limits use bounded in-memory counters for one process and optional
   Upstash Redis counters across multiple replicas.
-- JSON imports, local storage, upstream URLs, OAuth inputs, and MCP schemas are
-  bounded and validated before use.
+- MyAnimeList XML imports, JSON imports, local storage, upstream URLs, OAuth
+  inputs, and MCP schemas are bounded and validated before use.
 - The PWA deployment configuration includes CSP, HSTS, frame, MIME, referrer,
   and permissions headers.
 - The MCP production image is multi-stage, runs as a non-root user, and
   installs only runtime dependencies.
-- The current automated suite contains 26 tests across 13 files.
+- The current automated suite contains 37 tests across 16 files.
 - Production build, ESLint, tests, local route checks, PWA manifest checks, and
   live Jikan endpoint checks passed.
 - A real Supabase project was not configured during development, so
@@ -268,6 +276,9 @@ Owns framework-independent types and pure business logic.
   - Pure aggregation of totals, progress, completion, and mean user score.
 - `domain/tracker/merge.ts`
   - Pure local/cloud conflict resolution by latest `updatedAt`.
+- `domain/watch/providers.ts`
+  - Authorized external watch-provider registry.
+  - Search URL construction for selected anime titles.
 
 Domain code should not import React, browser storage, Supabase, or Jikan DTOs.
 
@@ -335,6 +346,9 @@ Owns application-wide state coordination.
   - Exposes sync state and tracker statistics.
 - `AnimePanelProvider`
   - Owns the currently selected anime detail panel.
+- `WatchProvider`
+  - Stores the selected external watch-search provider per browser.
+  - Exposes provider metadata and title-specific external search URLs.
 
 Context object declarations and provider components are separated to preserve
 React Fast Refresh boundaries.
@@ -348,6 +362,7 @@ Provides typed feature-facing APIs:
 - Tracker context hook.
 - Cloud authentication hook.
 - Anime detail panel hook.
+- Watch-provider hook.
 - Debounced-value utility.
 - PWA installation prompt handling.
 
@@ -360,9 +375,9 @@ Feature-owned pages and components:
 | `dashboard` | Summary statistics, continue watching, current season |
 | `discover` | Search and top anime feeds |
 | `news` | Featured news, article grid, popular promos |
-| `library` | Filtering, status editing, progress, scores, deletion |
-| `anime` | Detail side panel and tracker controls |
-| `settings` | PWA installation, cloud auth, sync status, JSON export |
+| `library` | Filtering, status editing, progress, scores, deletion, watch-search links |
+| `anime` | Detail side panel, tracker controls, watch-search link |
+| `settings` | PWA installation, cloud auth, sync status, watch provider, MAL XML import, JSON import/export |
 | `oauth` | Supabase OAuth consent and ChatGPT connection approval |
 
 #### `src/components`
@@ -522,7 +537,7 @@ https://api.jikan.moe/v4
 | --- | --- | --- |
 | Current season | `/seasons/now?limit=18&sfw=true` | 15 minutes |
 | Airing/upcoming top anime | `/top/anime?filter={filter}&limit=18&page=1&sfw=true` | 15 minutes |
-| Most popular | Four `/top/anime?filter=bypopularity&limit=25&page={1-4}&sfw=true` requests | 60 minutes |
+| Most popular | Four `/top/anime?filter=bypopularity&limit=25&page={1-4}&sfw=true` requests | 6 hours in persistent browser storage |
 | Search | `/anime?q={query}&limit=20&sfw=true&order_by=popularity&sort=asc` | 10 minutes |
 | Details | `/anime/{id}/full` | 30 minutes |
 | Anime news | `/anime/{id}/news` | 2 hours |
@@ -537,12 +552,14 @@ request-rate constraints.
 There are three cache layers:
 
 1. The Jikan client stores successful responses in an in-memory `Map`.
-2. The client stores the same expiring responses in `sessionStorage`.
+2. The client stores the same expiring responses in browser storage:
+   `sessionStorage` by default and `localStorage` for slow-changing Top 100
+   popular data.
 3. React Query stores normalized query state and applies matching stale times.
 
-The session cache survives route changes and page reloads in the same browser
-tab. It is cleared when that tab session ends and does not consume the durable
-`localStorage` quota used by the personal library.
+The browser cache survives route changes and page reloads until the
+endpoint-specific expiry. Top 100 data can also survive a closed browser
+session, while faster-changing feeds stay session scoped.
 
 Jikan list responses are deduplicated by `mal_id`. This was added after live
 airing and seasonal responses returned Dr. Stone ID `62568` twice in the same
@@ -556,7 +573,7 @@ payload.
 - Refetch on window focus is enabled for stale queries.
 - Current-season, airing, and upcoming feeds poll every 15 minutes while
   mounted.
-- Most Popular polls hourly while mounted.
+- Most Popular polls every 6 hours while mounted.
 - News title feeds and promos poll every two hours while mounted.
 - HTTP 429 receives a specific user-facing error.
 - Other non-success responses receive a generic Jikan error.
@@ -591,21 +608,24 @@ User action
 
 No account, network connection, or Supabase project is needed.
 
-### JSON Import Flow
+### MyAnimeList XML Import Flow
 
 ```text
-User selects JSON file
+User selects MyAnimeList XML file
   -> reject files larger than 5 MB
-  -> parse JSON
+  -> parse MyAnimeList XML export
   -> validate every tracker and anime field
-  -> deduplicate imported records
-  -> merge by anime ID and latest updatedAt
-  -> save locally
-  -> upsert merged library when authenticated
+  -> save the parsed base list locally
+  -> queue Supabase sync when authenticated
+  -> request Jikan details for each MAL ID at a conservative rate
+  -> replace placeholder MAL metadata with Jikan posters and details when found
+  -> save enriched rows locally using same-timestamp replacement
+  -> queue Supabase sync for enriched rows when authenticated
 ```
 
-Accepted top-level formats are a Banime export object containing `items` or a
-direct array of tracked anime. Invalid files do not modify the library.
+Accepted import formats are MyAnimeList XML exports and Banime JSON backups.
+Banime exports its own backups as JSON because Jikan and the app's internal
+data contracts are JSON-based. Invalid files do not modify the library.
 
 ### Authenticated Startup Flow
 
@@ -784,10 +804,11 @@ Banime is currently a PWA, not a native application.
   the application remains open.
 - Applies an available worker update automatically.
 
-There is no explicit runtime caching strategy for Jikan JSON or remote images.
-The app shell can remain available offline. Fresh JSON already present in the
-current tab's session cache can still be reused, but remote images and
-uncached or expired catalog/news requests are not guaranteed offline.
+There is no service-worker runtime caching strategy for Jikan responses or
+remote images. The app shell can remain available offline. Fresh Jikan data
+already present in browser storage can still be reused until expiry, but
+remote images and uncached or expired catalog/news requests are not guaranteed
+offline.
 
 ### Installation
 
@@ -862,6 +883,8 @@ most portable parts.
 - Displays facts, genres, synopsis, tracking controls, trailer, and MAL link.
 - Displays the next scheduled weekly broadcast when Jikan provides complete
   day, time, and timezone data.
+- Opens an external provider search for the selected title through the current
+  watch provider.
 
 ### Library
 
@@ -872,6 +895,7 @@ most portable parts.
 - Sorts by latest update, date added, title, personal score, or progress.
 - Memoizes the search index, available filter values, and final result list.
 - Supports status, progress, score, and removal.
+- Opens an external provider search for each tracked title.
 - Does not currently expose note editing.
 - Removal has no confirmation dialog or undo.
 
@@ -891,9 +915,13 @@ most portable parts.
 - Shows local-only or cloud configuration state.
 - Supports account creation, sign-in, and sign-out when configured.
 - Displays sync status and sync errors.
-- Imports validated JSON backups and reports added or updated counts.
-- Exports the library as JSON.
+- Imports validated MyAnimeList XML exports or Banime JSON backups and reports
+  added or updated counts.
+- Saves MyAnimeList XML imports before Jikan enrichment, then updates posters
+  and current details when Jikan lookups finish.
+- Exports the library as Banime JSON.
 - Selects and persists light or dark mode.
+- Selects and persists the external watch-search provider for this browser.
 - Explains the app-code and content-data update cadence and shows the most
   recent service-worker check time.
 
@@ -1175,6 +1203,75 @@ Banime does not send personal tracking data to Jikan or MyAnimeList.
 - Add structured audit logs, provider WAF rules, central metrics, and abuse
   monitoring for the public MCP endpoint.
 - Complete load tests and tune quotas against measured traffic.
+- Verify deployed Supabase Auth settings, production CORS settings, source-map
+  exposure, and provider-side login/signup rate limits.
+- Add a real backup and restore plan beyond manual JSON export/import.
+
+### Security Risk Checklist Review
+
+Review date: 2026-06-20. This maps the requested risk checklist to the
+current Banime implementation. Status meanings:
+
+- Mitigated: implemented in code, schema, or checked-in deployment config.
+- Partially mitigated: local controls exist, but production/provider behavior
+  still needs proof.
+- Open: not implemented yet and should stay on the risk register.
+- Not applicable: Banime does not currently include that feature or attack
+  surface.
+
+| # | Risk | Status | Banime evidence or next action |
+| --- | --- | --- | --- |
+| 1 | Exposed database credentials | Mitigated | Checked-in files use placeholders and publishable Supabase variables only; service-role keys must never be committed. |
+| 2 | Public `.env` files | Partially mitigated | Only `.env.example` and `.env.mcp.example` are intended for source control; verify real deployment secrets stay in provider secret stores. |
+| 3 | Hardcoded API keys | Mitigated | Jikan does not require a key; source scans found no hardcoded secret-like values outside documentation examples. |
+| 4 | Weak or missing authentication | Partially mitigated | Local mode is intentionally accountless; private cloud/MCP data uses Supabase Auth and bearer-token verification, but real production OAuth still needs end-to-end verification. |
+| 5 | Missing authorization checks | Partially mitigated | MCP derives the user from the verified token and Supabase policies scope library rows; verify with two separate real users. |
+| 6 | Users able to access other users' data | Partially mitigated | Schema uses `auth.uid() = user_id` RLS policies; two-user cloud testing remains required. |
+| 7 | Open database read/write permissions | Partially mitigated | `supabase/schema.sql` enables RLS and authenticated owner policies; confirm those policies are applied in the live project. |
+| 8 | Misconfigured Firebase, Supabase, or S3 buckets | Partially mitigated | No Firebase or S3 is used; Supabase table policy must be verified in the provider dashboard after migration. |
+| 9 | Admin routes left unprotected | Not applicable | Banime has no admin routes or multi-user administration UI. |
+| 10 | Debug pages exposed in production | Mitigated | No debug route is tracked in the app; production deployment should still be scanned before release. |
+| 11 | Build logs leaking secrets | Open | This is operational; CI/host logs must be reviewed once a deployment pipeline exists. |
+| 12 | Verbose error messages leaking stack traces | Mitigated | MCP returns generic client errors and logs backend errors without request bodies or credentials. |
+| 13 | Leaked GitHub repositories or commit history | Partially mitigated | Local current-tree and three-commit secret scans passed; remote repository visibility and branch history must be reviewed before release. |
+| 14 | Secrets included in frontend JavaScript | Mitigated | Frontend uses only Vite `VITE_` public Supabase variables; service-role or MCP secrets are server-side only. |
+| 15 | Client-side-only security checks | Mitigated | Persisted cloud data is protected by Supabase RLS and MCP server authorization, not only React UI checks. |
+| 16 | Missing input validation | Mitigated | MCP schemas are strict; MyAnimeList XML import, JSON import, local storage, URLs, IDs, ranges, and text lengths are validated. |
+| 17 | SQL injection | Mitigated | Supabase client requests are parameterized, and user search text escapes `ILIKE` wildcard characters. |
+| 18 | NoSQL injection | Not applicable | Banime does not use a NoSQL database. |
+| 19 | Cross-site scripting, or XSS | Mitigated | React escapes rendered text, raw HTML is not used, external URLs are validated, and CSP headers are configured. |
+| 20 | Cross-site request forgery, or CSRF | Mostly not applicable | Banime does not expose cookie-authenticated write endpoints; MCP uses bearer tokens and rejects unapproved origins. |
+| 21 | Insecure file uploads | Mitigated | There is no server file upload path; local MyAnimeList XML and Banime JSON import is parsed, bounded, and validated before merge. |
+| 22 | Path traversal bugs | Not applicable | Users do not control server filesystem paths. |
+| 23 | Server-side request forgery, or SSRF | Mitigated | Server calls are limited to configured Supabase Auth/JWKS endpoints and fixed Jikan service calls, not arbitrary user URLs. |
+| 24 | Broken password reset flows | Not applicable | Banime does not implement a custom password reset flow; Supabase Auth settings must be reviewed if password login is enabled. |
+| 25 | Weak session management | Partially mitigated | Supabase manages browser sessions; production session lifetime and token refresh behavior still need provider review. |
+| 26 | JWT secrets that are weak, leaked, or reused | Partially mitigated | Banime does not define its own JWT secret; Supabase signing configuration and OAuth audience enforcement must be verified. |
+| 27 | Overly permissive CORS | Mitigated | MCP requires exact allowed origins and host validation; production `MCP_ALLOWED_ORIGINS` must be explicit. |
+| 28 | Missing rate limits on login, signup, APIs, and AI endpoints | Partially mitigated | MCP and outbound Jikan calls are rate-limited; Supabase Auth login/signup limits and provider WAF settings remain operational tasks. |
+| 29 | Public test or staging environments | Open | No staging environment is documented yet; any future staging URL needs the same auth and headers as production. |
+| 30 | Default credentials left unchanged | Mitigated | No default accounts or credentials are defined in the repo. |
+| 31 | Webhook endpoints without signature verification | Not applicable | Banime does not expose webhooks. |
+| 32 | Payment or subscription checks only done on the frontend | Not applicable | Banime has no payments or subscriptions. |
+| 33 | Insecure direct object references, or IDOR | Partially mitigated | Library rows are user-scoped by RLS and MCP user context; verify live with two users. |
+| 34 | API endpoints that trust user-controlled IDs or roles | Mitigated | MCP trusts user identity from verified token claims, not request-supplied user IDs or roles. |
+| 35 | Logs containing tokens, emails, passwords, or private user data | Partially mitigated | MCP avoids logging request bodies and tokens; central log retention and redaction must be configured at deployment. |
+| 36 | Source maps exposed in production | Partially mitigated | Vite source maps are not enabled in config; verify deployed artifacts do not expose `.map` files. |
+| 37 | Dependency vulnerabilities | Mitigated at last check | `npm audit` reported zero known vulnerabilities on 2026-06-10; automate this in CI. |
+| 38 | Outdated packages | Open | Package freshness needs scheduled review or Dependabot/Renovate. |
+| 39 | Prompt injection in AI features | Partially mitigated | MCP tools use strict schemas, bounded outputs, and do not execute returned text; model behavior still needs prompt and tool review when deployed. |
+| 40 | AI tools or actions allowed to access data without permission checks | Mitigated | Public search tools expose Jikan data only; private library tools require verified Supabase OAuth identity. |
+| 41 | Excessive database permissions for the app user | Partially mitigated | Frontend uses publishable Supabase access plus RLS; confirm no service-role key is present in deployed frontend or MCP environment. |
+| 42 | Missing audit logs | Open | No structured production audit log exists for library mutations or MCP actions. |
+| 43 | Missing monitoring or alerting | Open | No production metrics, alerting, uptime checks, or abuse dashboards are configured. |
+| 44 | Missing backup or restore plan | Partially mitigated | JSON export/import helps personal recovery, but Supabase backup and restore procedures are not documented. |
+| 45 | Publicly exposed internal dashboards | Not applicable in repo | Banime has no internal dashboard; provider dashboards must stay private. |
+| 46 | Missing security headers | Mitigated | `vercel.json`, `public/_headers`, and MCP responses set CSP, HSTS, frame denial, MIME, referrer, and permissions headers. |
+| 47 | Cookies missing HttpOnly, Secure, or SameSite settings | Mostly not applicable | The app does not set its own cookies; review Supabase/Auth hosting settings if cookie-based auth is introduced. |
+| 48 | Unencrypted sensitive data | Partially mitigated | HTTPS is expected in production and Supabase handles managed storage; local device storage and personal notes are not client-side encrypted. |
+| 49 | Poor tenant isolation in multi-user applications | Partially mitigated | Tenant isolation is based on per-user RLS policies; real multi-user verification remains required. |
+| 50 | Over-trusting generated code without review | Mitigated operationally | Changes are documented, tested, and reviewed against this history file; this remains an ongoing discipline. |
+| 51 | Missing idempotency keys for payments or critical write operations | Not applicable currently | No payments exist; future critical non-idempotent writes should add explicit idempotency keys. |
 
 ## Reliability and Performance
 
@@ -1183,8 +1280,8 @@ Banime does not send personal tracking data to Jikan or MyAnimeList.
 - Local-first writes keep tracking responsive during network failures.
 - Cloud writes are serialized to preserve mutation order within one tab.
 - Jikan requests are serialized and cached.
-- Jikan responses are reused from the current tab's session cache after page
-  reloads until their endpoint-specific expiry.
+- Jikan responses are reused from browser storage after page reloads until
+  their endpoint-specific expiry.
 - Query cancellation prevents unnecessary stale requests.
 - Individual title-news failures do not discard all other title articles.
 - News articles and trailers render independently instead of waiting for one
@@ -1212,10 +1309,11 @@ Banime does not send personal tracking data to Jikan or MyAnimeList.
 ### Last Recorded Production Build
 
 ```text
-Main CSS: 29.68 kB, 6.37 kB gzip
-Main JS: 391.03 kB, 120.74 kB gzip
+Main CSS: 30.11 kB, 6.43 kB gzip
+Main JS: 398.22 kB, 123.20 kB gzip
 Supabase lazy chunk: 199.77 kB, 51.03 kB gzip
 MCP production bundle: 51.2 kB
+PWA precache: 8 entries, 619.91 KiB
 ```
 
 These values are development evidence, not a permanent performance budget.
@@ -1281,12 +1379,12 @@ These values are development evidence, not a permanent performance budget.
 | ADR-0014 | 2026-06-06 | Aggregate news from current-season Jikan title feeds | Accepted as an initial scope | Uses the existing trusted data boundary without another news provider |
 | ADR-0015 | 2026-06-06 | Deduplicate all Jikan anime pages by MAL ID | Accepted | Live Jikan feeds can contain exact duplicate records |
 | ADR-0016 | 2026-06-06 | Treat Jikan broadcast metadata as an estimated weekly schedule | Accepted | Jikan does not guarantee streaming-platform episode availability |
-| ADR-0017 | 2026-06-06 | Validate and merge JSON imports instead of replacing storage directly | Accepted | Prevents malformed files and avoids discarding newer local records |
+| ADR-0017 | 2026-06-06 | Validate and merge JSON imports instead of replacing storage directly | Superseded by `ADR-0031` | Prevented malformed files and avoided discarding newer local records |
 | ADR-0018 | 2026-06-06 | Check deployed app code hourly and poll active content by freshness class | Accepted | Gives users an explicit update guarantee without excessive API traffic |
 | ADR-0019 | 2026-06-06 | Persist theme per device and apply it before React mounts | Accepted | Prevents theme flash and keeps personal display preference local |
 | ADR-0020 | 2026-06-06 | Use flat surfaces, one product accent, and one system font stack | Accepted | Keeps hierarchy readable without gradients, glass effects, or decorative template elements |
 | ADR-0021 | 2026-06-06 | Keep the JSON aggregate and add indexed query columns | Accepted | Preserves simple hydration while enabling efficient Postgres retrieval and future server-side pagination |
-| ADR-0022 | 2026-06-06 | Cache Jikan responses per tab and split News into progressive queries | Accepted | Reduces repeated API work and allows useful content to render before every rate-limited request finishes |
+| ADR-0022 | 2026-06-06 | Cache Jikan responses per tab and split News into progressive queries | Extended by `ADR-0032` | Reduces repeated API work and allows useful content to render before every rate-limited request finishes |
 | ADR-0023 | 2026-06-10 | Expose ChatGPT capabilities through a separate Streamable HTTP MCP service | Accepted | Keeps the PWA static while providing a standard, independently deployable tool interface |
 | ADR-0024 | 2026-06-10 | Reuse Supabase OAuth and RLS for MCP identity and authorization | Accepted | Avoids a second account system and keeps user row policies authoritative |
 | ADR-0025 | 2026-06-10 | Keep Jikan tools public and require OAuth only for personal library tools | Accepted | Catalog information is public while tracking data and mutations are private |
@@ -1295,6 +1393,10 @@ These values are development evidence, not a permanent performance budget.
 | ADR-0028 | 2026-06-10 | Use optional Upstash Redis for distributed quotas | Accepted | Stateless replicas require shared counters to prevent per-instance bypass |
 | ADR-0029 | 2026-06-10 | Treat imported, stored, OAuth, and Jikan content as untrusted input | Accepted | Validation must cover persisted links and external data, not only SQL arguments |
 | ADR-0030 | 2026-06-10 | Bundle the MCP server into a minimal non-root production image | Accepted | Removes development tooling from runtime and supports repeatable replica startup |
+| ADR-0031 | 2026-06-20 | Use XML for user-facing library import/export and support MyAnimeList XML imports | Superseded by `ADR-0033` | Matched the initial interpretation of the requested backup format before the user clarified XML is only for MAL imports |
+| ADR-0032 | 2026-06-20 | Persist slow-changing Top 100 Jikan responses in browser `localStorage` for 6 hours | Accepted | Popularity rankings change slowly enough to reduce repeat requests beyond one tab session without stale airing data |
+| ADR-0033 | 2026-06-20 | Keep Banime backups as JSON and use XML only for MyAnimeList import | Accepted | Jikan and Banime data contracts are JSON; XML is needed only to consume MAL's export format |
+| ADR-0034 | 2026-06-20 | Use a provider registry for external watch-search links | Accepted | Keeps watch-link destinations configurable without hardcoding one streaming site into library and detail UI |
 
 ### Superseded Decision Note
 
@@ -1314,10 +1416,10 @@ resulting stack selection.
 | RISK-0005 | Medium | Sync | No realtime pull or refresh while another device edits | Add manual refresh or Supabase Realtime |
 | RISK-0006 | Medium | Offline | Service worker does not runtime-cache Jikan or images | Define explicit offline behavior and Workbox strategies |
 | RISK-0007 | Medium | News | Feed covers only the first four current-season titles | Add category sources, pagination, or server-side aggregation |
-| RISK-0008 | Medium | Quality | Nine unit tests do not cover providers, live APIs, or end-to-end flows | Add provider, API, integration, and end-to-end tests |
+| RISK-0008 | Medium | Quality | Unit tests do not cover providers, live APIs, or end-to-end flows | Add provider, API, integration, and end-to-end tests |
 | RISK-0009 | Medium | Accessibility | Dialog focus management and visual audit are incomplete | Add focus trap, focus return, and axe/browser testing |
 | RISK-0010 | Medium | Data | Full anime snapshots can become stale | Add catalog refresh or split tracker and catalog data |
-| RISK-0011 | Medium | Recovery | Import merges only Banime tracker JSON and has no preview/rollback | Add import preview and explicit restore modes |
+| RISK-0011 | Medium | Recovery | Import has no preview/rollback, and MyAnimeList XML imports can be slow or partially enriched when Jikan lookups fail | Add import preview, explicit restore modes, and resumable post-import catalog enrichment |
 | RISK-0012 | Medium | UX | Notes field is not editable | Add note editor or remove the unused field |
 | RISK-0014 | Low | Routing | No 404 page or route error boundary | Add route-level fallback and error handling |
 | RISK-0015 | Low | Mobile | Only SVG app icon is supplied | Add 192 px and 512 px PNG icons and Apple touch icon |
@@ -1332,6 +1434,7 @@ resulting stack selection.
 | RISK-0024 | Medium | Recovery | Invalid local data falls back to an empty library without an in-app recovery path | Quarantine corrupt data and offer export/reset recovery |
 | RISK-0025 | Medium | Migration | New database size constraints may reject oversized legacy rows | Inspect and repair affected rows before rerunning the schema |
 | RISK-0026 | Medium | Verification | Security controls are unit/integration tested locally but not penetration or load tested | Run deployed DAST, two-user RLS tests, and sustained load tests |
+| RISK-0027 | Medium | Watch links | External provider search URLs can change or point to availability rather than direct playback | Keep providers isolated in `domain/watch/providers.ts` and verify provider links during release testing |
 
 ## Prioritized Roadmap
 
@@ -1451,6 +1554,31 @@ Log rather than treated as application incidents.
 | 2026-06-10 | Bundled MCP HTTP security | Started `mcp-dist/index.js` and sent local requests | Health 200, invalid origin 403, oversized body 413, security headers and OAuth metadata correct |
 | 2026-06-10 | Bundled rotating-token rate limit | Two requests with different fake bearer values under a one-request IP quota | First reached MCP validation; second returned 429 |
 | 2026-06-10 | MCP container build | Docker daemon was not running on the development machine | Not verified; Dockerfile was type/build checked indirectly through its commands |
+| 2026-06-20 | Security risk checklist mapping | Manual review of the 51 requested risks against source, schema, deployment config, and prior verification evidence | All 51 items classified as mitigated, partially mitigated, open, or not applicable in `history.md` |
+| 2026-06-20 | Security checklist whitespace | `git diff --check` | Passed; Git reported only the existing LF-to-CRLF working-copy warning |
+| 2026-06-20 | Unsafe DOM and code execution scan | `rg -n "dangerouslySetInnerHTML\|eval\(\|new Function\|innerHTML\|document\.write" src mcp` | No matches |
+| 2026-06-20 | Focused secret-pattern scan | `rg -n` for Supabase service-role, cloud keys, private keys, and assignment-style password/secret/API-key/token values | No credential values found; the only match was the ordinary local `token` variable in `mcp/auth.ts` |
+| 2026-06-20 | Regression tests after checklist documentation | `npm.cmd test` | 13 test files and 26 tests passed |
+| 2026-06-20 | XML import/export and caching tests | `npm.cmd test` | 14 test files and 30 tests passed |
+| 2026-06-20 | XML import/export and caching lint | `npm.cmd run lint` | Passed with no warnings |
+| 2026-06-20 | XML import/export and caching build | `npm.cmd run build` | Browser and MCP TypeScript checks, Vite build, and PWA generation passed; main JS 396.76 kB gzip 122.87 kB |
+| 2026-06-20 | XML import/export and caching whitespace | `git diff --check` | Passed; Git reported only LF-to-CRLF working-copy warnings |
+| 2026-06-20 | MAL XML import enrichment and JSON backup tests | `npm.cmd test` | 15 test files and 32 tests passed |
+| 2026-06-20 | MAL XML import enrichment and JSON backup lint | `npm.cmd run lint` | Passed with no warnings |
+| 2026-06-20 | MAL XML import enrichment and JSON backup build | `npm.cmd run build` | Browser and MCP TypeScript checks, Vite build, and PWA generation passed; main JS 395.34 kB gzip 122.44 kB |
+| 2026-06-20 | MAL XML import enrichment and JSON backup whitespace | `git diff --check` | Passed; Git reported only LF-to-CRLF working-copy warnings |
+| 2026-06-20 | MAL import checkpoint tests | `npm.cmd test` | 15 test files and 34 tests passed |
+| 2026-06-20 | MAL import checkpoint lint | `npm.cmd run lint` | Passed with no warnings |
+| 2026-06-20 | MAL import checkpoint build | `npm.cmd run build` | Browser and MCP TypeScript checks, Vite build, and PWA generation passed; main JS 395.68 kB gzip 122.53 kB |
+| 2026-06-20 | MAL import checkpoint whitespace | `git diff --check` | Passed; Git reported only LF-to-CRLF working-copy warnings |
+| 2026-06-20 | Watch provider links tests | `npm.cmd test` | 16 test files and 36 tests passed |
+| 2026-06-20 | Watch provider links lint | `npm.cmd run lint` | Passed with no warnings |
+| 2026-06-20 | Watch provider links build | `npm.cmd run build` | Browser and MCP TypeScript checks, Vite build, and PWA generation passed; main JS 398.03 kB gzip 123.12 kB |
+| 2026-06-20 | Watch provider links whitespace | `git diff --check` | Passed; Git reported only LF-to-CRLF working-copy warnings |
+| 2026-06-20 | Anikoto default provider tests | `npm.cmd test` | 16 test files and 37 tests passed |
+| 2026-06-20 | Anikoto default provider lint | `npm.cmd run lint` | Passed with no warnings |
+| 2026-06-20 | Anikoto default provider build | `npm.cmd run build` | Browser and MCP TypeScript checks, Vite build, and PWA generation passed; main JS 398.22 kB gzip 123.20 kB |
+| 2026-06-20 | Anikoto default provider whitespace | `git diff --check` | Passed; Git reported only LF-to-CRLF working-copy warnings |
 
 ## Definition of Done
 
@@ -1904,6 +2032,166 @@ A future change is complete only when all applicable checks are satisfied:
   - New SQL constraints must be applied and may require cleanup of oversized
     existing rows.
 - References: `ADR-0027` through `ADR-0030`, `RISK-0022` through `RISK-0026`
+
+### HIST-0012 - 2026-06-20 - Map security checklist to Banime controls
+
+- Status: Completed as documentation; open items remain in the risk register.
+- Goal: Convert the requested 51-item security checklist into a Banime-specific
+  development record that shows which risks are mitigated, partially mitigated,
+  open, or not applicable.
+- Findings:
+  - Most code-level injection, XSS, SSRF, CORS, input validation, security
+    header, and MCP abuse-control risks are already covered by the hardening
+    completed in `HIST-0011`.
+  - The largest remaining risks are deployment and operations work: real
+    Supabase RLS verification, production OAuth/audience checks, provider-side
+    Auth rate limits, log redaction, monitoring, backup/restore, source-map
+    verification, and scheduled dependency review.
+  - Payment, webhook, NoSQL, admin route, S3, Firebase, and custom password
+    reset risks are not applicable until Banime adds those features.
+- Documentation changes:
+  - Added `Security Risk Checklist Review` under the Security and Privacy
+    section.
+  - Updated the document date and current-state timestamp to 2026-06-20.
+  - Corrected the current quality-check evidence from 15 tests to 26 tests.
+- Verification:
+  - `git diff --check` passed with only Git's LF-to-CRLF working-copy
+    warning for `history.md`.
+  - Unsafe DOM/code-execution scan found no `dangerouslySetInnerHTML`, `eval`,
+    `new Function`, `innerHTML`, or `document.write` use in `src` or `mcp`.
+  - Focused secret-pattern scan found no credential values; the only match was
+    the ordinary local `token` variable in `mcp/auth.ts`.
+  - `npm.cmd test` passed with 13 test files and 26 tests.
+- References: `HIST-0011`
+
+### HIST-0013 - 2026-06-20 - Switch backups to XML and persist Top 100 cache
+
+- Status: Completed locally, then partially superseded by `HIST-0014` for the
+  XML backup/export scope. The Top 100 caching work remains current.
+- Goal: Replace the visible JSON import/export workflow with XML, support
+  MyAnimeList XML list imports, confirm imported MAL rows save to the tracker,
+  and improve caching for slow-changing catalog lists.
+- Import/export changes:
+  - Added `src/domain/tracker/xml.ts` with Banime XML serialization,
+    Banime XML parsing, MyAnimeList XML parsing, DTD/entity rejection, size
+    enforcement, XML entity decoding, status mapping, score/progress mapping,
+    and MAL date handling.
+  - Updated Settings to export `banime-library-YYYY-MM-DD.xml`, accept XML
+    files, and import either Banime XML backups or MyAnimeList XML exports.
+  - Kept legacy Banime JSON import parsing in Settings and internal
+    `localStorage` validation so existing users do not lose older data.
+  - MyAnimeList imports save through the same `importItems` path as manual
+    tracking: local `localStorage` first, then Supabase upsert when signed in.
+  - Added poster placeholders for imported rows that do not have image URLs in
+    the source XML.
+- Caching changes:
+  - Added explicit browser cache targets to the Jikan client.
+  - Kept faster-changing lists in session storage.
+  - Changed Top 100 popular anime to a 6-hour cache that persists in
+    `localStorage`, with React Query stale time using the same service
+    constant.
+- Documentation changes:
+  - Updated README feature, update cadence, and validation notes.
+  - Updated current-state history, Jikan cache details, Settings behavior,
+    ADRs, risks, verification register, and production build sizes.
+- Verification:
+  - `npm.cmd test` passed with 14 test files and 30 tests.
+  - `npm.cmd run lint` passed with no warnings.
+  - `npm.cmd run build` passed; generated main JS 396.76 kB, gzip 122.87 kB.
+  - `git diff --check` passed with only LF-to-CRLF working-copy warnings.
+- References: `ADR-0031`, `ADR-0032`, `GOAL-0009`, `GOAL-0012`
+
+### HIST-0014 - 2026-06-20 - Correct XML scope and enrich MAL imports
+
+- Status: Completed locally.
+- Reason: The user clarified that XML is needed only because MyAnimeList
+  exports lists as XML. Banime and Jikan should remain JSON-oriented where
+  JSON is the native protocol.
+- Changes:
+  - Restored Banime export to JSON with the `banime-library-YYYY-MM-DD.json`
+    filename.
+  - Kept Banime JSON import support for app backups.
+  - Narrowed `src/domain/tracker/xml.ts` to MyAnimeList XML parsing only.
+  - Added Jikan enrichment for MAL XML imports before saving. Banime requests
+    each MAL ID from Jikan and replaces the placeholder MAL snapshot with the
+    normalized Jikan record, including poster URLs, when the lookup succeeds.
+  - Preserved imported MAL rows when individual Jikan lookups fail, so one
+    missing or failed title does not block the whole list import.
+  - Added import progress copy that explains Jikan enrichment can take time.
+- Verification:
+  - `npm.cmd test` passed with 15 test files and 32 tests.
+  - `npm.cmd run lint` passed with no warnings.
+  - `npm.cmd run build` passed; generated main JS 395.34 kB, gzip 122.44 kB.
+  - `git diff --check` passed with only LF-to-CRLF working-copy warnings.
+- Supersedes: The user-facing Banime XML export/import part of `HIST-0013`
+  and `ADR-0031`.
+- References: `ADR-0033`, `GOAL-0009`
+
+### HIST-0015 - 2026-06-20 - Checkpoint MAL imports before Jikan enrichment
+
+- Status: Completed locally.
+- Reason: The user asked whether killing the running instance immediately
+  after starting an import would still preserve the imported list.
+- Behavior before this change:
+  - MyAnimeList XML parsing happened first, but Banime saved only after all
+    Jikan enrichment calls completed.
+  - Stopping the app during enrichment could lose the parsed base list if the
+    browser page was also closed or reloaded before the final save.
+- Changes:
+  - Settings now saves the parsed MyAnimeList XML list immediately after
+    validation.
+  - Jikan enrichment runs after that checkpoint and saves enriched rows as a
+    second import pass.
+  - Added a controlled same-timestamp replacement option for import merges so
+    enriched catalog snapshots can replace MAL placeholders without changing
+    the user's tracking timestamps.
+  - Normal cloud/local conflict resolution keeps its previous behavior unless
+    that option is explicitly requested by the enrichment pass.
+- Practical guarantee:
+  - Once the Settings message says the MyAnimeList titles were saved locally,
+    the base list will be available after relaunch in the same browser profile.
+  - If the app is stopped before that checkpoint message appears, the file may
+    need to be imported again.
+  - Supabase sync is still asynchronous; local persistence is the durable first
+    checkpoint.
+- Verification:
+  - `npm.cmd test` passed with 15 test files and 34 tests.
+  - `npm.cmd run lint` passed with no warnings.
+  - `npm.cmd run build` passed; generated main JS 395.68 kB, gzip 122.53 kB.
+  - `git diff --check` passed with only LF-to-CRLF working-copy warnings.
+- References: `GOAL-0009`, `HIST-0014`
+
+### HIST-0016 - 2026-06-20 - Add configurable watch-search provider links
+
+- Status: Completed locally.
+- Goal: Let the user open an external watch-search or availability page from
+  Banime without hardcoding one streaming website into the app.
+- Boundary:
+  - Banime does not host, embed, scrape, or validate episode streams.
+  - The implementation uses provider search/availability URLs only.
+  - Default providers are Anikoto, JustWatch, and Crunchyroll; Anikoto is the
+    default selected provider.
+- Changes:
+  - Added `src/domain/watch/providers.ts` as the single provider registry and
+    search URL builder.
+  - Added `WatchProvider` context and `useWatchProvider` hook to persist the
+    selected provider per browser.
+  - Added a Settings card for choosing the active watch provider.
+  - Added "Find on {provider}" links to library cards and anime details.
+  - Added tests for provider fallback and URL encoding.
+  - Added Anikoto as the default provider using
+    `https://anikototv.to/filter?keyword={query}`.
+  - Bumped the watch-provider preference key to `banime:watch-provider:v2`
+    so existing local sessions default to Anikoto after this change.
+- Provider rotation:
+  - Update `WATCH_PROVIDERS` in `src/domain/watch/providers.ts`.
+  - Keep providers to authorized search or availability destinations.
+- Verification:
+  - `npm.cmd test` passed with 16 test files and 37 tests.
+  - `npm.cmd run lint` passed with no warnings.
+  - `npm.cmd run build` passed; generated main JS 398.22 kB, gzip 123.20 kB.
+  - `git diff --check` passed with only LF-to-CRLF working-copy warnings.
+- References: `ADR-0034`, `GOAL-0014`, `RISK-0027`
 
 ## Release History
 

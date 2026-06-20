@@ -4,6 +4,17 @@ import { jikanGet } from "./client";
 import type { JikanItemResponse, JikanListResponse } from "./dto";
 import { mapJikanAnime } from "./mapper";
 
+const SHORT_LIST_CACHE_MS = 15 * 60 * 1000;
+const POPULAR_LIST_CACHE_MS = 6 * 60 * 60 * 1000;
+
+export function getTopAnimeCacheMs(
+  filter: "airing" | "upcoming" | "bypopularity"
+) {
+  return filter === "bypopularity"
+    ? POPULAR_LIST_CACHE_MS
+    : SHORT_LIST_CACHE_MS;
+}
+
 function mapPage(response: JikanListResponse): AnimePage {
   return {
     items: dedupeAnimeById(response.data.map(mapJikanAnime)),
@@ -17,7 +28,7 @@ export async function getCurrentSeason(
 ): Promise<AnimePage> {
   const response = await jikanGet<JikanListResponse>(
     "/seasons/now?limit=18&sfw=true",
-    { signal, cacheMs: 15 * 60 * 1000 }
+    { signal, cacheMs: SHORT_LIST_CACHE_MS }
   );
   return mapPage(response);
 }
@@ -29,12 +40,16 @@ export async function getTopAnime(
   const isPopular = filter === "bypopularity";
   const pageCount = isPopular ? 4 : 1;
   const limit = isPopular ? 25 : 18;
-  const cacheMs = isPopular ? 60 * 60 * 1000 : 15 * 60 * 1000;
+  const cacheMs = getTopAnimeCacheMs(filter);
   const responses = await Promise.all(
     Array.from({ length: pageCount }, (_, index) =>
       jikanGet<JikanListResponse>(
         `/top/anime?filter=${filter}&limit=${limit}&page=${index + 1}&sfw=true`,
-        { signal, cacheMs }
+        {
+          signal,
+          cacheMs,
+          cacheStorage: isPopular ? "local" : "session"
+        }
       )
     )
   );
