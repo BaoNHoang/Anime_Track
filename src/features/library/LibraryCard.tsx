@@ -29,7 +29,7 @@ export function LibraryCard({ item }: { item: TrackedAnime }) {
       </button>
       <div className="library-card__content">
         <div>
-          <span className="eyebrow">
+          <span className="library-card__meta">
             {item.anime.type} / {item.anime.year ?? "Year unknown"}
           </span>
           <button

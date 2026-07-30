@@ -1,19 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { jikanGetMock } = vi.hoisted(() => ({
-  jikanGetMock: vi.fn()
+const { tenraiGetMock } = vi.hoisted(() => ({
+  tenraiGetMock: vi.fn()
 }));
 
 vi.mock("./client", () => ({
-  jikanGet: jikanGetMock
+  tenraiGet: tenraiGetMock
 }));
 
 import { getTopAnime } from "./animeService";
 
 describe("getTopAnime", () => {
   beforeEach(() => {
-    jikanGetMock.mockReset();
-    jikanGetMock.mockResolvedValue({
+    tenraiGetMock.mockReset();
+    tenraiGetMock.mockResolvedValue({
       data: [],
       pagination: {
         current_page: 1,
@@ -25,14 +25,14 @@ describe("getTopAnime", () => {
   it("requests four pages of 25 for the top 100 popular anime", async () => {
     await getTopAnime("bypopularity");
 
-    expect(jikanGetMock).toHaveBeenCalledTimes(4);
-    expect(jikanGetMock.mock.calls.map(([path]) => path)).toEqual([
+    expect(tenraiGetMock).toHaveBeenCalledTimes(4);
+    expect(tenraiGetMock.mock.calls.map(([path]) => path)).toEqual([
       "/top/anime?filter=bypopularity&limit=25&page=1&sfw=true",
       "/top/anime?filter=bypopularity&limit=25&page=2&sfw=true",
       "/top/anime?filter=bypopularity&limit=25&page=3&sfw=true",
       "/top/anime?filter=bypopularity&limit=25&page=4&sfw=true"
     ]);
-    expect(jikanGetMock.mock.calls.map(([, options]) => options)).toEqual(
+    expect(tenraiGetMock.mock.calls.map(([, options]) => options)).toEqual(
       Array.from({ length: 4 }, () =>
         expect.objectContaining({
           cacheMs: 6 * 60 * 60 * 1000,
@@ -45,8 +45,8 @@ describe("getTopAnime", () => {
   it("keeps airing and upcoming feeds to one request", async () => {
     await getTopAnime("airing");
 
-    expect(jikanGetMock).toHaveBeenCalledTimes(1);
-    expect(jikanGetMock).toHaveBeenCalledWith(
+    expect(tenraiGetMock).toHaveBeenCalledTimes(1);
+    expect(tenraiGetMock).toHaveBeenCalledWith(
       "/top/anime?filter=airing&limit=18&page=1&sfw=true",
       expect.objectContaining({ cacheMs: 15 * 60 * 1000 })
     );

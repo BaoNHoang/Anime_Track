@@ -2205,6 +2205,32 @@ A future change is complete only when all applicable checks are satisfied:
   could not start because the checked-out dependencies are incomplete and the
   package registry returned HTTP 403 while restoring them.
 
+### HIST-0018 - 2026-07-29 - Migrate the anime provider to Tenrai
+
+- Status: Completed locally.
+- Reason: Jikan announced that its public API will enter brownout mode on
+  September 1, 2026 and be discontinued on October 1, 2026.
+- Changes:
+  - Replaced the Jikan service boundary with Tenrai v1 across the PWA and MCP
+    server.
+  - Renamed provider-specific clients, DTOs, mappers, enrichment functions,
+    errors, request gates, caches, and rate-limit configuration.
+  - Updated CSP allowlists, deployment files, user-facing copy, metadata, and
+    current setup documentation.
+  - Replaced the unavailable Jikan `/watch/promos/popular` call with trailers
+    from Tenrai current-season records.
+  - Preserved `MCP_JIKAN_RATE_LIMIT_REQUESTS` as a temporary fallback alias for
+    existing MCP deployments; new configuration uses
+    `MCP_TENRAI_RATE_LIMIT_REQUESTS`.
+- Verification:
+  - Tenrai season, top-anime, detail, and title-news endpoints returned `200`.
+  - `npm.cmd run lint` passed.
+  - `npm.cmd test -- --run` passed with 17 test files and 39 tests.
+  - `npm.cmd run build` passed, including the MCP typecheck and PWA build.
+  - The local Vite development server returned `200`.
+  - `git diff --check` passed with only LF-to-CRLF working-copy warnings.
+- Supersedes: `ADR-0004` and other current-state Jikan provider assumptions.
+
 ## Release History
 
 No formal production release has been recorded.

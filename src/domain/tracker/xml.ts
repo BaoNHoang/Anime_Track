@@ -146,7 +146,7 @@ export function parseMyAnimeListXml(xml: string): TrackedAnime[] {
           imageUrl: "",
           largeImageUrl: "",
           synopsis:
-            "Imported from MyAnimeList. Banime will try to fill current catalog details from Jikan before saving.",
+            "Imported from MyAnimeList. Banime will try to fill current catalog details from Tenrai before saving.",
           episodes,
           status: "Imported from MyAnimeList",
           type: xmlText(animeBlock, "series_type") ?? "Anime",

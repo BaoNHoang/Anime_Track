@@ -19,7 +19,6 @@ export function NewsPage() {
   return (
     <div className="page-stack">
       <header className="page-heading">
-        <span className="eyebrow">News and trailers</span>
         <h1>Anime news</h1>
         <p>Read recent stories and watch promotional videos.</p>
       </header>
@@ -73,7 +72,7 @@ export function NewsPage() {
         !news.articlesError && (
           <div className="empty-state">
             <strong>No current headlines were found.</strong>
-            <p>Jikan may still be refreshing this season's news.</p>
+            <p>Tenrai may still be refreshing this season's news.</p>
           </div>
         )
       )}
@@ -82,7 +81,6 @@ export function NewsPage() {
         <section>
           <div className="section-header">
             <div>
-              <span className="eyebrow">Recent articles</span>
               <h2>Latest stories</h2>
             </div>
             {news.articlesRefreshing && (
@@ -126,7 +124,6 @@ export function NewsPage() {
       <section>
         <div className="section-header">
           <div>
-            <span className="eyebrow">Videos</span>
             <h2>Popular trailers</h2>
           </div>
         </div>

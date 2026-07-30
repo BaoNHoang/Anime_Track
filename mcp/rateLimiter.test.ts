@@ -3,13 +3,13 @@ import { createRateLimiter } from "./rateLimiter";
 import { createTestConfig } from "./testConfig";
 
 describe("Banime rate limiter", () => {
-  it("applies independent request, tool, and Jikan budgets", async () => {
+  it("applies independent request, tool, and Tenrai budgets", async () => {
     const limiter = createRateLimiter(
       createTestConfig({
         rateLimit: {
           requests: 1,
           toolCalls: 1,
-          jikanRequests: 1,
+          tenraiRequests: 1,
           windowSeconds: 60
         }
       })
@@ -19,7 +19,7 @@ describe("Banime rate limiter", () => {
     expect((await limiter.checkRequest("ip:test")).success).toBe(false);
     expect((await limiter.checkToolCall("ip:test")).success).toBe(true);
     expect((await limiter.checkToolCall("ip:test")).success).toBe(false);
-    expect((await limiter.checkJikanRequest()).success).toBe(true);
-    expect((await limiter.checkJikanRequest()).success).toBe(false);
+    expect((await limiter.checkTenraiRequest()).success).toBe(true);
+    expect((await limiter.checkTenraiRequest()).success).toBe(false);
   });
 });

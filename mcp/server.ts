@@ -7,9 +7,9 @@ import {
 import { isIP } from "node:net";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
-  configureJikanRequestGate,
-  JikanApiError
-} from "../src/services/jikan/client";
+  configureTenraiRequestGate,
+  TenraiApiError
+} from "../src/services/tenrai/client";
 import { extractBearerToken } from "./auth";
 import type { McpConfig } from "./config";
 import {
@@ -277,20 +277,20 @@ export function getProtectedResourceMetadata(config: McpConfig) {
 
 export function createBanimeHttpServer(config: McpConfig) {
   const rateLimiter = createRateLimiter(config);
-  configureJikanRequestGate(async () => {
+  configureTenraiRequestGate(async () => {
     try {
-      const result = await rateLimiter.checkJikanRequest();
+      const result = await rateLimiter.checkTenraiRequest();
       if (!result.success) {
-        throw new JikanApiError(
-          "Jikan's shared request budget is temporarily exhausted. Try again shortly.",
+        throw new TenraiApiError(
+          "Tenrai's shared request budget is temporarily exhausted. Try again shortly.",
           429
         );
       }
     } catch (error) {
-      if (error instanceof JikanApiError) throw error;
+      if (error instanceof TenraiApiError) throw error;
       safeLog(error);
-      throw new JikanApiError(
-        "The shared Jikan rate limiter is temporarily unavailable.",
+      throw new TenraiApiError(
+        "The shared Tenrai rate limiter is temporarily unavailable.",
         503
       );
     }

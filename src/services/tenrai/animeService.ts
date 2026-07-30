@@ -1,8 +1,8 @@
 import type { Anime, AnimePage } from "../../domain/anime/types";
 import { dedupeAnimeById } from "../../domain/anime/dedupe";
-import { jikanGet } from "./client";
-import type { JikanItemResponse, JikanListResponse } from "./dto";
-import { mapJikanAnime } from "./mapper";
+import { tenraiGet } from "./client";
+import type { TenraiItemResponse, TenraiListResponse } from "./dto";
+import { mapTenraiAnime } from "./mapper";
 
 const SHORT_LIST_CACHE_MS = 15 * 60 * 1000;
 const POPULAR_LIST_CACHE_MS = 6 * 60 * 60 * 1000;
@@ -15,9 +15,9 @@ export function getTopAnimeCacheMs(
     : SHORT_LIST_CACHE_MS;
 }
 
-function mapPage(response: JikanListResponse): AnimePage {
+function mapPage(response: TenraiListResponse): AnimePage {
   return {
-    items: dedupeAnimeById(response.data.map(mapJikanAnime)),
+    items: dedupeAnimeById(response.data.map(mapTenraiAnime)),
     currentPage: response.pagination.current_page,
     hasNextPage: response.pagination.has_next_page
   };
@@ -26,7 +26,7 @@ function mapPage(response: JikanListResponse): AnimePage {
 export async function getCurrentSeason(
   signal?: AbortSignal
 ): Promise<AnimePage> {
-  const response = await jikanGet<JikanListResponse>(
+  const response = await tenraiGet<TenraiListResponse>(
     "/seasons/now?limit=18&sfw=true",
     { signal, cacheMs: SHORT_LIST_CACHE_MS }
   );
@@ -43,7 +43,7 @@ export async function getTopAnime(
   const cacheMs = getTopAnimeCacheMs(filter);
   const responses = await Promise.all(
     Array.from({ length: pageCount }, (_, index) =>
-      jikanGet<JikanListResponse>(
+      tenraiGet<TenraiListResponse>(
         `/top/anime?filter=${filter}&limit=${limit}&page=${index + 1}&sfw=true`,
         {
           signal,
@@ -54,7 +54,7 @@ export async function getTopAnime(
     )
   );
   const items = dedupeAnimeById(
-    responses.flatMap((response) => response.data.map(mapJikanAnime))
+    responses.flatMap((response) => response.data.map(mapTenraiAnime))
   ).slice(0, isPopular ? 100 : limit);
 
   return {
@@ -77,7 +77,7 @@ export async function searchAnime(
     order_by: "popularity",
     sort: "asc"
   });
-  const response = await jikanGet<JikanListResponse>(
+  const response = await tenraiGet<TenraiListResponse>(
     `/anime?${params.toString()}`,
     { signal, cacheMs: 10 * 60 * 1000 }
   );
@@ -88,9 +88,9 @@ export async function getAnimeById(
   id: number,
   signal?: AbortSignal
 ): Promise<Anime> {
-  const response = await jikanGet<JikanItemResponse>(`/anime/${id}/full`, {
+  const response = await tenraiGet<TenraiItemResponse>(`/anime/${id}/full`, {
     signal,
     cacheMs: 30 * 60 * 1000
   });
-  return mapJikanAnime(response.data);
+  return mapTenraiAnime(response.data);
 }

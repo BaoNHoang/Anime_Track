@@ -10,7 +10,7 @@ export function createTestConfig(
   const rateLimit = {
     requests: 120,
     toolCalls: 40,
-    jikanRequests: 60,
+    tenraiRequests: 120,
     windowSeconds: 60,
     ...overrides.rateLimit
   };

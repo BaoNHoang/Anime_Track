@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { mapJikanAnime } from "./mapper";
+import { mapTenraiAnime } from "./mapper";
 
-describe("mapJikanAnime", () => {
+describe("mapTenraiAnime", () => {
   it("normalizes nullable API fields", () => {
-    const result = mapJikanAnime({
+    const result = mapTenraiAnime({
       mal_id: 5114,
       url: "https://example.com",
       title: "Fullmetal Alchemist: Brotherhood",

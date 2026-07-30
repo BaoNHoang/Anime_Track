@@ -9,7 +9,7 @@ vi.mock("./animeService", () => ({
   getAnimeById: getAnimeByIdMock
 }));
 
-import { enrichTrackedAnimeFromJikan } from "./trackerEnrichment";
+import { enrichTrackedAnimeFromTenrai } from "./trackerEnrichment";
 
 const importedItem: TrackedAnime = {
   anime: {
@@ -32,23 +32,23 @@ const importedItem: TrackedAnime = {
   updatedAt: "2026-06-02T00:00:00.000Z"
 };
 
-describe("enrichTrackedAnimeFromJikan", () => {
+describe("enrichTrackedAnimeFromTenrai", () => {
   beforeEach(() => {
     getAnimeByIdMock.mockReset();
   });
 
-  it("replaces imported MAL anime snapshots with Jikan details", async () => {
+  it("replaces imported MAL anime snapshots with Tenrai details", async () => {
     getAnimeByIdMock.mockResolvedValue({
       ...importedItem.anime,
-      title: "Jikan title",
+      title: "Tenrai title",
       imageUrl: "https://cdn.example.test/poster.jpg",
       largeImageUrl: "https://cdn.example.test/large.jpg",
-      synopsis: "Current Jikan synopsis.",
+      synopsis: "Current Tenrai synopsis.",
       genres: ["Action"],
       studios: ["Bones"]
     });
 
-    const result = await enrichTrackedAnimeFromJikan([importedItem], {
+    const result = await enrichTrackedAnimeFromTenrai([importedItem], {
       delayMs: 0
     });
 
@@ -58,17 +58,17 @@ describe("enrichTrackedAnimeFromJikan", () => {
       status: "watching",
       progress: 8,
       anime: {
-        title: "Jikan title",
+        title: "Tenrai title",
         imageUrl: "https://cdn.example.test/poster.jpg",
         genres: ["Action"]
       }
     });
   });
 
-  it("keeps MAL data when a Jikan lookup fails", async () => {
+  it("keeps MAL data when a Tenrai lookup fails", async () => {
     getAnimeByIdMock.mockRejectedValue(new Error("Not found"));
 
-    const result = await enrichTrackedAnimeFromJikan([importedItem], {
+    const result = await enrichTrackedAnimeFromTenrai([importedItem], {
       delayMs: 0
     });
 

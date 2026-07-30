@@ -1,4 +1,4 @@
-export interface JikanAnimeDto {
+export interface TenraiAnimeDto {
   mal_id: number;
   url: string;
   images: {
@@ -33,16 +33,16 @@ export interface JikanAnimeDto {
   studios?: Array<{ name: string }>;
 }
 
-export interface JikanPagination {
+export interface TenraiPagination {
   current_page: number;
   has_next_page: boolean;
 }
 
-export interface JikanListResponse {
-  data: JikanAnimeDto[];
-  pagination: JikanPagination;
+export interface TenraiListResponse {
+  data: TenraiAnimeDto[];
+  pagination: TenraiPagination;
 }
 
-export interface JikanItemResponse {
-  data: JikanAnimeDto;
+export interface TenraiItemResponse {
+  data: TenraiAnimeDto;
 }

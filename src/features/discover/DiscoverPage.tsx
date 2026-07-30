@@ -95,7 +95,6 @@ export function DiscoverPage() {
   return (
     <div className="page-stack">
       <header className="page-heading">
-        <span className="eyebrow">Anime catalog</span>
         <h1>Search anime</h1>
         <p>Search by title, then narrow the results.</p>
       </header>
@@ -183,9 +182,6 @@ export function DiscoverPage() {
       <section>
         <div className="results-heading">
           <div>
-            <span className="eyebrow">
-              {isSearching ? "Search results" : "Browse results"}
-            </span>
             <h2>
               {isSearching
                 ? `Results for "${debouncedQuery}"`

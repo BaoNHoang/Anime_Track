@@ -16,7 +16,7 @@ const anime: Anime = {
 };
 
 describe("dedupeAnimeById", () => {
-  it("keeps the first anime when Jikan returns the same ID twice", () => {
+  it("keeps the first anime when Tenrai returns the same ID twice", () => {
     const result = dedupeAnimeById([anime, { ...anime }]);
 
     expect(result).toEqual([anime]);

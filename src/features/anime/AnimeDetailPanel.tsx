@@ -113,14 +113,14 @@ export function AnimeDetailPanel() {
 
           {nextAiring && (
             <div className="airing-callout">
-              <span className="eyebrow">Next scheduled broadcast</span>
+              <span className="detail-label">Next scheduled broadcast</span>
               <strong>{nextAiring}</strong>
               {anime.broadcast?.label && <small>{anime.broadcast.label}</small>}
             </div>
           )}
 
           <section>
-            <span className="eyebrow">Synopsis</span>
+            <h3>Synopsis</h3>
             <p className="synopsis">{anime.synopsis}</p>
           </section>
 
@@ -128,7 +128,6 @@ export function AnimeDetailPanel() {
             <section className="tracking-box">
               <div className="tracking-box__header">
                 <div>
-                  <span className="eyebrow">In your library</span>
                   <strong>Update tracking</strong>
                 </div>
                 <button

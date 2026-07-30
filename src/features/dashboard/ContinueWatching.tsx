@@ -20,7 +20,6 @@ function ContinueItem({ item }: { item: TrackedAnime }) {
         <img src={item.anime.imageUrl} alt="" />
       </button>
       <div className="continue-card__content">
-        <span className="eyebrow">Episode progress</span>
         <button
           className="continue-card__title"
           onClick={() => openAnime(item.anime)}
@@ -85,7 +84,6 @@ export function ContinueWatching() {
   if (!watching.length) {
     return (
       <div className="empty-inline">
-        <div className="empty-inline__mark">01</div>
         <div>
           <strong>Your next episode starts here.</strong>
           <p>Add an anime and mark it as watching to track progress.</p>

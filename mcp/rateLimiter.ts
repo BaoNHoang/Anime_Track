@@ -12,7 +12,7 @@ export interface RateLimitResult {
 export interface BanimeRateLimiter {
   checkRequest(identifier: string): Promise<RateLimitResult>;
   checkToolCall(identifier: string): Promise<RateLimitResult>;
-  checkJikanRequest(): Promise<RateLimitResult>;
+  checkTenraiRequest(): Promise<RateLimitResult>;
   store: "memory" | "upstash";
 }
 
@@ -88,20 +88,20 @@ export function createRateLimiter(config: McpConfig): BanimeRateLimiter {
       ),
       prefix: "banime:mcp:tool"
     });
-    const jikanLimiter = new Ratelimit({
+    const tenraiLimiter = new Ratelimit({
       redis,
       limiter: Ratelimit.slidingWindow(
-        config.rateLimit.jikanRequests,
+        config.rateLimit.tenraiRequests,
         "60 s"
       ),
-      prefix: "banime:mcp:jikan"
+      prefix: "banime:mcp:tenrai"
     });
 
     return {
       store: "upstash",
       checkRequest: (identifier) => requestLimiter.limit(identifier),
       checkToolCall: (identifier) => toolLimiter.limit(identifier),
-      checkJikanRequest: () => jikanLimiter.limit("global")
+      checkTenraiRequest: () => tenraiLimiter.limit("global")
     };
   }
 
@@ -115,16 +115,16 @@ export function createRateLimiter(config: McpConfig): BanimeRateLimiter {
     windowMs,
     "tool"
   );
-  const jikanLimiter = new MemoryRateLimiter(
-    config.rateLimit.jikanRequests,
+  const tenraiLimiter = new MemoryRateLimiter(
+    config.rateLimit.tenraiRequests,
     60_000,
-    "jikan"
+    "tenrai"
   );
 
   return {
     store: "memory",
     checkRequest: (identifier) => requestLimiter.check(identifier),
     checkToolCall: (identifier) => toolLimiter.check(identifier),
-    checkJikanRequest: () => jikanLimiter.check("global")
+    checkTenraiRequest: () => tenraiLimiter.check("global")
   };
 }

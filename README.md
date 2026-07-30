@@ -1,13 +1,17 @@
 # Banime
 
 Banime is a private, mobile-ready anime tracker, discovery app, and news hub.
-Anime data comes from the Jikan v4 API. Tracking is local-first and can
+Anime data comes from the Tenrai v1 API. Tracking is local-first and can
 optionally sync across devices through Supabase.
+
+Tenrai v1 follows the Jikan v4 response schema for the endpoints Banime uses.
+Tenrai does not provide Jikan's `/watch` endpoints, so Banime builds its
+trailer feed from trailer metadata on current-season anime records.
 
 ## Features
 
 - Browse currently airing, upcoming, and the top 100 most popular anime
-- Search the Jikan catalog and filter by type, genre, score, and sort order
+- Search the Tenrai catalog and filter by type, genre, score, and sort order
 - Read news associated with current anime and browse popular trailers
 - See the next scheduled weekly broadcast in your local time
 - Track status, episode progress, notes, and personal scores
@@ -29,11 +33,11 @@ optionally sync across devices through Supabase.
 - Top 100 popular anime refreshes every 6 hours and uses persistent browser
   caching because that list changes slowly.
 - News headlines and trailers refresh every 2 hours while visible.
-- Fresh Jikan responses are cached until their endpoint-specific expiry time.
+- Fresh Tenrai responses are cached until their endpoint-specific expiry time.
 - Returning to a stale browser tab triggers a refresh.
 - Search results are cached for 10 minutes and anime details for 30 minutes.
 
-Jikan broadcast times are weekly schedule estimates. They may differ from the
+Tenrai broadcast times are weekly schedule estimates. They may differ from the
 time an episode becomes available on a streaming platform.
 
 ## Run locally
@@ -88,7 +92,7 @@ the provided schema limits each signed-in user to their own records.
 ## Connect ChatGPT with MCP
 
 Banime includes a separate Streamable HTTP MCP server under `mcp/`. Public
-Jikan tools can search anime, load details, and pull title news. Library tools
+Tenrai tools can search anime, load details, and pull title news. Library tools
 use Supabase OAuth and the existing row-level security policies.
 
 Available tools:
@@ -153,7 +157,7 @@ The public MCP edge applies:
 - Exact host and optional browser-origin allow lists
 - Per-IP request limits and additional hashed-token limits
 - A separate tool-call quota
-- A shared Jikan budget capped at 60 requests per minute
+- A shared Tenrai budget capped at 120 requests per minute
 - A 64 KiB JSON body cap and 16 KiB header cap by default
 - Strict JSON content type, method, encoding, and URL-path checks
 - Concurrent request, header, request, and upstream timeouts
@@ -167,7 +171,7 @@ The public MCP edge applies:
 
 Rate limits default to in-memory counters, which are suitable for one MCP
 process. For multiple replicas, configure `UPSTASH_REDIS_REST_URL` and
-`UPSTASH_REDIS_REST_TOKEN`. This shares request, tool, and Jikan limits across
+`UPSTASH_REDIS_REST_TOKEN`. This shares request, tool, and Tenrai limits across
 all replicas. The server fails closed with `503` when a configured distributed
 rate-limit store is unavailable.
 
@@ -180,16 +184,16 @@ theme bootstrap is an external same-origin file so CSP does not require
 
 - MyAnimeList XML imports and Banime JSON imports are limited to 5 MB by the
   UI and 5,000 records by the parser.
-- MyAnimeList XML imports save the parsed list to local storage before Jikan
+- MyAnimeList XML imports save the parsed list to local storage before Tenrai
   enrichment starts. If the app is stopped during enrichment, the base list is
   still available after relaunch.
-- After the checkpoint save, Banime checks Jikan for posters and current
+- After the checkpoint save, Banime checks Tenrai for posters and current
   catalog details and saves those enriched details when available. Signed-in
   users also queue the same saves to Supabase.
 - Imported text, arrays, IDs, scores, years, progress, and timestamps are
   bounded and validated.
 - External links must be credential-free HTTPS URLs. Unsafe links are rejected
-  on import and removed from Jikan responses.
+  on import and removed from Tenrai responses.
 - Local storage is validated again when read, so manually altered persisted
   data is not trusted.
 - The Supabase schema limits JSON records to 100 KB and adds title/type length
@@ -221,13 +225,13 @@ Recommended production layout:
 2. One or more stateless Banime MCP containers
 3. Upstash Redis for distributed rate limits
 4. Supabase Auth/Postgres with RLS
-5. Jikan as the read-only catalog source
+5. Tenrai as the read-only catalog source
 
 The MCP transport is stateless, so replicas do not require sticky sessions.
 The Supabase verifier client is reused within each process, library reads are
 paginated, and Postgres has user/status/date/type/score/title indexes. Keep the
-shared Jikan limiter enabled when adding replicas; otherwise each replica
-would multiply traffic against Jikan's official 3-per-second and 60-per-minute
+shared Tenrai limiter enabled when adding replicas; otherwise each replica
+would multiply traffic against Tenrai's public 4-per-second and 120-per-minute
 limits.
 
 Operational scaling still requires edge DDoS protection, request metrics,
@@ -254,7 +258,7 @@ when deployed to Vercel or Netlify.
 
 - `src/domain`: Framework-independent anime, news, and tracker models
 - `src/domain/watch`: Watch-provider registry and search-link builder
-- `src/services/jikan`: Jikan DTOs, mapping, throttling, news, and API access
+- `src/services/tenrai`: Tenrai DTOs, mapping, throttling, news, and API access
 - `src/services/storage`: Local browser repository and legacy data migration
 - `src/services/supabase`: Auth client loading and cloud tracker repository
 - `src/context`: Authentication, tracker state, and feature coordination
@@ -264,5 +268,10 @@ when deployed to Vercel or Netlify.
 - `mcp`: Streamable HTTP server, OAuth token validation, tool registration,
   Supabase library repository, and recommendation ranking
 
-Jikan is read-only. Personal tracking data is never sent to Jikan or
+Tenrai is read-only. Personal tracking data is never sent to Tenrai or
 MyAnimeList.
+
+Provider references:
+
+- [Tenrai API documentation](https://api.tenrai.org/llms.txt)
+- [Tenrai service status](https://tenrai.org/status)

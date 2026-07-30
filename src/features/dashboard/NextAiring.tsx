@@ -36,11 +36,10 @@ export function NextAiring({ items }: { items: Anime[] }) {
   if (!upcoming.length) return null;
 
   return (
-    <section>
+    <aside className="next-airing">
       <div className="section-header">
         <div>
-          <span className="eyebrow">Broadcast schedule</span>
-          <h2>Next scheduled to air</h2>
+          <h2>On deck</h2>
         </div>
         <CalendarClock size={22} />
       </div>
@@ -59,6 +58,6 @@ export function NextAiring({ items }: { items: Anime[] }) {
           </button>
         ))}
       </div>
-    </section>
+    </aside>
   );
 }

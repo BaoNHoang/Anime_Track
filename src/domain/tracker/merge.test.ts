@@ -45,7 +45,7 @@ describe("mergeTrackedAnime", () => {
   it("keeps same-timestamp local data unless replacement is requested", () => {
     const result = mergeTrackedAnime(
       [item(2, "2026-06-01T00:00:00.000Z", "Local title")],
-      [item(2, "2026-06-01T00:00:00.000Z", "Jikan title")]
+      [item(2, "2026-06-01T00:00:00.000Z", "Tenrai title")]
     );
 
     expect(result[0].anime.title).toBe("Local title");
@@ -54,10 +54,10 @@ describe("mergeTrackedAnime", () => {
   it("can replace same-timestamp data for catalog enrichment imports", () => {
     const result = mergeTrackedAnime(
       [item(2, "2026-06-01T00:00:00.000Z", "Imported MAL title")],
-      [item(2, "2026-06-01T00:00:00.000Z", "Jikan title")],
+      [item(2, "2026-06-01T00:00:00.000Z", "Tenrai title")],
       { replaceOnEqualUpdatedAt: true }
     );
 
-    expect(result[0].anime.title).toBe("Jikan title");
+    expect(result[0].anime.title).toBe("Tenrai title");
   });
 });

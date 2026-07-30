@@ -25,7 +25,7 @@ export interface McpConfig {
   rateLimit: {
     requests: number;
     toolCalls: number;
-    jikanRequests: number;
+    tenraiRequests: number;
     windowSeconds: number;
     upstashUrl?: string;
     upstashToken?: string;
@@ -236,11 +236,12 @@ export function loadMcpConfig(): McpConfig {
         1,
         100_000
       ),
-      jikanRequests: readInteger(
-        "MCP_JIKAN_RATE_LIMIT_REQUESTS",
-        60,
+      tenraiRequests: readInteger(
+        "MCP_TENRAI_RATE_LIMIT_REQUESTS",
+        120,
         1,
-        60
+        120,
+        ["MCP_JIKAN_RATE_LIMIT_REQUESTS"]
       ),
       windowSeconds: readInteger(
         "MCP_RATE_LIMIT_WINDOW_SECONDS",

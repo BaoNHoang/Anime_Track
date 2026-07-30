@@ -223,7 +223,7 @@ export function OAuthConsentPage() {
             <div className="oauth-permissions">
               <strong>This allows ChatGPT to:</strong>
               <ul>
-                <li>Search anime and pull current Jikan information.</li>
+                <li>Search anime and pull current Tenrai information.</li>
                 <li>Read your synced Banime library.</li>
                 <li>Add, update, or remove titles when you ask.</li>
                 <li>Suggest anime based on your library.</li>

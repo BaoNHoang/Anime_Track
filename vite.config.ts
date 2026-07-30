@@ -12,7 +12,7 @@ export default defineConfig({
         name: "Banime",
         short_name: "Banime",
         description:
-          "A private, mobile-ready anime tracker and news hub powered by Jikan.",
+          "A private, mobile-ready anime tracker and news hub powered by Tenrai.",
         theme_color: "#11101a",
         background_color: "#11101a",
         display: "standalone",

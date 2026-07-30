@@ -3,7 +3,7 @@ import { useCurrentSeason } from "./useAnimeQueries";
 import {
   getNewsForAnime,
   getPopularPromos
-} from "../services/jikan/newsService";
+} from "../services/tenrai/newsService";
 
 export function useAnimeNews() {
   const season = useCurrentSeason();

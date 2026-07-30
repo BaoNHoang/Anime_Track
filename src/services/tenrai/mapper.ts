@@ -3,9 +3,9 @@ import {
   safeExternalUrl,
   truncateExternalText
 } from "../../domain/security/validation";
-import type { JikanAnimeDto } from "./dto";
+import type { TenraiAnimeDto } from "./dto";
 
-export function mapJikanAnime(dto: JikanAnimeDto): Anime {
+export function mapTenraiAnime(dto: TenraiAnimeDto): Anime {
   const imageUrl = safeExternalUrl(dto.images.jpg.image_url) ?? "";
   const largeImageUrl =
     safeExternalUrl(dto.images.jpg.large_image_url) ?? imageUrl;

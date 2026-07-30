@@ -5,7 +5,7 @@ import {
   getTopAnimeCacheMs,
   getTopAnime,
   searchAnime
-} from "../services/jikan/animeService";
+} from "../services/tenrai/animeService";
 
 export function useCurrentSeason() {
   return useQuery({

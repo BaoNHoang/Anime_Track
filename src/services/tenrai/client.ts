@@ -1,6 +1,6 @@
-const API_BASE_URL = "https://api.jikan.moe/v4";
-const MIN_REQUEST_INTERVAL_MS = 350;
-const CACHE_STORAGE_PREFIX = "banime:jikan-cache:v1:";
+const API_BASE_URL = "https://api.tenrai.org/v1";
+const MIN_REQUEST_INTERVAL_MS = 500;
+const CACHE_STORAGE_PREFIX = "banime:tenrai-cache:v1:";
 type CacheStorageTarget = "session" | "local";
 
 let requestQueue = Promise.resolve();
@@ -16,17 +16,17 @@ interface CachedResponse {
   value: unknown;
 }
 
-export class JikanApiError extends Error {
+export class TenraiApiError extends Error {
   constructor(
     message: string,
     public readonly status: number
   ) {
     super(message);
-    this.name = "JikanApiError";
+    this.name = "TenraiApiError";
   }
 }
 
-export function configureJikanRequestGate(
+export function configureTenraiRequestGate(
   gate: (() => Promise<void>) | undefined
 ) {
   externalRequestGate = gate;
@@ -106,7 +106,7 @@ function writeCachedResponse(
   }
 }
 
-export async function jikanGet<T>(
+export async function tenraiGet<T>(
   path: string,
   options: {
     signal?: AbortSignal;
@@ -127,10 +127,10 @@ export async function jikanGet<T>(
   });
 
   if (!response.ok) {
-    throw new JikanApiError(
+    throw new TenraiApiError(
       response.status === 429
-        ? "Jikan is receiving too many requests. Try again in a moment."
-        : "Jikan could not load this anime data.",
+        ? "Tenrai is receiving too many requests. Try again in a moment."
+        : "Tenrai could not load this anime data.",
       response.status
     );
   }

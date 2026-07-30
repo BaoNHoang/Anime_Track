@@ -124,7 +124,6 @@ export function LibraryPage() {
   return (
     <div className="page-stack">
       <header className="page-heading">
-        <span className="eyebrow">Saved anime</span>
         <h1>Library</h1>
         <p>{items.length} titles stored on this device.</p>
       </header>

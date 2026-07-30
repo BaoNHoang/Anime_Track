@@ -1,15 +1,22 @@
 import { Moon, Sun } from "lucide-react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { AnimeDetailPanel } from "../features/anime/AnimeDetailPanel";
+import { AmbientBackdrop } from "./AmbientBackdrop";
 import { Brand } from "./Brand";
 import { Navigation } from "./Navigation";
 import { useTheme } from "../hooks/useTheme";
 
 export function AppShell() {
   const { theme, toggleTheme } = useTheme();
+  const { pathname } = useLocation();
+  const pageTitle =
+    pathname === "/"
+      ? "Overview"
+      : pathname.slice(1).replace(/\b\w/g, (letter) => letter.toUpperCase());
 
   return (
     <div className="app-shell">
+      <AmbientBackdrop />
       <aside className="sidebar">
         <Brand />
         <Navigation />
@@ -20,6 +27,7 @@ export function AppShell() {
           <div className="topbar__mobile-brand">
             <Brand />
           </div>
+          <span className="topbar__title">{pageTitle}</span>
           <div className="topbar__spacer" />
           <button
             className="icon-button"

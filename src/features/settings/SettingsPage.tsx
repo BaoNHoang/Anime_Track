@@ -26,7 +26,7 @@ import { usePwaInstall } from "../../hooks/usePwaInstall";
 import { useTheme } from "../../hooks/useTheme";
 import { useTracker } from "../../hooks/useTracker";
 import { useWatchProvider } from "../../hooks/useWatchProvider";
-import { enrichTrackedAnimeFromJikan } from "../../services/jikan/trackerEnrichment";
+import { enrichTrackedAnimeFromTenrai } from "../../services/tenrai/trackerEnrichment";
 
 type AuthMode = "sign_in" | "sign_up";
 
@@ -125,17 +125,17 @@ export function SettingsPage() {
           tone: "success",
           text: `Saved ${savedResult.added} new and ${savedResult.updated} newer MyAnimeList title${
             savedResult.added + savedResult.updated === 1 ? "" : "s"
-          } locally. Checking Jikan for posters and details for ${parsedMalItems.length} title${
+          } locally. Checking Tenrai for posters and details for ${parsedMalItems.length} title${
             parsedMalItems.length === 1 ? "" : "s"
           }...`
         });
 
-        const enrichment = await enrichTrackedAnimeFromJikan(parsedMalItems, {
+        const enrichment = await enrichTrackedAnimeFromTenrai(parsedMalItems, {
           onProgress: ({ completed, total, enriched, failed }) => {
             if (completed === 1 || completed % 10 === 0 || completed === total) {
               setImportMessage({
                 tone: "success",
-                text: `Checking Jikan ${completed}/${total}. Updated ${enriched}; ${failed} kept from MyAnimeList only.`
+                text: `Checking Tenrai ${completed}/${total}. Updated ${enriched}; ${failed} kept from MyAnimeList only.`
               });
             }
           }
@@ -143,7 +143,7 @@ export function SettingsPage() {
         const enrichedResult = importItems(enrichment.items, {
           replaceOnEqualUpdatedAt: true
         });
-        const enrichmentMessage = `Checked Jikan for ${enrichment.enriched + enrichment.failed} title${
+        const enrichmentMessage = `Checked Tenrai for ${enrichment.enriched + enrichment.failed} title${
           enrichment.enriched + enrichment.failed === 1 ? "" : "s"
         }; updated ${enrichment.enriched} with current catalog details${
           enrichment.failed ? ` and kept ${enrichment.failed} from MyAnimeList only` : ""
@@ -169,7 +169,6 @@ export function SettingsPage() {
   return (
     <div className="page-stack settings-page">
       <header className="page-heading">
-        <span className="eyebrow">Preferences & data</span>
         <h1>Settings</h1>
         <p>Install Banime and control how your private library is stored.</p>
       </header>
@@ -358,7 +357,7 @@ export function SettingsPage() {
           <div className="settings-card__content">
             <h2>ChatGPT connection</h2>
             <p>
-              Banime includes an MCP server that lets ChatGPT search Jikan,
+              Banime includes an MCP server that lets ChatGPT search Tenrai,
               read your synced library, update tracking, and recommend anime.
               Library actions require your Banime sign-in and approval.
             </p>
@@ -413,7 +412,7 @@ export function SettingsPage() {
           <div className="settings-card__content">
             <h2>Import or export library</h2>
             <p>
-              Import a MyAnimeList XML export. Banime will check Jikan for
+              Import a MyAnimeList XML export. Banime will check Tenrai for
               posters and details before saving. You can still export your
               Banime library as JSON.
             </p>
@@ -479,8 +478,8 @@ export function SettingsPage() {
       <aside className="api-note">
         <Info size={19} />
         <p>
-          Anime catalog, news, and promotional data are provided by Jikan and
-          MyAnimeList. Personal tracking data stays local unless you configure
+          Anime catalog and news are sourced from MyAnimeList and provided by
+          Tenrai. Personal tracking data stays local unless you configure
           Supabase and sign in.
         </p>
       </aside>

@@ -15,5 +15,5 @@
     "noUnusedParameters": true,
     "types": ["node"]
   },
-  "include": ["mcp", "src/domain", "src/services/jikan"]
+  "include": ["mcp", "src/domain", "src/services/tenrai"]
 }
