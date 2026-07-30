@@ -27,7 +27,6 @@ export function AnimeCard({ anime }: { anime: Anime }) {
         ) : (
           <span className="poster-placeholder">No image</span>
         )}
-        <span className="anime-card__overlay">View details</span>
       </button>
       <div className="anime-card__body">
         <div className="anime-card__topline">

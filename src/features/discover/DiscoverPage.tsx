@@ -1,4 +1,4 @@
-import { Search, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AnimeCard } from "../../components/AnimeCard";
 import { ErrorState } from "../../components/ErrorState";
@@ -22,9 +22,10 @@ export function DiscoverPage() {
   const [genre, setGenre] = useState("all");
   const [minimumScore, setMinimumScore] = useState("0");
   const [sort, setSort] = useState<Sort>("default");
+  const [page, setPage] = useState(1);
   const debouncedQuery = useDebouncedValue(query.trim(), 500);
-  const search = useAnimeSearch(debouncedQuery);
-  const top = useTopAnime(feed);
+  const search = useAnimeSearch(debouncedQuery, page);
+  const top = useTopAnime(feed, page);
   const isSearching = debouncedQuery.length >= 2;
   const result = isSearching ? search : top;
 
@@ -78,13 +79,26 @@ export function DiscoverPage() {
   };
   const updateQuery = (value: string) => {
     setQuery(value);
+    setPage(1);
     setType("all");
     setGenre("all");
   };
   const updateFeed = (value: Feed) => {
     setFeed(value);
+    setPage(1);
     setType("all");
     setGenre("all");
+  };
+  const changePage = (nextPage: number) => {
+    setPage(nextPage);
+    window.requestAnimationFrame(() => {
+      document.getElementById("discover-results")?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+        block: "start"
+      });
+    });
   };
   const hasFilters =
     type !== "all" ||
@@ -179,7 +193,7 @@ export function DiscoverPage() {
         </div>
       </section>
 
-      <section>
+      <section id="discover-results">
         <div className="results-heading">
           <div>
             <h2>
@@ -190,7 +204,9 @@ export function DiscoverPage() {
           </div>
           {result.data && (
             <span className="result-count">
-              {filteredItems.length} of {result.data.items.length}
+              {result.isFetching
+                ? "Loading page..."
+                : `${filteredItems.length} shown on this page`}
             </span>
           )}
         </div>
@@ -209,6 +225,32 @@ export function DiscoverPage() {
               <AnimeCard anime={anime} key={anime.id} />
             ))}
           </div>
+        )}
+        {result.data && (page > 1 || result.data.hasNextPage) && (
+          <nav className="pagination" aria-label="Anime results pages">
+            <button
+              className="pagination__button"
+              onClick={() => changePage(page - 1)}
+              disabled={page <= 1 || result.isFetching}
+              aria-label="Previous results page"
+            >
+              <ChevronLeft size={17} />
+              Previous
+            </button>
+            <span className="pagination__status" aria-live="polite">
+              Page {page}
+              {result.data.lastPage ? ` of ${result.data.lastPage}` : ""}
+            </span>
+            <button
+              className="pagination__button"
+              onClick={() => changePage(page + 1)}
+              disabled={!result.data.hasNextPage || result.isFetching}
+              aria-label="Next results page"
+            >
+              Next
+              <ChevronRight size={17} />
+            </button>
+          </nav>
         )}
       </section>
     </div>

@@ -1,23 +1,33 @@
 # Visual Design
 
-Banime is designed as a personal media archive: artwork identifies the
-content, while the interface around it stays quiet, precise, and fast to scan.
+Banime is designed as an anime broadcast room: artwork and motion make the
+catalog feel alive, while the controls stay compact and fast to scan.
 
 ## Foundation
 
-- Use graphite navigation, cool neutral surfaces, and coral only for primary
-  actions and active states.
+- Use ink navigation, cool neutral surfaces, candy-coral actions, broadcast
+  green, sky blue, and warm yellow only where status meaning requires them.
 - Use green, blue, and gold only for meaningful status categories.
 - Keep corners at 8px or less and rely on borders before shadows.
-- Use Aptos or Segoe UI Variable as a single workhorse interface family.
+- Use Yu Gothic UI or Meiryo UI for headings, with Aptos or Segoe UI Variable
+  for controls and body copy.
 
 ## Layout
 
-- Desktop uses a 220px fixed navigation rail and a 1420px content maximum.
+- Desktop uses a 76px icon rail that expands to 220px on hover or keyboard
+  focus, plus a 1420px content maximum. Pointer clicks do not pin the rail
+  open; the active route remains a complete centered icon tile when collapsed.
 - Mobile replaces the rail with a five-item bottom navigation.
-- The dashboard begins with live seasonal artwork, followed by one compact
-  library summary and a two-column work area.
+- The dashboard begins with a compact split feature: title and synopsis on a
+  dark field at left, with the highest available 16:9 trailer artwork masked
+  into the right edge. A poster is used only when no trailer banner exists. It
+  is followed by one compact, monochrome library data rail and eight seasonal
+  titles in a balanced grid.
 - Catalog pages use poster grids; library and settings use denser rows.
+- News uses equal-weight responsive cards; no article receives a viewport-sized
+  featured treatment.
+- Discovery and search use server-backed pagination. Each visited page remains
+  cached locally, and the current page stays visible while another loads.
 
 ## Components
 
@@ -36,6 +46,8 @@ Both themes preserve semantic accent colors and readable contrast.
 
 ## Motion
 
-Seasonal background artwork crossfades every 12 seconds and stops when reduced
-motion is requested. Other transitions are limited to short state feedback,
-panel movement, and image hover response.
+Seasonal background artwork crossfades every 12 seconds. The dashboard frame
+drifts slowly, the broadcast indicator pulses, cards lift with a slight cel-like
+tilt, and the navigation rail unfolds. Poster cards do not add a redundant
+"View details" overlay because the image itself is already the detail control.
+All motion stops when reduced motion is requested.

@@ -4,6 +4,7 @@ export interface Anime {
   titleEnglish?: string;
   imageUrl: string;
   largeImageUrl: string;
+  bannerImageUrl?: string;
   synopsis: string;
   score?: number;
   rank?: number;
@@ -31,4 +32,5 @@ export interface AnimePage {
   items: Anime[];
   currentPage: number;
   hasNextPage: boolean;
+  lastPage?: number;
 }

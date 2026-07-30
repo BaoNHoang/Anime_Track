@@ -9,6 +9,10 @@ export interface TenraiAnimeDto {
   };
   trailer?: {
     url?: string | null;
+    images?: {
+      large_image_url?: string | null;
+      maximum_image_url?: string | null;
+    };
   };
   title: string;
   title_english?: string | null;
@@ -36,6 +40,7 @@ export interface TenraiAnimeDto {
 export interface TenraiPagination {
   current_page: number;
   has_next_page: boolean;
+  last_visible_page?: number;
 }
 
 export interface TenraiListResponse {

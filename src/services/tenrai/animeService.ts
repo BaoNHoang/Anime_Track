@@ -19,7 +19,8 @@ function mapPage(response: TenraiListResponse): AnimePage {
   return {
     items: dedupeAnimeById(response.data.map(mapTenraiAnime)),
     currentPage: response.pagination.current_page,
-    hasNextPage: response.pagination.has_next_page
+    hasNextPage: response.pagination.has_next_page,
+    lastPage: response.pagination.last_visible_page
   };
 }
 
@@ -35,39 +36,24 @@ export async function getCurrentSeason(
 
 export async function getTopAnime(
   filter: "airing" | "upcoming" | "bypopularity",
+  page = 1,
   signal?: AbortSignal
 ): Promise<AnimePage> {
-  const isPopular = filter === "bypopularity";
-  const pageCount = isPopular ? 4 : 1;
-  const limit = isPopular ? 25 : 18;
   const cacheMs = getTopAnimeCacheMs(filter);
-  const responses = await Promise.all(
-    Array.from({ length: pageCount }, (_, index) =>
-      tenraiGet<TenraiListResponse>(
-        `/top/anime?filter=${filter}&limit=${limit}&page=${index + 1}&sfw=true`,
-        {
-          signal,
-          cacheMs,
-          cacheStorage: isPopular ? "local" : "session"
-        }
-      )
-    )
+  const response = await tenraiGet<TenraiListResponse>(
+    `/top/anime?filter=${filter}&limit=24&page=${page}&sfw=true`,
+    {
+      signal,
+      cacheMs,
+      cacheStorage: "local"
+    }
   );
-  const items = dedupeAnimeById(
-    responses.flatMap((response) => response.data.map(mapTenraiAnime))
-  ).slice(0, isPopular ? 100 : limit);
-
-  return {
-    items,
-    currentPage: 1,
-    hasNextPage: isPopular
-      ? responses.at(-1)?.pagination.has_next_page ?? false
-      : responses[0].pagination.has_next_page
-  };
+  return mapPage(response);
 }
 
 export async function searchAnime(
   query: string,
+  page = 1,
   signal?: AbortSignal
 ): Promise<AnimePage> {
   const params = new URLSearchParams({
@@ -75,11 +61,16 @@ export async function searchAnime(
     limit: "20",
     sfw: "true",
     order_by: "popularity",
-    sort: "asc"
+    sort: "asc",
+    page: String(page)
   });
   const response = await tenraiGet<TenraiListResponse>(
     `/anime?${params.toString()}`,
-    { signal, cacheMs: 10 * 60 * 1000 }
+    {
+      signal,
+      cacheMs: 30 * 60 * 1000,
+      cacheStorage: "local"
+    }
   );
   return mapPage(response);
 }

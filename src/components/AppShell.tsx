@@ -20,6 +20,7 @@ export function AppShell() {
       <aside className="sidebar">
         <Brand />
         <Navigation />
+        <span className="sidebar__hint" aria-hidden="true">Menu</span>
       </aside>
 
       <div className="app-main">

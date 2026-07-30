@@ -8,7 +8,7 @@ vi.mock("./client", () => ({
   tenraiGet: tenraiGetMock
 }));
 
-import { getTopAnime } from "./animeService";
+import { getTopAnime, searchAnime } from "./animeService";
 
 describe("getTopAnime", () => {
   beforeEach(() => {
@@ -22,33 +22,41 @@ describe("getTopAnime", () => {
     });
   });
 
-  it("requests four pages of 25 for the top 100 popular anime", async () => {
-    await getTopAnime("bypopularity");
-
-    expect(tenraiGetMock).toHaveBeenCalledTimes(4);
-    expect(tenraiGetMock.mock.calls.map(([path]) => path)).toEqual([
-      "/top/anime?filter=bypopularity&limit=25&page=1&sfw=true",
-      "/top/anime?filter=bypopularity&limit=25&page=2&sfw=true",
-      "/top/anime?filter=bypopularity&limit=25&page=3&sfw=true",
-      "/top/anime?filter=bypopularity&limit=25&page=4&sfw=true"
-    ]);
-    expect(tenraiGetMock.mock.calls.map(([, options]) => options)).toEqual(
-      Array.from({ length: 4 }, () =>
-        expect.objectContaining({
-          cacheMs: 6 * 60 * 60 * 1000,
-          cacheStorage: "local"
-        })
-      )
-    );
-  });
-
-  it("keeps airing and upcoming feeds to one request", async () => {
-    await getTopAnime("airing");
+  it("requests and persistently caches any popular anime page", async () => {
+    await getTopAnime("bypopularity", 5);
 
     expect(tenraiGetMock).toHaveBeenCalledTimes(1);
     expect(tenraiGetMock).toHaveBeenCalledWith(
-      "/top/anime?filter=airing&limit=18&page=1&sfw=true",
-      expect.objectContaining({ cacheMs: 15 * 60 * 1000 })
+      "/top/anime?filter=bypopularity&limit=24&page=5&sfw=true",
+      expect.objectContaining({
+        cacheMs: 6 * 60 * 60 * 1000,
+        cacheStorage: "local"
+      })
+    );
+  });
+
+  it("pages and persistently caches airing and upcoming feeds", async () => {
+    await getTopAnime("airing", 2);
+
+    expect(tenraiGetMock).toHaveBeenCalledTimes(1);
+    expect(tenraiGetMock).toHaveBeenCalledWith(
+      "/top/anime?filter=airing&limit=24&page=2&sfw=true",
+      expect.objectContaining({
+        cacheMs: 15 * 60 * 1000,
+        cacheStorage: "local"
+      })
+    );
+  });
+
+  it("includes the requested page when searching and caches it locally", async () => {
+    await searchAnime("bebop", 3);
+
+    expect(tenraiGetMock).toHaveBeenCalledWith(
+      "/anime?q=bebop&limit=20&sfw=true&order_by=popularity&sort=asc&page=3",
+      expect.objectContaining({
+        cacheMs: 30 * 60 * 1000,
+        cacheStorage: "local"
+      })
     );
   });
 });

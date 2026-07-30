@@ -9,6 +9,9 @@ export function mapTenraiAnime(dto: TenraiAnimeDto): Anime {
   const imageUrl = safeExternalUrl(dto.images.jpg.image_url) ?? "";
   const largeImageUrl =
     safeExternalUrl(dto.images.jpg.large_image_url) ?? imageUrl;
+  const bannerImageUrl =
+    safeExternalUrl(dto.trailer?.images?.maximum_image_url) ??
+    safeExternalUrl(dto.trailer?.images?.large_image_url);
 
   return {
     id: dto.mal_id,
@@ -18,6 +21,7 @@ export function mapTenraiAnime(dto: TenraiAnimeDto): Anime {
       : undefined,
     imageUrl,
     largeImageUrl,
+    bannerImageUrl,
     synopsis: truncateExternalText(
       dto.synopsis ?? "No synopsis is available yet.",
       20_000

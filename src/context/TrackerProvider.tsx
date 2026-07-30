@@ -8,6 +8,7 @@ import {
 } from "react";
 import type { Anime } from "../domain/anime/types";
 import { mergeTrackedAnime } from "../domain/tracker/merge";
+import { resolveTrackingProgress } from "../domain/tracker/progress";
 import { calculateTrackerStats } from "../domain/tracker/stats";
 import type {
   TrackedAnime,
@@ -119,13 +120,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       let updatedItem: TrackedAnime | undefined;
       const next = itemsRef.current.map((item) => {
         if (item.anime.id !== animeId) return item;
-        const progress = Math.max(
-          0,
-          Math.min(
-            updates.progress ?? item.progress,
-            item.anime.episodes ?? Number.MAX_SAFE_INTEGER
-          )
-        );
+        const progress = resolveTrackingProgress(item, updates);
         updatedItem = {
           ...item,
           ...updates,

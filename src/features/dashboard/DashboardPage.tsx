@@ -1,4 +1,4 @@
-import { BookOpen, CheckCircle2, ListVideo, Star } from "lucide-react";
+import { Check, Hash, Play, Star } from "lucide-react";
 import { AnimeCard } from "../../components/AnimeCard";
 import { ErrorState } from "../../components/ErrorState";
 import { LoadingState } from "../../components/LoadingState";
@@ -16,57 +16,65 @@ export function DashboardPage() {
     {
       label: "Watching",
       value: stats.watching,
-      icon: ListVideo,
-      tone: "coral"
+      icon: Play
     },
     {
       label: "Completed",
       value: stats.completed,
-      icon: CheckCircle2,
-      tone: "mint"
+      icon: Check
     },
     {
       label: "Episodes",
       value: stats.episodesWatched,
-      icon: BookOpen,
-      tone: "blue"
+      icon: Hash
     },
     {
       label: "Mean score",
-      value: stats.averageScore?.toFixed(1) ?? "—",
-      icon: Star,
-      tone: "gold"
+      value: stats.averageScore?.toFixed(1) ?? "-",
+      icon: Star
     }
   ];
 
   return (
     <div className="dashboard-page">
       <section className="dashboard-masthead">
-        {featureAnime?.largeImageUrl && (
+        {(featureAnime?.bannerImageUrl ||
+          featureAnime?.largeImageUrl ||
+          featureAnime?.imageUrl) && (
           <img
             className="dashboard-masthead__image"
-            src={featureAnime.largeImageUrl}
+            src={
+              featureAnime.bannerImageUrl ||
+              featureAnime.largeImageUrl ||
+              featureAnime.imageUrl
+            }
             alt=""
           />
         )}
-        <div className="dashboard-masthead__shade" />
         <div className="dashboard-masthead__content">
           <p className="dashboard-masthead__label">Your watch desk</p>
-          <h1>Keep the next episode in sight.</h1>
-          <p>Pick up where you left off, then find something worth adding.</p>
+          <h1>
+            {featureAnime?.titleEnglish ||
+              featureAnime?.title ||
+              "Keep the next episode in sight."}
+          </h1>
+          <p>
+            {featureAnime?.synopsis ||
+              "Pick up where you left off, then find something worth adding."}
+          </p>
         </div>
       </section>
 
       <section className="watch-summary" aria-label="Library summary">
-        {statCards.map(({ label, value, icon: Icon, tone }) => (
-          <article className={`watch-summary__item watch-summary__item--${tone}`} key={label}>
+        {statCards.map(({ label, value, icon: Icon }) => (
+          <article className="watch-summary__item" key={label}>
+            <span className="watch-summary__icon" aria-hidden="true">
+              <Icon size={20} strokeWidth={1.8} />
+            </span>
             <div>
               <strong>{value}</strong>
               <span>{label}</span>
             </div>
-            <span className="watch-summary__icon">
-              <Icon size={29} strokeWidth={1.7} />
-            </span>
           </article>
         ))}
       </section>
@@ -90,7 +98,7 @@ export function DashboardPage() {
             {season.isError && <ErrorState onRetry={() => season.refetch()} />}
             {season.data && (
               <div className="anime-grid">
-                {season.data.items.slice(0, 6).map((anime) => (
+                {season.data.items.slice(0, 8).map((anime) => (
                   <AnimeCard anime={anime} key={anime.id} />
                 ))}
               </div>

@@ -14,6 +14,11 @@ describe("mapTenraiAnime", () => {
           large_image_url: "large.jpg"
         }
       },
+      trailer: {
+        images: {
+          maximum_image_url: "https://img.youtube.com/banner.jpg"
+        }
+      },
       episodes: null,
       synopsis: null,
       genres: [{ name: "Action" }],
@@ -23,6 +28,9 @@ describe("mapTenraiAnime", () => {
     expect(result.id).toBe(5114);
     expect(result.episodes).toBeUndefined();
     expect(result.synopsis).toBe("No synopsis is available yet.");
+    expect(result.bannerImageUrl).toBe(
+      "https://img.youtube.com/banner.jpg"
+    );
     expect(result.genres).toEqual(["Action"]);
     expect(result.studios).toEqual(["Bones"]);
   });

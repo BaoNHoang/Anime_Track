@@ -9,7 +9,10 @@ export function AmbientBackdrop() {
   const [activeIndex, setActiveIndex] = useState(0);
   const images = useMemo(() => {
     const urls = season.data?.items
-      .map((anime) => anime.largeImageUrl || anime.imageUrl)
+      .map(
+        (anime) =>
+          anime.bannerImageUrl || anime.largeImageUrl || anime.imageUrl
+      )
       .filter((url): url is string => Boolean(url));
 
     return [...new Set(urls)].slice(0, BACKDROP_COUNT);

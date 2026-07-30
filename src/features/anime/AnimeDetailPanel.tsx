@@ -156,9 +156,12 @@ export function AnimeDetailPanel() {
                 </select>
               </label>
               <label className="field">
-                <span>
-                  Episodes watched
-                  <strong>{tracked.progress}</strong>
+                <span className="tracking-box__progress-label">
+                  <span>Episodes watched</span>
+                  <strong>
+                    {tracked.progress}
+                    {anime.episodes ? ` / ${anime.episodes}` : ""}
+                  </strong>
                 </span>
                 <input
                   type="range"

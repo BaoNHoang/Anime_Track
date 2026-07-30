@@ -169,7 +169,7 @@ export function createBanimeMcpServer(
     },
     async ({ query, limit }) => {
       try {
-        const page = await searchAnime(query, createUpstreamSignal());
+        const page = await searchAnime(query, 1, createUpstreamSignal());
         const results = page.items.slice(0, limit).map((anime) =>
           compactAnime(anime)
         );
@@ -488,14 +488,18 @@ export function createBanimeMcpServer(
           auth.userId,
           signal
         );
-        const [library, popular, current] = await Promise.all([
+        const [library, popularPages, current] = await Promise.all([
           repository.getAll({ limit: 100 }),
-          getTopAnime("bypopularity", signal),
+          Promise.all(
+            Array.from({ length: 4 }, (_, index) =>
+              getTopAnime("bypopularity", index + 1, signal)
+            )
+          ),
           getCurrentSeason(signal)
         ]);
         const candidates = dedupeAnimeById([
           ...current.items,
-          ...popular.items
+          ...popularPages.flatMap((page) => page.items)
         ]);
         const ranked = rankRecommendationCandidates(
           library,

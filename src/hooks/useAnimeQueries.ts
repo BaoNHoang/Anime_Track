@@ -17,26 +17,28 @@ export function useCurrentSeason() {
 }
 
 export function useTopAnime(
-  filter: "airing" | "upcoming" | "bypopularity"
+  filter: "airing" | "upcoming" | "bypopularity",
+  page = 1
 ) {
   const cacheTime = getTopAnimeCacheMs(filter);
 
   return useQuery({
-    queryKey: ["anime", "top", filter],
-    queryFn: ({ signal }) => getTopAnime(filter, signal),
+    queryKey: ["anime", "top", filter, page],
+    queryFn: ({ signal }) => getTopAnime(filter, page, signal),
     staleTime: cacheTime,
-    gcTime: 2 * 60 * 60 * 1000,
-    refetchInterval: cacheTime,
+    gcTime: 24 * 60 * 60 * 1000,
     placeholderData: (previousData) => previousData
   });
 }
 
-export function useAnimeSearch(query: string) {
+export function useAnimeSearch(query: string, page = 1) {
   return useQuery({
-    queryKey: ["anime", "search", query],
-    queryFn: ({ signal }) => searchAnime(query, signal),
+    queryKey: ["anime", "search", query, page],
+    queryFn: ({ signal }) => searchAnime(query, page, signal),
     enabled: query.trim().length >= 2,
-    staleTime: 10 * 60 * 1000
+    staleTime: 30 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
+    placeholderData: (previousData) => previousData
   });
 }
 

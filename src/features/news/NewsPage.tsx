@@ -14,7 +14,6 @@ function formatPublishedAt(value: string) {
 
 export function NewsPage() {
   const news = useAnimeNews();
-  const featured = news.articles[0];
 
   return (
     <div className="page-stack">
@@ -24,60 +23,21 @@ export function NewsPage() {
       </header>
 
       {news.articlesLoading && (
-        <div className="news-loading" aria-label="Loading anime news">
-          <div className="skeleton news-loading__feature" />
-          <div className="news-loading__list">
-            <div className="skeleton" />
-            <div className="skeleton" />
-            <div className="skeleton" />
-          </div>
+        <div className="news-grid" aria-label="Loading anime news">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div className="skeleton news-loading-card" key={index} />
+          ))}
         </div>
       )}
 
-      {news.articlesError && !featured && (
+      {news.articlesError && !news.articles.length && (
         <ErrorState
           onRetry={() => void news.refetchArticles()}
           message="Anime news could not be loaded."
         />
       )}
 
-      {featured ? (
-        <section className="news-feature">
-          <img
-            src={featured.imageUrl || featured.animeImageUrl}
-            alt=""
-            decoding="async"
-            fetchPriority="high"
-          />
-          <div className="news-feature__content">
-            <span className="news-label">{featured.animeTitle}</span>
-            <h2>{featured.title}</h2>
-            <p>{featured.excerpt}</p>
-            <div className="news-meta">
-              <span>{formatPublishedAt(featured.publishedAt)}</span>
-              <span>{featured.author}</span>
-            </div>
-            <a
-              className="button"
-              href={featured.url}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Read story <ExternalLink size={15} />
-            </a>
-          </div>
-        </section>
-      ) : (
-        !news.articlesLoading &&
-        !news.articlesError && (
-          <div className="empty-state">
-            <strong>No current headlines were found.</strong>
-            <p>Tenrai may still be refreshing this season's news.</p>
-          </div>
-        )
-      )}
-
-      {news.articles.length > 1 && (
+      {news.articles.length > 0 ? (
         <section>
           <div className="section-header">
             <div>
@@ -88,7 +48,7 @@ export function NewsPage() {
             )}
           </div>
           <div className="news-grid">
-            {news.articles.slice(1).map((article) => (
+            {news.articles.map((article) => (
               <article className="news-card" key={article.url}>
                 <img
                   src={article.imageUrl || article.animeImageUrl}
@@ -119,6 +79,14 @@ export function NewsPage() {
             ))}
           </div>
         </section>
+      ) : (
+        !news.articlesLoading &&
+        !news.articlesError && (
+          <div className="empty-state">
+            <strong>No current headlines were found.</strong>
+            <p>Tenrai may still be refreshing this season's news.</p>
+          </div>
+        )
       )}
 
       <section>
