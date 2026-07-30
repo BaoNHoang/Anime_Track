@@ -6,7 +6,7 @@ import {
   type FormEvent
 } from "react";
 import { Brand } from "../../components/Brand";
-import { useCloudAuth } from "../../hooks/useCloudAuth";
+import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { getSupabaseClient } from "../../services/supabase/client";
 import { safeExternalUrl } from "../../domain/security/validation";
 

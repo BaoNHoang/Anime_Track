@@ -4,7 +4,7 @@ import { AnimeDetailPanel } from "../features/anime/AnimeDetailPanel";
 import { AmbientBackdrop } from "./AmbientBackdrop";
 import { Brand } from "./Brand";
 import { Navigation } from "./Navigation";
-import { useTheme } from "../hooks/useTheme";
+import { useTheme } from "../app/providers/useTheme";
 
 export function AppShell() {
   const { theme, toggleTheme } = useTheme();

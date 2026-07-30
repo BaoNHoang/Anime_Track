@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import type { Anime } from "../domain/anime/types";
+import type { Anime } from "../../domain/anime/types";
 
 export interface AnimePanelContextValue {
   selectedAnime?: Anime;

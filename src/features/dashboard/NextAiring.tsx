@@ -5,7 +5,7 @@ import {
   getNextAiringAt
 } from "../../domain/anime/airing";
 import type { Anime } from "../../domain/anime/types";
-import { useAnimePanel } from "../../hooks/useAnimePanel";
+import { useAnimePanel } from "../../app/providers/useAnimePanel";
 
 export function NextAiring({ items }: { items: Anime[] }) {
   const [now, setNow] = useState(() => new Date());

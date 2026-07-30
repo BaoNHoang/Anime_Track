@@ -9,7 +9,7 @@ import type { User } from "@supabase/supabase-js";
 import {
   getSupabaseClient,
   isSupabaseConfigured
-} from "../services/supabase/client";
+} from "../../services/supabase/client";
 import {
   CloudAuthContext,
   type AuthActionResult,

@@ -4,13 +4,13 @@ import {
   useState,
   type PropsWithChildren
 } from "react";
-import type { Anime } from "../domain/anime/types";
+import type { Anime } from "../../domain/anime/types";
 import {
   buildWatchSearchUrl,
   DEFAULT_WATCH_PROVIDER_ID,
   getWatchProvider,
   WATCH_PROVIDERS
-} from "../domain/watch/providers";
+} from "../../domain/watch/providers";
 import { WatchProviderContext } from "./watchProviderContext";
 
 const WATCH_PROVIDER_KEY = "banime:watch-provider:v2";

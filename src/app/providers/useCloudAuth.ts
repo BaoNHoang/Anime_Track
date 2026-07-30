@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { CloudAuthContext } from "../context/cloudAuthContext";
+import { CloudAuthContext } from "./cloudAuthContext";
 
 export function useCloudAuth() {
   const context = useContext(CloudAuthContext);

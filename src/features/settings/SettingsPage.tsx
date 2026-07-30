@@ -21,11 +21,11 @@ import {
 } from "../../domain/tracker/import";
 import { parseMyAnimeListXml } from "../../domain/tracker/xml";
 import { useAppUpdateStatus } from "../../hooks/useAppUpdateStatus";
-import { useCloudAuth } from "../../hooks/useCloudAuth";
+import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { usePwaInstall } from "../../hooks/usePwaInstall";
-import { useTheme } from "../../hooks/useTheme";
-import { useTracker } from "../../hooks/useTracker";
-import { useWatchProvider } from "../../hooks/useWatchProvider";
+import { useTheme } from "../../app/providers/useTheme";
+import { useTracker } from "../../app/providers/useTracker";
+import { useWatchProvider } from "../../app/providers/useWatchProvider";
 import { enrichTrackedAnimeFromTenrai } from "../../services/tenrai/trackerEnrichment";
 
 type AuthMode = "sign_in" | "sign_up";

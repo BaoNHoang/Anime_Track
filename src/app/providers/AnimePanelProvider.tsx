@@ -1,5 +1,5 @@
 import { useMemo, useState, type PropsWithChildren } from "react";
-import type { Anime } from "../domain/anime/types";
+import type { Anime } from "../../domain/anime/types";
 import { AnimePanelContext } from "./animePanelContext";
 
 export function AnimePanelProvider({ children }: PropsWithChildren) {

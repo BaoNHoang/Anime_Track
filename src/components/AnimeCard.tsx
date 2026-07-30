@@ -1,8 +1,8 @@
 import { Check, Plus, Star } from "lucide-react";
 import { formatAiringRelative } from "../domain/anime/airing";
 import type { Anime } from "../domain/anime/types";
-import { useAnimePanel } from "../hooks/useAnimePanel";
-import { useTracker } from "../hooks/useTracker";
+import { useAnimePanel } from "../app/providers/useAnimePanel";
+import { useTracker } from "../app/providers/useTracker";
 
 export function AnimeCard({ anime }: { anime: Anime }) {
   const { openAnime } = useAnimePanel();

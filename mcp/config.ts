@@ -240,8 +240,7 @@ export function loadMcpConfig(): McpConfig {
         "MCP_TENRAI_RATE_LIMIT_REQUESTS",
         120,
         1,
-        120,
-        ["MCP_JIKAN_RATE_LIMIT_REQUESTS"]
+        120
       ),
       windowSeconds: readInteger(
         "MCP_RATE_LIMIT_WINDOW_SECONDS",

@@ -6,17 +6,17 @@ import {
   useState,
   type PropsWithChildren
 } from "react";
-import type { Anime } from "../domain/anime/types";
-import { mergeTrackedAnime } from "../domain/tracker/merge";
-import { resolveTrackingProgress } from "../domain/tracker/progress";
-import { calculateTrackerStats } from "../domain/tracker/stats";
+import type { Anime } from "../../domain/anime/types";
+import { mergeTrackedAnime } from "../../domain/tracker/merge";
+import { resolveTrackingProgress } from "../../domain/tracker/progress";
+import { calculateTrackerStats } from "../../domain/tracker/stats";
 import type {
   TrackedAnime,
   TrackingStatus
-} from "../domain/tracker/types";
-import { trackerRepository } from "../services/storage/trackerRepository";
-import { trackerCloudRepository } from "../services/supabase/trackerCloudRepository";
-import { useCloudAuth } from "../hooks/useCloudAuth";
+} from "../../domain/tracker/types";
+import { trackerRepository } from "../../services/storage/trackerRepository";
+import { trackerCloudRepository } from "../../services/supabase/trackerCloudRepository";
+import { useCloudAuth } from "./useCloudAuth";
 import {
   TrackerContext,
   type TrackerContextValue

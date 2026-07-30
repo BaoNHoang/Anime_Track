@@ -14,9 +14,9 @@ import {
   type TrackingStatus
 } from "../../domain/tracker/types";
 import { useAnimeDetails } from "../../hooks/useAnimeQueries";
-import { useAnimePanel } from "../../hooks/useAnimePanel";
-import { useTracker } from "../../hooks/useTracker";
-import { useWatchProvider } from "../../hooks/useWatchProvider";
+import { useAnimePanel } from "../../app/providers/useAnimePanel";
+import { useTracker } from "../../app/providers/useTracker";
+import { useWatchProvider } from "../../app/providers/useWatchProvider";
 
 export function AnimeDetailPanel() {
   const { selectedAnime, closeAnime } = useAnimePanel();

@@ -96,4 +96,25 @@ describe("Banime MCP HTTP security", () => {
     expect(response.headers.get("retry-after")).not.toBeNull();
     expect(response.headers.get("ratelimit-remaining")).toBe("0");
   });
+
+  it("charges every tool call in a JSON-RPC batch", async () => {
+    const { baseUrl } = await startServer({
+      rateLimit: { requests: 10, toolCalls: 1, windowSeconds: 60 }
+    });
+    const response = await fetch(`${baseUrl}/mcp`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer fake-token",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify([
+        { jsonrpc: "2.0", id: 1, method: "tools/call", params: {} },
+        { jsonrpc: "2.0", id: 2, method: "tools/call", params: {} }
+      ])
+    });
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).not.toBeNull();
+    expect(response.headers.get("ratelimit-remaining")).toBe("0");
+  });
 });

@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { WatchProviderContext } from "../context/watchProviderContext";
+import { WatchProviderContext } from "./watchProviderContext";
 
 export function useWatchProvider() {
   const context = useContext(WatchProviderContext);

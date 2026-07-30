@@ -4,3 +4,9 @@ dist
 coverage
 mcp-dist
 *.local
+.env
+.env.*
+!.env.example
+!.env.mcp.example
+__pycache__/
+*.py[cod]

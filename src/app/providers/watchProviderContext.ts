@@ -1,6 +1,6 @@
 import { createContext } from "react";
-import type { Anime } from "../domain/anime/types";
-import type { WATCH_PROVIDERS } from "../domain/watch/providers";
+import type { Anime } from "../../domain/anime/types";
+import type { WATCH_PROVIDERS } from "../../domain/watch/providers";
 
 export interface WatchProviderContextValue {
   providerId: string;

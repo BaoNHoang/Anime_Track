@@ -2231,6 +2231,29 @@ A future change is complete only when all applicable checks are satisfied:
   - `git diff --check` passed with only LF-to-CRLF working-copy warnings.
 - Supersedes: `ADR-0004` and other current-state Jikan provider assumptions.
 
+### HIST-0019 - 2026-07-30 - Audit and harden application security
+
+- Status: Completed locally with production follow-up items.
+- Changes:
+  - Fixed JSON-RPC batch accounting so every MCP `tools/call` consumes one
+    tool-rate-limit unit.
+  - Added an HTTP regression test for batched tool calls.
+  - Ignored local environment files while retaining tracked example files.
+  - Updated the MCP SDK, React Router, ESLint, and Vite to current compatible
+    releases and refreshed vulnerable transitive dependencies.
+- Verification:
+  - Repository-wide review covered 145 application and configuration files.
+  - `npm.cmd run lint` passed.
+  - `npm.cmd test` passed with 18 test files and 44 tests.
+  - `npm.cmd run build` passed, including the MCP typecheck and PWA build.
+  - No tracked credentials, production source maps, or unsafe DOM sinks were
+    found.
+- Follow-up:
+  - Enable `MCP_EXPECTED_AUDIENCE` only after the Supabase access-token hook
+    emits the same audience.
+  - Verify provider-managed monitoring, backups, authentication limits, and
+    live RLS configuration in the production consoles.
+
 ## Release History
 
 No formal production release has been recorded.

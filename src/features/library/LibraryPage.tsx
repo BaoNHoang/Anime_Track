@@ -6,7 +6,7 @@ import {
   TRACKING_STATUSES,
   type TrackingStatus
 } from "../../domain/tracker/types";
-import { useTracker } from "../../hooks/useTracker";
+import { useTracker } from "../../app/providers/useTracker";
 import { LibraryCard } from "./LibraryCard";
 
 type Filter = "all" | TrackingStatus;

@@ -4,7 +4,7 @@ import { ErrorState } from "../../components/ErrorState";
 import { LoadingState } from "../../components/LoadingState";
 import { SectionHeader } from "../../components/SectionHeader";
 import { useCurrentSeason } from "../../hooks/useAnimeQueries";
-import { useTracker } from "../../hooks/useTracker";
+import { useTracker } from "../../app/providers/useTracker";
 import { ContinueWatching } from "./ContinueWatching";
 import { NextAiring } from "./NextAiring";
 

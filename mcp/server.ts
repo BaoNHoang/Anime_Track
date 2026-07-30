@@ -182,13 +182,19 @@ function rejectRateLimit(
   sendJson(response, 429, { error: "Rate limit exceeded." });
 }
 
-function isToolCall(body: unknown) {
-  return (
-    typeof body === "object" &&
+function countToolCalls(body: unknown): number {
+  if (Array.isArray(body)) {
+    return body.reduce(
+      (total, message) => total + countToolCalls(message),
+      0
+    );
+  }
+  return typeof body === "object" &&
     body !== null &&
     "method" in body &&
     body.method === "tools/call"
-  );
+    ? 1
+    : 0;
 }
 
 function validatePostHeaders(
@@ -389,7 +395,8 @@ export function createBanimeHttpServer(config: McpConfig) {
           if (request.method === "POST") {
             validatePostHeaders(request, config);
             parsedBody = await readJsonBody(request, config.maxBodyBytes);
-            if (isToolCall(parsedBody)) {
+            const toolCallCount = countToolCalls(parsedBody);
+            for (let index = 0; index < toolCallCount; index += 1) {
               let toolLimit: RateLimitResult;
               try {
                 toolLimit = await checkRateLimits(

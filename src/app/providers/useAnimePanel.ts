@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { AnimePanelContext } from "../context/animePanelContext";
+import { AnimePanelContext } from "./animePanelContext";
 
 export function useAnimePanel() {
   const context = useContext(AnimePanelContext);

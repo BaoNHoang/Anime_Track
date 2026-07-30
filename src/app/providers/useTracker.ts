@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { TrackerContext } from "../context/trackerContext";
+import { TrackerContext } from "./trackerContext";
 
 export function useTracker() {
   const context = useContext(TrackerContext);

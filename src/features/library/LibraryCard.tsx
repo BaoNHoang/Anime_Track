@@ -1,7 +1,7 @@
 import { ExternalLink, Minus, Plus, Star, Trash2 } from "lucide-react";
-import { useAnimePanel } from "../../hooks/useAnimePanel";
-import { useTracker } from "../../hooks/useTracker";
-import { useWatchProvider } from "../../hooks/useWatchProvider";
+import { useAnimePanel } from "../../app/providers/useAnimePanel";
+import { useTracker } from "../../app/providers/useTracker";
+import { useWatchProvider } from "../../app/providers/useWatchProvider";
 import {
   STATUS_LABELS,
   TRACKING_STATUSES,

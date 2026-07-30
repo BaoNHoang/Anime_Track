@@ -256,15 +256,17 @@ when deployed to Vercel or Netlify.
 
 ## Architecture
 
+- `src/app`: Application composition, routing, and shared providers
+- `src/app/providers`: Context providers and their colocated consumer hooks
 - `src/domain`: Framework-independent anime, news, and tracker models
 - `src/domain/watch`: Watch-provider registry and search-link builder
 - `src/services/tenrai`: Tenrai DTOs, mapping, throttling, news, and API access
 - `src/services/storage`: Local browser repository and legacy data migration
 - `src/services/supabase`: Auth client loading and cloud tracker repository
-- `src/context`: Authentication, tracker state, and feature coordination
-- `src/hooks`: Query, install, authentication, and utility hooks
+- `src/hooks`: Reusable query, install, and utility hooks
 - `src/features`: Dashboard, discovery, news, library, details, and settings
 - `src/components`: Shared presentation components
+- `docs`: Engineering history and long-form project records
 - `mcp`: Streamable HTTP server, OAuth token validation, tool registration,
   Supabase library repository, and recommendation ranking
 

@@ -1,10 +1,10 @@
 import { createContext } from "react";
-import type { Anime } from "../domain/anime/types";
-import { calculateTrackerStats } from "../domain/tracker/stats";
+import type { Anime } from "../../domain/anime/types";
+import { calculateTrackerStats } from "../../domain/tracker/stats";
 import type {
   TrackedAnime,
   TrackingStatus
-} from "../domain/tracker/types";
+} from "../../domain/tracker/types";
 
 export interface TrackerContextValue {
   items: TrackedAnime[];
