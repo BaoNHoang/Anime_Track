@@ -1579,6 +1579,7 @@ Log rather than treated as application incidents.
 | 2026-06-20 | Anikoto default provider lint | `npm.cmd run lint` | Passed with no warnings |
 | 2026-06-20 | Anikoto default provider build | `npm.cmd run build` | Browser and MCP TypeScript checks, Vite build, and PWA generation passed; main JS 398.22 kB gzip 123.20 kB |
 | 2026-06-20 | Anikoto default provider whitespace | `git diff --check` | Passed; Git reported only LF-to-CRLF working-copy warnings |
+| 2026-07-30 | Error message copy | `npm run lint && npm test && npm run build` | Blocked before execution because dependencies are incomplete and the package registry returned HTTP 403 |
 
 ## Definition of Done
 
@@ -2192,6 +2193,17 @@ A future change is complete only when all applicable checks are satisfied:
   - `npm.cmd run build` passed; generated main JS 398.22 kB, gzip 123.20 kB.
   - `git diff --check` passed with only LF-to-CRLF working-copy warnings.
 - References: `ADR-0034`, `GOAL-0014`, `RISK-0027`
+
+### HIST-0017 - 2026-07-30 - Use a direct anime-data error message
+
+- Status: Completed locally.
+- Reason: The default error text used the vague phrase "taking a break" rather
+  than stating what failed.
+- Change: Replaced it with "Anime data could not be loaded." The existing
+  connection guidance and Retry action remain available.
+- Verification: `git diff --check` passed. Lint, tests, and the production build
+  could not start because the checked-out dependencies are incomplete and the
+  package registry returned HTTP 403 while restoring them.
 
 ## Release History
 

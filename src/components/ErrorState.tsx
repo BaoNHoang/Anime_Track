@@ -2,7 +2,7 @@ import { RefreshCw } from "lucide-react";
 
 export function ErrorState({
   onRetry,
-  message = "Anime data is taking a break."
+  message = "Anime data could not be loaded."
 }: {
   onRetry: () => void;
   message?: string;
