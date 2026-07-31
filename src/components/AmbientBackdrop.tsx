@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useCurrentSeason } from "../hooks/useAnimeQueries";
 
 const ROTATION_MS = 12_000;
-const BACKDROP_COUNT = 4;
+const BACKDROP_COUNT = 2;
 
 export function AmbientBackdrop() {
   const season = useCurrentSeason();

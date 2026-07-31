@@ -2384,6 +2384,29 @@ A future change is complete only when all applicable checks are satisfied:
 - Verification: Run lint, API typecheck, tests, production build, and route
   checks before opening the pull request.
 
+### HIST-0026 - 2026-07-31 - Bound browser cache and remove audit noise
+
+- Status: Local commit pending review; not pushed.
+- Audit:
+  - Confirmed no orphaned application modules or unused runtime dependencies.
+    TypeScript's unused-local checks and the production build remain the
+    enforcement baseline.
+  - Retained platform configuration and MCP files because they are referenced
+    by active deployment scripts or documented hosting paths.
+- Changes:
+  - Capped Tenrai's in-memory and persistent browser response caches at 120
+    entries each, removing expired or malformed cache values during writes.
+  - Reduced inactive React Query discovery-result retention from 24 hours to
+    30 minutes. The browser cache still serves fresh results without another
+    upstream request.
+  - Reduced the animated backdrop from four decoded images to two while
+    keeping the transition effect.
+- Implementation note: the first cache-cap draft selected the newest entries
+  for removal when over capacity. Corrected the eviction order before commit;
+  no release or user data was affected.
+- Verification: Run lint, API typecheck, tests, production build, and diff
+  checks before committing.
+
 ## Release History
 
 No formal production release has been recorded.

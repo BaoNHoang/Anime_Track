@@ -1,6 +1,8 @@
 const API_BASE_URL = "https://api.tenrai.org/v1";
 const MIN_REQUEST_INTERVAL_MS = 500;
 const CACHE_STORAGE_PREFIX = "banime:tenrai-cache:v1:";
+const MAX_MEMORY_CACHE_ENTRIES = 120;
+const MAX_PERSISTENT_CACHE_ENTRIES = 120;
 type CacheStorageTarget = "session" | "local";
 
 let requestQueue = Promise.resolve();
@@ -14,6 +16,44 @@ const responseCache = new Map<
 interface CachedResponse {
   expiresAt: number;
   value: unknown;
+}
+
+function trimMemoryCache() {
+  const now = Date.now();
+  for (const [key, entry] of responseCache) {
+    if (entry.expiresAt <= now) responseCache.delete(key);
+  }
+  while (responseCache.size >= MAX_MEMORY_CACHE_ENTRIES) {
+    const oldestKey = responseCache.keys().next().value;
+    if (!oldestKey) break;
+    responseCache.delete(oldestKey);
+  }
+}
+
+function trimPersistentCache(storage: Storage) {
+  const cachedEntries: Array<{ key: string; expiresAt: number }> = [];
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index);
+    if (!key?.startsWith(CACHE_STORAGE_PREFIX)) continue;
+    try {
+      const value = JSON.parse(storage.getItem(key) ?? "") as CachedResponse;
+      if (!Number.isFinite(value.expiresAt) || value.expiresAt <= Date.now()) {
+        storage.removeItem(key);
+        continue;
+      }
+      cachedEntries.push({ key, expiresAt: value.expiresAt });
+    } catch {
+      storage.removeItem(key);
+    }
+  }
+
+  cachedEntries
+    .sort((left, right) => left.expiresAt - right.expiresAt)
+    .slice(
+      0,
+      Math.max(0, cachedEntries.length - MAX_PERSISTENT_CACHE_ENTRIES)
+    )
+    .forEach(({ key }) => storage.removeItem(key));
 }
 
 export class TenraiApiError extends Error {
@@ -94,13 +134,14 @@ function writeCachedResponse(
     expiresAt: Date.now() + cacheMs,
     value
   };
+  responseCache.delete(path);
+  trimMemoryCache();
   responseCache.set(path, cachedValue);
 
   try {
-    getBrowserStorage(storageTarget)?.setItem(
-      getStorageKey(path),
-      JSON.stringify(cachedValue)
-    );
+    const storage = getBrowserStorage(storageTarget);
+    storage?.setItem(getStorageKey(path), JSON.stringify(cachedValue));
+    if (storage) trimPersistentCache(storage);
   } catch {
     // Memory caching still works when browser storage is unavailable or full.
   }
