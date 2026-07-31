@@ -2355,6 +2355,20 @@ A future change is complete only when all applicable checks are satisfied:
     cast directly to Node's full request type. The fixture now uses an
     explicit `unknown` boundary; production code was unaffected.
 
+### HIST-0024 - 2026-07-31 - Require reviewed contributions to main
+
+- Status: Ready for review on `develop`; repository ruleset configured for
+  `main`.
+- Changes:
+  - Added `CODEOWNERS` assigning repository-wide review ownership to
+    `@BaoNHoang`.
+  - Configured a GitHub ruleset to require a pull request, one approval,
+    code-owner approval, resolved conversations, a fresh approval after new
+    commits, and the `verify` status check before merging to `main`.
+  - Blocked direct updates, force pushes, and deletion of `main`.
+- Follow-up: GitHub applies the code-owner requirement once this `CODEOWNERS`
+  file is merged into `main`.
+
 ## Release History
 
 No formal production release has been recorded.
