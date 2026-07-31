@@ -124,6 +124,12 @@ async function signup(request: ApiRequest, response: ServerResponse) {
   if (error) {
     throw new ApiError(400, "The account could not be created.");
   }
+  if (data.user?.identities?.length === 0) {
+    throw new ApiError(
+      409,
+      "An account already uses this email. Sign in or reset the password instead."
+    );
+  }
   if (data.session) setSessionCookies(response, data.session);
   sendJson(response, 200, {
     message:
