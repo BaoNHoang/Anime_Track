@@ -2329,6 +2329,9 @@ A future change is complete only when all applicable checks are satisfied:
   - Established `develop` as the integration branch. Future changes are
     committed there, reviewed in a pull request, and merged into `main` only
     after approval.
+  - Added a GitHub Actions verification workflow that runs lint, API
+    typecheck, unit tests, and production build for pushes to `develop` and
+    pull requests targeting `main`.
 - Verification: Run lint, API typecheck, tests, production build, and diff
   checks before opening the pull request.
 
