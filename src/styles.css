@@ -1697,6 +1697,10 @@ h3,
   display: block;
 }
 
+.sync-account .status-pill {
+  display: inline-flex;
+}
+
 .sync-account > div:first-child span {
   color: var(--muted);
   font-size: 9px;
