@@ -35,13 +35,22 @@
       ]
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "handle": "filesystem"
+      "source": "/api/auth/:action",
+      "destination": "/api/auth-handler?action=:action"
     },
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/api/library/:animeId",
+      "destination": "/api/library-item-handler?animeId=:animeId"
+    },
+    {
+      "source": "/api/library",
+      "destination": "/api/library-handler"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
