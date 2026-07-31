@@ -31,6 +31,7 @@ export function AccountPage() {
     signIn,
     signUp,
     verifyEmail,
+    resendVerification,
     requestPasswordReset,
     resetPassword,
     updateUsername,
@@ -116,6 +117,21 @@ export function AccountPage() {
       result.error
         ? { tone: "error", text: result.error }
         : { tone: "success", text: "Username updated." }
+    );
+  };
+
+  const handleResendVerification = async () => {
+    setMessage(undefined);
+    setSubmitting(true);
+    const result = await resendVerification(email);
+    setSubmitting(false);
+    setMessage(
+      result.error
+        ? { tone: "error", text: result.error }
+        : {
+            tone: "success",
+            text: result.message ?? "A new verification code has been sent."
+          }
     );
   };
 
@@ -409,6 +425,15 @@ export function AccountPage() {
               mode === "verify") && (
               <button type="button" onClick={() => switchMode("sign_in")}>
                 Back to sign in
+              </button>
+            )}
+            {mode === "verify" && (
+              <button
+                type="button"
+                onClick={() => void handleResendVerification()}
+                disabled={submitting}
+              >
+                Resend code
               </button>
             )}
           </div>

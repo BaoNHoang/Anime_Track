@@ -56,6 +56,11 @@ export const accountApi = {
       method: "POST",
       body: { email, code }
     }),
+  resendVerification: (email: string) =>
+    request("/api/auth/resend-verification", {
+      method: "POST",
+      body: { email }
+    }),
   requestPasswordReset: (email: string) =>
     request("/api/auth/forgot-password", {
       method: "POST",

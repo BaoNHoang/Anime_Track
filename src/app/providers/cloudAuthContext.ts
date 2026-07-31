@@ -20,6 +20,7 @@ export interface CloudAuthContextValue {
     password: string
   ) => Promise<AuthActionResult>;
   verifyEmail: (email: string, code: string) => Promise<AuthActionResult>;
+  resendVerification: (email: string) => Promise<AuthActionResult>;
   requestPasswordReset: (email: string) => Promise<AuthActionResult>;
   resetPassword: (
     email: string,

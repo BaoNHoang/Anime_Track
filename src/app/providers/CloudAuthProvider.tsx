@@ -68,6 +68,11 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
     [run]
   );
 
+  const resendVerification = useCallback(
+    (email: string) => run(() => accountApi.resendVerification(email)),
+    [run]
+  );
+
   const requestPasswordReset = useCallback(
     (email: string) =>
       run(() => accountApi.requestPasswordReset(email)),
@@ -103,6 +108,7 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       signIn,
       signUp,
       verifyEmail,
+      resendVerification,
       requestPasswordReset,
       resetPassword,
       updateUsername,
@@ -119,7 +125,8 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       signOut,
       signUp,
       user,
-      verifyEmail
+      verifyEmail,
+      resendVerification
     ]
   );
 

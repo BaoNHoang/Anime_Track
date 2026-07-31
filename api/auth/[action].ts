@@ -163,6 +163,30 @@ async function verifyEmail(
   });
 }
 
+async function resendVerification(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const body = accountRecord(await readJson(request));
+  const verificationEmail = accountEmail(body.email);
+  await enforceAuthRateLimit(request, "resend-verification", {
+    limit: 5,
+    windowSeconds: 60 * 60,
+    subject: verificationEmail
+  });
+  const client = createPublicClient();
+  await client.auth.resend({
+    type: "signup",
+    email: verificationEmail,
+    options: { emailRedirectTo: `${appUrl(request)}/account` }
+  });
+  sendJson(response, 200, {
+    message: "If an unverified account exists, a new code has been sent."
+  });
+}
+
 async function forgotPassword(
   request: ApiRequest,
   response: ServerResponse
@@ -367,6 +391,8 @@ export default async function handler(
         return await signup(request, response);
       case "verify-email":
         return await verifyEmail(request, response);
+      case "resend-verification":
+        return await resendVerification(request, response);
       case "forgot-password":
         return await forgotPassword(request, response);
       case "reset-password":
