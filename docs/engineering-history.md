@@ -2332,6 +2332,10 @@ A future change is complete only when all applicable checks are satisfied:
   - Added a GitHub Actions verification workflow that runs lint, API
     typecheck, unit tests, and production build for pushes to `develop` and
     pull requests targeting `main`.
+  - The first CI runs failed at `npm ci` because the lockfile omitted two
+    optional peer packages required by the current Vite/Rolldown dependency
+    graph. Added their exact package metadata to the lockfile; the follow-up
+    GitHub Actions run is the clean-environment verification.
 - Verification: Run lint, API typecheck, tests, production build, and diff
   checks before opening the pull request.
 
