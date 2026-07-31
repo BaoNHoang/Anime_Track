@@ -7,6 +7,8 @@ import {
   searchAnime
 } from "../services/tenrai/animeService";
 
+const DISCOVERY_QUERY_GC_MS = 30 * 60 * 1000;
+
 export function useCurrentSeason() {
   return useQuery({
     queryKey: ["anime", "season", "now"],
@@ -26,7 +28,7 @@ export function useTopAnime(
     queryKey: ["anime", "top", filter, page],
     queryFn: ({ signal }) => getTopAnime(filter, page, signal),
     staleTime: cacheTime,
-    gcTime: 24 * 60 * 60 * 1000,
+    gcTime: DISCOVERY_QUERY_GC_MS,
     placeholderData: (previousData) => previousData
   });
 }
@@ -37,7 +39,7 @@ export function useAnimeSearch(query: string, page = 1) {
     queryFn: ({ signal }) => searchAnime(query, page, signal),
     enabled: query.trim().length >= 2,
     staleTime: 30 * 60 * 1000,
-    gcTime: 24 * 60 * 60 * 1000,
+    gcTime: DISCOVERY_QUERY_GC_MS,
     placeholderData: (previousData) => previousData
   });
 }

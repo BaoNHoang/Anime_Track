@@ -2339,6 +2339,89 @@ A future change is complete only when all applicable checks are satisfied:
 - Verification: Run lint, API typecheck, tests, production build, and diff
   checks before opening the pull request.
 
+### HIST-0023 - 2026-07-31 - Expand server-boundary regression coverage
+
+- Status: Ready for review on `develop`.
+- Changes:
+  - Added API boundary tests for malformed and oversized JSON, production
+    origin enforcement, error-message sanitization, method restrictions,
+    production redirect configuration, and account-action rate limits.
+  - Added private-library route tests proving reads and deletes scope every
+    query to the authenticated user ID and that an unauthenticated request
+    cannot reach the data layer.
+- Verification: Run lint, API typecheck, tests, production build, and diff
+  checks before opening the pull request.
+  - During implementation, the API typecheck rejected a test fixture that was
+    cast directly to Node's full request type. The fixture now uses an
+    explicit `unknown` boundary; production code was unaffected.
+
+### HIST-0024 - 2026-07-31 - Require reviewed contributions to main
+
+- Status: Ready for review on `develop`; repository ruleset configured for
+  `main`.
+- Changes:
+  - Added `CODEOWNERS` assigning repository-wide review ownership to
+    `@BaoNHoang`.
+  - Configured a GitHub ruleset to require a pull request, one approval,
+    code-owner approval, resolved conversations, a fresh approval after new
+    commits, and the `verify` status check before merging to `main`.
+  - Blocked direct updates, force pushes, and deletion of `main`.
+- Follow-up: GitHub applies the code-owner requirement once this `CODEOWNERS`
+  file is merged into `main`.
+
+### HIST-0025 - 2026-07-31 - Publish privacy disclosure
+
+- Status: Ready for review on `develop`.
+- Changes:
+  - Added a public Privacy Policy route, persistent site footer link, and
+    direct-deep-link deployment rewrite.
+  - Documented Banime's local browser storage, cloud sync, authentication
+    cookies, account and library information, third-party providers, external
+    links, retention, security practices, children's privacy, and privacy
+    request process.
+  - The policy names the current privacy contact and states that it must be
+    updated if that contact or Banime's data practices change.
+- Verification: Run lint, API typecheck, tests, production build, and route
+  checks before opening the pull request.
+
+### HIST-0026 - 2026-07-31 - Bound browser cache and remove audit noise
+
+- Status: Local commit pending review; not pushed.
+- Audit:
+  - Confirmed no orphaned application modules or unused runtime dependencies.
+    TypeScript's unused-local checks and the production build remain the
+    enforcement baseline.
+  - Retained platform configuration and MCP files because they are referenced
+    by active deployment scripts or documented hosting paths.
+- Changes:
+  - Capped Tenrai's in-memory and persistent browser response caches at 120
+    entries each, removing expired or malformed cache values during writes.
+  - Reduced inactive React Query discovery-result retention from 24 hours to
+    30 minutes. The browser cache still serves fresh results without another
+    upstream request.
+  - Reduced the animated backdrop from four decoded images to two while
+    keeping the transition effect.
+- Implementation note: the first cache-cap draft selected the newest entries
+  for removal when over capacity. Corrected the eviction order before commit;
+  no release or user data was affected.
+- Verification: Run lint, API typecheck, tests, production build, and diff
+  checks before committing.
+
+### HIST-0027 - 2026-07-31 - Correct main-review ownership policy
+
+- Status: Configured in GitHub; documentation committed locally and not
+  pushed.
+- Incident: The initial ruleset required approval from someone other than the
+  latest pusher. This blocked the repository owner from completing their own
+  maintenance pull requests and exceeded the intended workflow.
+- Fix:
+  - Removed the latest-push approval condition.
+  - Added a `pull_request`-only bypass for the repository owner. The owner can
+    merge through a pull request when needed, but cannot push directly to
+    `main`.
+  - Contributors and collaborators without that individual bypass still need
+    the code-owner review, resolved conversations, and passing `verify` check.
+
 ## Release History
 
 No formal production release has been recorded.
