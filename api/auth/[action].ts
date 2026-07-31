@@ -57,16 +57,31 @@ async function login(
       throw new ApiError(401, "Email, username, or password is incorrect.");
     }
     const admin = createAdminClient();
-    const { data: profile } = await admin
+    const { data: profile, error: profileError } = await admin
       .from("profiles")
       .select("user_id")
       .eq("username_normalized", identifier)
       .maybeSingle();
+    if (profileError) {
+      console.error("Username sign-in profile lookup failed.", {
+        code: profileError.code
+      });
+      throw new ApiError(503, "Username sign-in is temporarily unavailable.");
+    }
     if (!profile?.user_id) {
       throw new ApiError(401, "Email, username, or password is incorrect.");
     }
-    const { data } = await admin.auth.admin.getUserById(profile.user_id);
-    resolvedEmail = data.user?.email ?? "";
+    const { data, error: userError } = await admin.auth.admin.getUserById(
+      profile.user_id
+    );
+    if (userError || !data.user?.email) {
+      console.error("Username sign-in account lookup failed.", {
+        code: userError?.code,
+        status: userError?.status
+      });
+      throw new ApiError(503, "Username sign-in is temporarily unavailable.");
+    }
+    resolvedEmail = data.user.email;
   } else {
     try {
       accountEmail(identifier);
