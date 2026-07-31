@@ -1,5 +1,5 @@
 import { Moon, Sun } from "lucide-react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import { AnimeDetailPanel } from "../features/anime/AnimeDetailPanel";
 import { AmbientBackdrop } from "./AmbientBackdrop";
 import { Brand } from "./Brand";
@@ -41,6 +41,9 @@ export function AppShell() {
         <main className="page">
           <Outlet />
         </main>
+        <footer className="app-footer">
+          <Link to="/privacy">Privacy Policy</Link>
+        </footer>
       </div>
 
       <div className="mobile-nav">

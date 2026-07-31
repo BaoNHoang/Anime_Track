@@ -7,6 +7,7 @@ import { LibraryPage } from "../features/library/LibraryPage";
 import { NewsPage } from "../features/news/NewsPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 import { AccountPage } from "../features/account/AccountPage";
+import { PrivacyPage } from "../features/legal/PrivacyPage";
 import { AnimePanelProvider } from "./providers/AnimePanelProvider";
 import { CloudAuthProvider } from "./providers/CloudAuthProvider";
 import { TrackerProvider } from "./providers/TrackerProvider";
@@ -31,7 +32,8 @@ const router = createBrowserRouter([
       { path: "/news", element: <NewsPage /> },
       { path: "/library", element: <LibraryPage /> },
       { path: "/settings", element: <SettingsPage /> },
-      { path: "/account", element: <AccountPage /> }
+      { path: "/account", element: <AccountPage /> },
+      { path: "/privacy", element: <PrivacyPage /> }
     ]
   }
 ]);

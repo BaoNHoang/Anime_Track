@@ -55,6 +55,10 @@
     {
       "source": "/account",
       "destination": "/index.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/index.html"
     }
   ]
 }

@@ -2369,6 +2369,21 @@ A future change is complete only when all applicable checks are satisfied:
 - Follow-up: GitHub applies the code-owner requirement once this `CODEOWNERS`
   file is merged into `main`.
 
+### HIST-0025 - 2026-07-31 - Publish privacy disclosure
+
+- Status: Ready for review on `develop`.
+- Changes:
+  - Added a public Privacy Policy route, persistent site footer link, and
+    direct-deep-link deployment rewrite.
+  - Documented Banime's local browser storage, cloud sync, authentication
+    cookies, account and library information, third-party providers, external
+    links, retention, security practices, children's privacy, and privacy
+    request process.
+  - The policy names the current privacy contact and states that it must be
+    updated if that contact or Banime's data practices change.
+- Verification: Run lint, API typecheck, tests, production build, and route
+  checks before opening the pull request.
+
 ## Release History
 
 No formal production release has been recorded.
