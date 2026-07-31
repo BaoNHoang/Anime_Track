@@ -177,11 +177,14 @@ async function resendVerification(
     subject: verificationEmail
   });
   const client = createPublicClient();
-  await client.auth.resend({
+  const { error } = await client.auth.resend({
     type: "signup",
     email: verificationEmail,
     options: { emailRedirectTo: `${appUrl(request)}/account` }
   });
+  if (error) {
+    throw new ApiError(502, "Verification email could not be sent. Try again later.");
+  }
   sendJson(response, 200, {
     message: "If an unverified account exists, a new code has been sent."
   });
