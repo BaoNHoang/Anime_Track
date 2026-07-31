@@ -4,19 +4,33 @@ async function cloudRequest<T>(
   path: string,
   options: { method?: string; body?: unknown } = {}
 ): Promise<T> {
-  const response = await fetch(path, {
-    method: options.method ?? "GET",
-    credentials: "same-origin",
-    headers:
-      options.body === undefined
-        ? undefined
-        : { "Content-Type": "application/json" },
-    body:
-      options.body === undefined
-        ? undefined
-        : JSON.stringify(options.body)
-  });
-  const data = (await response.json()) as T & { error?: string };
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      method: options.method ?? "GET",
+      credentials: "same-origin",
+      headers:
+        options.body === undefined
+          ? undefined
+          : { "Content-Type": "application/json" },
+      body:
+        options.body === undefined
+          ? undefined
+          : JSON.stringify(options.body)
+    });
+  } catch {
+    throw new Error("Cloud sync could not be reached. Try again shortly.");
+  }
+
+  const responseText = await response.text();
+  let data: T & { error?: string };
+  try {
+    data = responseText
+      ? (JSON.parse(responseText) as T & { error?: string })
+      : ({} as T & { error?: string });
+  } catch {
+    throw new Error("Cloud sync is temporarily unavailable. Try again shortly.");
+  }
   if (!response.ok) {
     throw new Error(data.error ?? "Cloud sync failed.");
   }

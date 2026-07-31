@@ -2430,8 +2430,17 @@ h3,
     flex-direction: column;
     justify-content: center;
     gap: 2px;
+    width: 100%;
     padding: 4px 2px;
     font-size: 8px;
+    line-height: 1.1;
+  }
+
+  .mobile-nav .navigation__link span {
+    display: block;
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 
   .mobile-nav .navigation__link.is-active::before {
