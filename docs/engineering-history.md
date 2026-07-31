@@ -2278,6 +2278,46 @@ A future change is complete only when all applicable checks are satisfied:
   - Account states were inspected at 1440x900 and 375x812 with no horizontal
     overflow and six stable mobile navigation slots.
 
+### HIST-0021 - 2026-07-31 - Production authentication and deployment incident log
+
+- Status: Resolved; retain this entry for deployment troubleshooting.
+- Logging rule: Record confirmed production errors, failed configuration
+  attempts, root causes, deployed fixes, and verification evidence here. Never
+  record passwords, API keys, tokens, full email addresses, or user IDs.
+- Incidents and fixes:
+  - The PWA navigation fallback intercepted account API and OAuth callback
+    routes, producing a React Router `404 Not Found` error. Added an `/api/`
+    denylist to the Workbox navigation fallback.
+  - Vercel Functions initially failed on extensionless ESM imports. Account
+    function imports were corrected to use `.js` specifiers.
+  - The library API subsequently logged `ERR_MODULE_NOT_FOUND` for the
+    tracker import chain. Corrected that chain's ESM specifiers so Vercel can
+    resolve the security validation, merge, type, and anime-type modules.
+  - Email confirmation appeared not to send for an already confirmed account.
+    This is expected Supabase behavior; signup now reports that the existing
+    account must be signed into or recovered instead. Verification resend
+    remains available for genuinely unverified accounts.
+  - Username sign-in returned `401` even though the profile row and password
+    were valid. Production logging isolated the failure to the server-only
+    Supabase credential: a masked display character had been stored in the
+    Vercel environment value. Replaced it with the actual Supabase secret key
+    through the provider consoles and redeployed production.
+  - The username resolver now differentiates unknown credentials from a
+    server-side profile/account lookup failure, logging only provider error
+    metadata and returning a generic `503` message to the client.
+- Verification:
+  - Production logs confirmed the malformed server-key failure before the
+    configuration correction.
+  - The updated Vercel environment variable saved successfully and the
+    follow-up production deployment reached `Ready`.
+  - Local lint, API typecheck, tests, and production build are run for source
+    changes before deployment.
+- Follow-up:
+  - After any provider credential rotation, redeploy production and verify
+    both email and username password login with a non-production test account.
+  - Review Vercel logs after deployments for function import or configuration
+    failures; add the finding to this history before closing the session.
+
 ## Release History
 
 No formal production release has been recorded.

@@ -1,4 +1,4 @@
-import type { TrackedAnime } from "./types";
+import type { TrackedAnime } from "./types.js";
 
 export interface MergeTrackedAnimeOptions {
   replaceOnEqualUpdatedAt?: boolean;

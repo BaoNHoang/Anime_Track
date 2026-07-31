@@ -1,14 +1,14 @@
-import type { Anime } from "../anime/types";
+import type { Anime } from "../anime/types.js";
 import {
   isBoundedText,
   safeExternalUrl
-} from "../security/validation";
-import { mergeTrackedAnime } from "./merge";
+} from "../security/validation.js";
+import { mergeTrackedAnime } from "./merge.js";
 import {
   TRACKING_STATUSES,
   type TrackedAnime,
   type TrackingStatus
-} from "./types";
+} from "./types.js";
 
 type JsonRecord = Record<string, unknown>;
 const MAX_LIBRARY_ITEMS = 5000;

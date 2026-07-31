@@ -1,4 +1,4 @@
-import type { Anime } from "../anime/types";
+import type { Anime } from "../anime/types.js";
 
 export const TRACKING_STATUSES = [
   "watching",
