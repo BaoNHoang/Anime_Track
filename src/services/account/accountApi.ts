@@ -66,5 +66,10 @@ export const accountApi = {
       method: "POST",
       body: { email, code, password }
     }),
+  updateUsername: (username: string) =>
+    request("/api/auth/username", {
+      method: "POST",
+      body: { username }
+    }),
   signOut: () => request("/api/auth/logout", { method: "POST" })
 };

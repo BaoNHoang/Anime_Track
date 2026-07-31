@@ -33,6 +33,7 @@ export function AccountPage() {
     verifyEmail,
     requestPasswordReset,
     resetPassword,
+    updateUsername,
     signInWithGoogle,
     signOut
   } = useCloudAuth();
@@ -44,6 +45,7 @@ export function AccountPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [code, setCode] = useState("");
+  const [profileUsername, setProfileUsername] = useState("");
   const [message, setMessage] = useState<FormMessage | undefined>(() =>
     searchParams.get("auth_error")
       ? {
@@ -102,6 +104,19 @@ export function AccountPage() {
       setConfirmPassword("");
       setCode("");
     }
+  };
+
+  const handleUsernameUpdate = async (event: FormEvent) => {
+    event.preventDefault();
+    setMessage(undefined);
+    setSubmitting(true);
+    const result = await updateUsername(profileUsername);
+    setSubmitting(false);
+    setMessage(
+      result.error
+        ? { tone: "error", text: result.error }
+        : { tone: "success", text: "Username updated." }
+    );
   };
 
   if (!configured) {
@@ -163,6 +178,28 @@ export function AccountPage() {
               <ShieldCheck size={14} /> Private sync
             </span>
           </div>
+          {user.username.startsWith("user_") && (
+            <form className="auth-form account-username-form" onSubmit={handleUsernameUpdate}>
+              <label className="field">
+                <span>Choose a username</span>
+                <input
+                  value={profileUsername}
+                  onChange={(event) => setProfileUsername(event.target.value)}
+                  autoComplete="username"
+                  minLength={3}
+                  maxLength={24}
+                  pattern="[A-Za-z0-9_]+"
+                  required
+                />
+              </label>
+              {message && (
+                <p className={`form-message form-message--${message.tone}`} role={message.tone === "error" ? "alert" : "status"}>
+                  {message.text}
+                </p>
+              )}
+              <button className="button" disabled={submitting}>Save username</button>
+            </form>
+          )}
           <button
             className="button button--ghost"
             onClick={() => void signOut()}

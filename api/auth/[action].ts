@@ -240,6 +240,33 @@ async function session(request: ApiRequest, response: ServerResponse) {
   }
 }
 
+async function updateUsername(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const body = accountRecord(await readJson(request));
+  const username = accountUsername(body.username);
+  const auth = await authenticateRequest(request, response);
+  await enforceAuthRateLimit(request, "update-username", {
+    limit: 10,
+    windowSeconds: 15 * 60,
+    subject: auth.user.id
+  });
+  const { error } = await auth.client
+    .from("profiles")
+    .update({ username })
+    .eq("user_id", auth.user.id);
+  if (error?.code === "23505") {
+    throw new ApiError(409, "That username is unavailable.");
+  }
+  if (error) throw new ApiError(502, "Username could not be updated.");
+  sendJson(response, 200, {
+    user: await accountUser(auth.user, auth.client)
+  });
+}
+
 async function logout(request: ApiRequest, response: ServerResponse) {
   requireMethod(request, "POST");
   requireSameOrigin(request);
@@ -346,6 +373,8 @@ export default async function handler(
         return await resetPassword(request, response);
       case "session":
         return await session(request, response);
+      case "username":
+        return await updateUsername(request, response);
       case "logout":
         return await logout(request, response);
       case "google":

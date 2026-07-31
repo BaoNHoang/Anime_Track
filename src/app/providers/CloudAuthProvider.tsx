@@ -80,6 +80,11 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
     [run]
   );
 
+  const updateUsername = useCallback(
+    (username: string) => run(() => accountApi.updateUsername(username)),
+    [run]
+  );
+
   const signOut = useCallback(async (): Promise<AuthActionResult> => {
     const result = await accountApi.signOut();
     if (!result.error) setUser(undefined);
@@ -100,6 +105,7 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       verifyEmail,
       requestPasswordReset,
       resetPassword,
+      updateUsername,
       signInWithGoogle,
       signOut
     }),
@@ -107,6 +113,7 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       initialized,
       requestPasswordReset,
       resetPassword,
+      updateUsername,
       signIn,
       signInWithGoogle,
       signOut,

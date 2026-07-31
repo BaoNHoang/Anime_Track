@@ -26,6 +26,7 @@ export interface CloudAuthContextValue {
     code: string,
     password: string
   ) => Promise<AuthActionResult>;
+  updateUsername: (username: string) => Promise<AuthActionResult>;
   signInWithGoogle: () => void;
   signOut: () => Promise<AuthActionResult>;
 }
