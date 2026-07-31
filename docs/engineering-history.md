@@ -2339,6 +2339,22 @@ A future change is complete only when all applicable checks are satisfied:
 - Verification: Run lint, API typecheck, tests, production build, and diff
   checks before opening the pull request.
 
+### HIST-0023 - 2026-07-31 - Expand server-boundary regression coverage
+
+- Status: Ready for review on `develop`.
+- Changes:
+  - Added API boundary tests for malformed and oversized JSON, production
+    origin enforcement, error-message sanitization, method restrictions,
+    production redirect configuration, and account-action rate limits.
+  - Added private-library route tests proving reads and deletes scope every
+    query to the authenticated user ID and that an unauthenticated request
+    cannot reach the data layer.
+- Verification: Run lint, API typecheck, tests, production build, and diff
+  checks before opening the pull request.
+  - During implementation, the API typecheck rejected a test fixture that was
+    cast directly to Node's full request type. The fixture now uses an
+    explicit `unknown` boundary; production code was unaffected.
+
 ## Release History
 
 No formal production release has been recorded.
