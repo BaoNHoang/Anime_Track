@@ -14,6 +14,7 @@ export function DashboardPage() {
   const { configured, initialized, user } = useCloudAuth();
   const season = useCurrentSeason();
   const featureAnime = season.data?.items[0];
+  const showPersonalTracking = !configured || (initialized && Boolean(user));
   const statCards = [
     {
       label: "Watching",
@@ -67,7 +68,7 @@ export function DashboardPage() {
         </div>
       </section>
 
-      {(!configured || (initialized && user)) && (
+      {showPersonalTracking && (
         <section className="watch-summary" aria-label="Library summary">
           {statCards.map(({ label, value, icon: Icon }) => (
             <article className="watch-summary__item" key={label}>
@@ -85,13 +86,15 @@ export function DashboardPage() {
 
       <div className="dashboard-columns">
         <div className="dashboard-columns__main">
-          <section>
-            <SectionHeader
-              title="Continue watching"
-              action={{ label: "Open library", to: "/library" }}
-            />
-            <ContinueWatching />
-          </section>
+          {showPersonalTracking && (
+            <section>
+              <SectionHeader
+                title="Continue watching"
+                action={{ label: "Open library", to: "/library" }}
+              />
+              <ContinueWatching />
+            </section>
+          )}
 
           <section>
             <SectionHeader

@@ -2318,6 +2318,20 @@ A future change is complete only when all applicable checks are satisfied:
   - Review Vercel logs after deployments for function import or configuration
     failures; add the finding to this history before closing the session.
 
+### HIST-0022 - 2026-07-31 - Lock signed-out dashboard and adopt review branches
+
+- Status: Ready for review on `develop`; not pushed directly to `main`.
+- Changes:
+  - Hide the personal tracking summary and the Continue Watching section when
+    account mode is enabled and no verified session is present.
+  - Keep public discovery and current-season content available while signed
+    out.
+  - Established `develop` as the integration branch. Future changes are
+    committed there, reviewed in a pull request, and merged into `main` only
+    after approval.
+- Verification: Run lint, API typecheck, tests, production build, and diff
+  checks before opening the pull request.
+
 ## Release History
 
 No formal production release has been recorded.
