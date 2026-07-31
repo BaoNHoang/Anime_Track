@@ -64,7 +64,8 @@ async function login(
       .maybeSingle();
     if (profileError) {
       console.error("Username sign-in profile lookup failed.", {
-        code: profileError.code
+        code: profileError.code,
+        message: profileError.message
       });
       throw new ApiError(503, "Username sign-in is temporarily unavailable.");
     }
@@ -77,6 +78,7 @@ async function login(
     if (userError || !data.user?.email) {
       console.error("Username sign-in account lookup failed.", {
         code: userError?.code,
+        message: userError?.message,
         status: userError?.status
       });
       throw new ApiError(503, "Username sign-in is temporarily unavailable.");
