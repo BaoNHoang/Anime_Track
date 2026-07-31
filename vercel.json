@@ -37,19 +37,23 @@
   ],
   "rewrites": [
     {
-      "source": "/api/auth/:action",
-      "destination": "/api/auth-handler?action=:action"
+      "source": "/discover",
+      "destination": "/index.html"
     },
     {
-      "source": "/api/library/:animeId",
-      "destination": "/api/library-item-handler?animeId=:animeId"
+      "source": "/news",
+      "destination": "/index.html"
     },
     {
-      "source": "/api/library",
-      "destination": "/api/library-handler"
+      "source": "/library",
+      "destination": "/index.html"
     },
     {
-      "source": "/(.*)",
+      "source": "/settings",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/account",
       "destination": "/index.html"
     }
   ]
