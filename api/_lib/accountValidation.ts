@@ -1,4 +1,4 @@
-import { ApiError } from "./http";
+import { ApiError } from "./http.js";
 
 type JsonRecord = Record<string, unknown>;
 export const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,24}$/;

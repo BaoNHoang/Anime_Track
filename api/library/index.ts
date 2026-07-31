@@ -1,6 +1,6 @@
 import type { ServerResponse } from "node:http";
-import { parseLibraryImport } from "../../src/domain/tracker/import";
-import type { TrackedAnime } from "../../src/domain/tracker/types";
+import { parseLibraryImport } from "../../src/domain/tracker/import.js";
+import type { TrackedAnime } from "../../src/domain/tracker/types.js";
 import {
   ApiError,
   readJson,
@@ -9,8 +9,8 @@ import {
   sendError,
   sendJson,
   type ApiRequest
-} from "../_lib/http";
-import { authenticateRequest } from "../_lib/supabase";
+} from "../_lib/http.js";
+import { authenticateRequest } from "../_lib/supabase.js";
 
 function toCloudRow(userId: string, item: TrackedAnime) {
   return {

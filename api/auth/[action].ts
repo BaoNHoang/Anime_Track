@@ -10,7 +10,7 @@ import {
   sendError,
   sendJson,
   type ApiRequest
-} from "../_lib/http";
+} from "../_lib/http.js";
 import {
   USERNAME_PATTERN,
   accountEmail,
@@ -20,7 +20,7 @@ import {
   loginIdentifier,
   loginPassword,
   verificationCode
-} from "../_lib/accountValidation";
+} from "../_lib/accountValidation.js";
 import {
   PKCE_COOKIE,
   REFRESH_COOKIE,
@@ -34,7 +34,7 @@ import {
   readCookie,
   setPkceCookie,
   setSessionCookies
-} from "../_lib/supabase";
+} from "../_lib/supabase.js";
 
 async function login(
   request: ApiRequest,

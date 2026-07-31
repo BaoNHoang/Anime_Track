@@ -5,8 +5,8 @@ import {
   type SupabaseClient,
   type User
 } from "@supabase/supabase-js";
-import type { ApiRequest } from "./http";
-import { ApiError } from "./http";
+import type { ApiRequest } from "./http.js";
+import { ApiError } from "./http.js";
 
 const ACCESS_COOKIE = "banime_access";
 export const REFRESH_COOKIE = "banime_refresh";

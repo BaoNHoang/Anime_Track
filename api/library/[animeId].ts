@@ -7,8 +7,8 @@ import {
   sendError,
   sendJson,
   type ApiRequest
-} from "../_lib/http";
-import { authenticateRequest } from "../_lib/supabase";
+} from "../_lib/http.js";
+import { authenticateRequest } from "../_lib/supabase.js";
 
 export default async function handler(
   request: ApiRequest,
