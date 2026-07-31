@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import type { User } from "@supabase/supabase-js";
+import type { AccountUser } from "../../services/account/accountApi";
 
 export interface AuthActionResult {
   error?: string;
@@ -9,9 +9,24 @@ export interface AuthActionResult {
 export interface CloudAuthContextValue {
   configured: boolean;
   initialized: boolean;
-  user?: User;
-  signIn: (email: string, password: string) => Promise<AuthActionResult>;
-  signUp: (email: string, password: string) => Promise<AuthActionResult>;
+  user?: AccountUser;
+  signIn: (
+    identifier: string,
+    password: string
+  ) => Promise<AuthActionResult>;
+  signUp: (
+    email: string,
+    username: string,
+    password: string
+  ) => Promise<AuthActionResult>;
+  verifyEmail: (email: string, code: string) => Promise<AuthActionResult>;
+  requestPasswordReset: (email: string) => Promise<AuthActionResult>;
+  resetPassword: (
+    email: string,
+    code: string,
+    password: string
+  ) => Promise<AuthActionResult>;
+  signInWithGoogle: () => void;
   signOut: () => Promise<AuthActionResult>;
 }
 

@@ -2254,6 +2254,30 @@ A future change is complete only when all applicable checks are satisfied:
   - Verify provider-managed monitoring, backups, authentication limits, and
     live RLS configuration in the production consoles.
 
+### HIST-0020 - 2026-07-30 - Add hosting-ready account boundary
+
+- Status: Implemented locally; provider configuration and deployment pending.
+- Changes:
+  - Added email-or-username password login, account creation, email
+    verification codes, password reset codes, Google OAuth with PKCE, and
+    global sign-out.
+  - Moved Supabase sessions behind same-origin Vercel Functions using
+    `HttpOnly`, `SameSite=Lax`, secure production cookies.
+  - Added private, case-insensitive usernames and an auth-user profile trigger.
+  - Moved cloud-library operations behind authenticated API routes that derive
+    `user_id` from the verified session and retain Supabase RLS enforcement.
+  - Removed the obsolete browser-persisted Supabase client and OAuth consent
+    route; MCP consent needs a cookie-aware server implementation before MCP
+    OAuth is enabled.
+  - Added hosted email templates and documented Gmail SMTP, Google OAuth,
+    Supabase, Vercel, and Upstash setup.
+- Verification:
+  - `npm.cmd run lint` passed.
+  - `npm.cmd test` passed with 20 test files and 50 tests.
+  - `npm.cmd run build` passed, including app, MCP, and account API typechecks.
+  - Account states were inspected at 1440x900 and 375x812 with no horizontal
+    overflow and six stable mobile navigation slots.
+
 ## Release History
 
 No formal production release has been recorded.

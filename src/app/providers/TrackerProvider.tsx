@@ -74,11 +74,11 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       setSyncError(undefined);
 
       try {
-        const cloudItems = await trackerCloudRepository.getAll(user.id);
+        const cloudItems = await trackerCloudRepository.getAll();
         if (cancelled) return;
         const merged = mergeTrackedAnime(itemsRef.current, cloudItems);
         saveLocal(merged);
-        await trackerCloudRepository.upsertMany(user.id, merged);
+        await trackerCloudRepository.upsertMany(merged);
         if (cancelled) return;
         syncedUserRef.current = user.id;
         setSyncStatus("synced");
@@ -104,7 +104,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       const created = trackerRepository.create(anime, status);
       saveLocal([created, ...itemsRef.current]);
       if (user) {
-        enqueueCloud(() => trackerCloudRepository.upsert(user.id, created));
+        enqueueCloud(() => trackerCloudRepository.upsert(created));
       }
     },
     [enqueueCloud, saveLocal, user]
@@ -134,7 +134,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       if (user) {
         const itemToSync = updatedItem;
         enqueueCloud(() =>
-          trackerCloudRepository.upsert(user.id, itemToSync)
+          trackerCloudRepository.upsert(itemToSync)
         );
       }
     },
@@ -147,7 +147,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
         itemsRef.current.filter((item) => item.anime.id !== animeId)
       );
       if (user) {
-        enqueueCloud(() => trackerCloudRepository.remove(user.id, animeId));
+        enqueueCloud(() => trackerCloudRepository.remove(animeId));
       }
     },
     [enqueueCloud, saveLocal, user]
@@ -183,7 +183,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       saveLocal(merged);
       if (user) {
         enqueueCloud(() =>
-          trackerCloudRepository.upsertMany(user.id, merged)
+          trackerCloudRepository.upsertMany(merged)
         );
       }
 

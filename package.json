@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && tsc -p tsconfig.mcp.json && vite build",
+    "build": "tsc -b && vite build",
     "lint": "eslint .",
     "mcp:build": "esbuild mcp/index.ts --bundle --platform=node --format=esm --target=node22 --outfile=mcp-dist/index.js --packages=external",
     "mcp:dev": "tsx watch mcp/index.ts",
     "mcp:start": "tsx mcp/index.ts",
     "mcp:start:prod": "node mcp-dist/index.js",
     "mcp:check": "tsc -p tsconfig.mcp.json",
+    "api:check": "tsc -p tsconfig.api.json",
     "test": "vitest run",
     "preview": "vite preview"
   },

@@ -55,11 +55,21 @@ npm run lint
 npm test
 ```
 
-## Cross-device database sync
+## Accounts and cross-device sync
 
-Banime uses Supabase Auth and Postgres for optional sync. Local storage remains
-the primary offline copy. When a user signs in, Banime merges local and cloud
-records and keeps the newest version of each title.
+Banime uses Supabase Auth behind same-origin Vercel Functions. Access and
+refresh tokens are stored in `HttpOnly`, `SameSite=Lax`, secure production
+cookies instead of browser storage. Password hashing, JWT issuance, email
+verification, and identity-provider tokens are handled by Supabase Auth.
+
+Users can sign in with email or username and password, or continue with
+Google. Username-to-email resolution uses the server-only Supabase secret and
+never exposes the profile directory to browsers. Every library endpoint
+derives the owner from the verified session; it does not accept a user ID from
+the URL or request body.
+
+Local storage remains the primary offline copy. When a user signs in, Banime
+merges local and cloud records and keeps the newest version of each title.
 
 The database stores the complete tracker record as JSON and also maintains
 query columns for status, title, type, score, progress, and added/updated time.
@@ -69,25 +79,43 @@ memoized filtering locally so it stays responsive and works offline.
 
 1. Create a Supabase project at <https://supabase.com>.
 2. Open the SQL editor and run [`supabase/schema.sql`](supabase/schema.sql).
-3. Copy `.env.example` to `.env.local`.
-4. Add the project URL and publishable key:
+3. In Supabase Auth, require email confirmation.
+4. Replace the **Confirm signup** and **Reset password** email templates with
+   [`supabase/templates/confirmation.html`](supabase/templates/confirmation.html)
+   and [`supabase/templates/recovery.html`](supabase/templates/recovery.html).
+5. Configure custom SMTP. For a small private deployment, Gmail SMTP uses
+   `smtp.gmail.com`, port `587`, your Gmail address, and a Google app password.
+   Store the app password only in Supabase; never add it to this repository.
+6. In Google Cloud, create a Web OAuth client. Add the Supabase callback URL
+   shown on the Supabase Google provider page, then enable Google in Supabase
+   with that client ID and secret.
+7. Copy `.env.example` to `.env.local` for local Vercel development, or add
+   the variables in the Vercel project:
 
 ```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+VITE_ACCOUNT_AUTH_ENABLED=true
+APP_URL=https://your-banime-domain.example
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+SUPABASE_SECRET_KEY=your-server-only-secret-key
 ```
 
-5. Restart the development server.
-6. Open Settings in Banime and create your personal sync account.
-7. Sign into that same account on your phone.
+8. Add `http://localhost:3000` and the production account page to the Supabase
+   redirect allow list. Set the production Site URL to the deployed origin.
+9. Configure Upstash in production with
+   `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` so account rate
+   limits are shared by every serverless instance.
+10. Run locally with `vercel dev`, then open `/account`.
 
 The SQL file is designed to be rerun. It backfills query columns for existing
-rows, adds missing constraints and indexes, and recreates the same RLS
-policies.
+rows, creates private user profiles, adds missing constraints and indexes, and
+recreates the same RLS policies.
 
-The publishable key is intended for browser use. Do not put a Supabase secret
-or service-role key in any `VITE_` environment variable. Row-level security in
-the provided schema limits each signed-in user to their own records.
+The publishable key may be used in browser or server code. The Supabase secret
+key is only for username resolution inside Vercel Functions. Never put a
+Supabase secret or service-role key in a `VITE_` environment variable.
+Row-level security limits each signed-in user to their own profile and tracker
+records even if an API handler is implemented incorrectly.
 
 ## Connect ChatGPT with MCP
 
@@ -120,7 +148,7 @@ HTTPS endpoint, so local execution is for development and MCP client tests.
 
 ### Deploy and authorize it
 
-1. Deploy the Banime PWA over HTTPS and keep its Supabase browser variables.
+1. Deploy Banime over HTTPS with the account server variables.
 2. Deploy `Dockerfile.mcp` as a separate public web service. `render.yaml` is
    included as one option.
 3. Set `MCP_PUBLIC_URL` to the complete public `/mcp` URL.
@@ -128,9 +156,10 @@ HTTPS endpoint, so local execution is for development and MCP client tests.
    that replaces `X-Forwarded-For` and `X-Forwarded-Host`.
 5. Set `MCP_ALLOWED_ORIGINS` to the exact Banime web origins that may call the
    endpoint. Do not use `*`.
-6. In Supabase Auth, enable the OAuth 2.1 server.
-7. Set the OAuth authorization path to the deployed Banime PWA URL ending in
-   `/oauth/consent`.
+6. Add a cookie-aware MCP consent endpoint before enabling the Supabase OAuth
+   2.1 server. The previous browser-token consent route has been removed so it
+   cannot bypass the account cookie boundary.
+7. In Supabase Auth, enable the OAuth 2.1 server.
 8. Enable dynamic client registration, or register the ChatGPT OAuth client
    manually.
 9. Add `VITE_MCP_URL` to the PWA deployment and rebuild it.

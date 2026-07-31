@@ -1,0 +1,361 @@
+import type { ServerResponse } from "node:http";
+import {
+  ApiError,
+  appUrl,
+  enforceAuthRateLimit,
+  readJson,
+  requireMethod,
+  requireSameOrigin,
+  routeParameter,
+  sendError,
+  sendJson,
+  type ApiRequest
+} from "../_lib/http";
+import {
+  USERNAME_PATTERN,
+  accountEmail,
+  accountPassword,
+  accountRecord,
+  accountUsername,
+  loginIdentifier,
+  loginPassword,
+  verificationCode
+} from "../_lib/accountValidation";
+import {
+  PKCE_COOKIE,
+  REFRESH_COOKIE,
+  accountUser,
+  authenticateRequest,
+  clearPkceCookie,
+  clearSessionCookies,
+  createAdminClient,
+  createPublicClient,
+  createUserClient,
+  readCookie,
+  setPkceCookie,
+  setSessionCookies
+} from "../_lib/supabase";
+
+async function login(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const body = accountRecord(await readJson(request));
+  const identifier = loginIdentifier(body.identifier);
+  const submittedPassword = loginPassword(body.password);
+  await enforceAuthRateLimit(request, "login", {
+    limit: 10,
+    windowSeconds: 15 * 60,
+    subject: identifier
+  });
+
+  let resolvedEmail = identifier;
+  if (!identifier.includes("@")) {
+    if (!USERNAME_PATTERN.test(identifier)) {
+      throw new ApiError(401, "Email, username, or password is incorrect.");
+    }
+    const admin = createAdminClient();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("user_id")
+      .eq("username_normalized", identifier)
+      .maybeSingle();
+    if (!profile?.user_id) {
+      throw new ApiError(401, "Email, username, or password is incorrect.");
+    }
+    const { data } = await admin.auth.admin.getUserById(profile.user_id);
+    resolvedEmail = data.user?.email ?? "";
+  } else {
+    try {
+      accountEmail(identifier);
+    } catch {
+      throw new ApiError(401, "Email, username, or password is incorrect.");
+    }
+  }
+
+  const client = createPublicClient();
+  const { data, error } = await client.auth.signInWithPassword({
+    email: resolvedEmail,
+    password: submittedPassword
+  });
+  if (error || !data.session || !data.user) {
+    throw new ApiError(401, "Email, username, or password is incorrect.");
+  }
+  setSessionCookies(response, data.session);
+  const user = await accountUser(
+    data.user,
+    createUserClient(data.session.access_token)
+  );
+  sendJson(response, 200, { user });
+}
+
+async function signup(request: ApiRequest, response: ServerResponse) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const body = accountRecord(await readJson(request));
+  const signupEmail = accountEmail(body.email);
+  const signupUsername = accountUsername(body.username);
+  const signupPassword = accountPassword(body.password);
+  await enforceAuthRateLimit(request, "signup", {
+    limit: 5,
+    windowSeconds: 60 * 60,
+    subject: signupEmail
+  });
+
+  const admin = createAdminClient();
+  const { data: existing } = await admin
+    .from("profiles")
+    .select("user_id")
+    .eq("username_normalized", signupUsername.toLowerCase())
+    .maybeSingle();
+  if (existing) throw new ApiError(409, "That username is unavailable.");
+
+  const client = createPublicClient();
+  const { data, error } = await client.auth.signUp({
+    email: signupEmail,
+    password: signupPassword,
+    options: {
+      data: { username: signupUsername },
+      emailRedirectTo: `${appUrl(request)}/account`
+    }
+  });
+  if (error) {
+    throw new ApiError(400, "The account could not be created.");
+  }
+  if (data.session) setSessionCookies(response, data.session);
+  sendJson(response, 200, {
+    message:
+      "Account created. Enter the verification code sent to your email."
+  });
+}
+
+async function verifyEmail(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const body = accountRecord(await readJson(request));
+  const verificationEmail = accountEmail(body.email);
+  const token = verificationCode(body.code, "Verification code");
+  await enforceAuthRateLimit(request, "verify-email", {
+    limit: 8,
+    windowSeconds: 15 * 60,
+    subject: verificationEmail
+  });
+  const client = createPublicClient();
+  const { data, error } = await client.auth.verifyOtp({
+    email: verificationEmail,
+    token,
+    type: "signup"
+  });
+  if (error || !data.session || !data.user) {
+    throw new ApiError(400, "The verification code is invalid or expired.");
+  }
+  setSessionCookies(response, data.session);
+  sendJson(response, 200, {
+    user: await accountUser(
+      data.user,
+      createUserClient(data.session.access_token)
+    )
+  });
+}
+
+async function forgotPassword(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const body = accountRecord(await readJson(request));
+  const recoveryEmail = accountEmail(body.email);
+  await enforceAuthRateLimit(request, "forgot-password", {
+    limit: 5,
+    windowSeconds: 60 * 60,
+    subject: recoveryEmail
+  });
+  const client = createPublicClient();
+  await client.auth.resetPasswordForEmail(recoveryEmail, {
+    redirectTo: `${appUrl(request)}/account`
+  });
+  sendJson(response, 200, {
+    message:
+      "If the account exists, a password reset code has been sent."
+  });
+}
+
+async function resetPassword(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const body = accountRecord(await readJson(request));
+  const recoveryEmail = accountEmail(body.email);
+  const token = verificationCode(body.code, "Reset code");
+  const nextPassword = accountPassword(body.password, "New password");
+  await enforceAuthRateLimit(request, "reset-password", {
+    limit: 8,
+    windowSeconds: 15 * 60,
+    subject: recoveryEmail
+  });
+  const client = createPublicClient();
+  const { data, error } = await client.auth.verifyOtp({
+    email: recoveryEmail,
+    token,
+    type: "recovery"
+  });
+  if (error || !data.session) {
+    throw new ApiError(400, "The reset code is invalid or expired.");
+  }
+  await client.auth.setSession({
+    access_token: data.session.access_token,
+    refresh_token: data.session.refresh_token
+  });
+  const { error: updateError } = await client.auth.updateUser({
+    password: nextPassword
+  });
+  if (updateError) {
+    throw new ApiError(400, "The password could not be updated.");
+  }
+  setSessionCookies(response, data.session);
+  sendJson(response, 200, { message: "Password updated." });
+}
+
+async function session(request: ApiRequest, response: ServerResponse) {
+  requireMethod(request, "GET");
+  try {
+    const auth = await authenticateRequest(request, response);
+    sendJson(response, 200, {
+      user: await accountUser(auth.user, auth.client)
+    });
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      sendJson(response, 200, { user: null });
+      return;
+    }
+    throw error;
+  }
+}
+
+async function logout(request: ApiRequest, response: ServerResponse) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  try {
+    const auth = await authenticateRequest(request, response);
+    const client = createPublicClient();
+    const refreshToken = readCookie(request, REFRESH_COOKIE);
+    if (refreshToken) {
+      await client.auth.setSession({
+        access_token: auth.accessToken,
+        refresh_token: refreshToken
+      });
+      await client.auth.signOut({ scope: "global" });
+    }
+  } catch {
+    // Cookie cleanup is still required for an expired or revoked session.
+  }
+  clearSessionCookies(response);
+  sendJson(response, 200, { message: "Signed out." });
+}
+
+async function google(request: ApiRequest, response: ServerResponse) {
+  requireMethod(request, "GET");
+  await enforceAuthRateLimit(request, "google", {
+    limit: 20,
+    windowSeconds: 15 * 60
+  });
+  let verifier = "";
+  const client = createPublicClient({
+    flowType: "pkce",
+    storage: {
+      getItem: () => null,
+      setItem: (key, value) => {
+        if (key.includes("code-verifier")) verifier = value;
+      },
+      removeItem: () => undefined
+    }
+  });
+  const { data, error } = await client.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${appUrl(request)}/api/auth/callback`,
+      skipBrowserRedirect: true
+    }
+  });
+  if (error || !data.url || !verifier) {
+    throw new ApiError(503, "Google sign-in is unavailable.");
+  }
+  setPkceCookie(response, verifier);
+  response.statusCode = 302;
+  response.setHeader("Cache-Control", "no-store");
+  response.setHeader("Location", data.url);
+  response.end();
+}
+
+async function callback(request: ApiRequest, response: ServerResponse) {
+  requireMethod(request, "GET");
+  const code = new URL(request.url ?? "", appUrl(request)).searchParams.get(
+    "code"
+  );
+  const verifier = readCookie(request, PKCE_COOKIE);
+  if (!code || !verifier) {
+    throw new ApiError(400, "Google sign-in could not be completed.");
+  }
+  const client = createPublicClient({
+    flowType: "pkce",
+    storage: {
+      getItem: (key) => (key.includes("code-verifier") ? verifier : null),
+      setItem: () => undefined,
+      removeItem: () => undefined
+    }
+  });
+  const { data, error } = await client.auth.exchangeCodeForSession(code);
+  clearPkceCookie(response);
+  if (error || !data.session) {
+    response.statusCode = 302;
+    response.setHeader("Location", `${appUrl(request)}/account?auth_error=google`);
+    response.end();
+    return;
+  }
+  setSessionCookies(response, data.session);
+  response.statusCode = 302;
+  response.setHeader("Cache-Control", "no-store");
+  response.setHeader("Location", `${appUrl(request)}/account`);
+  response.end();
+}
+
+export default async function handler(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  try {
+    const action = routeParameter(request, "action");
+    switch (action) {
+      case "login":
+        return await login(request, response);
+      case "signup":
+        return await signup(request, response);
+      case "verify-email":
+        return await verifyEmail(request, response);
+      case "forgot-password":
+        return await forgotPassword(request, response);
+      case "reset-password":
+        return await resetPassword(request, response);
+      case "session":
+        return await session(request, response);
+      case "logout":
+        return await logout(request, response);
+      case "google":
+        return await google(request, response);
+      case "callback":
+        return await callback(request, response);
+      default:
+        throw new ApiError(404, "Not found.");
+    }
+  } catch (error) {
+    sendError(response, error);
+  }
+}

@@ -5,8 +5,8 @@ import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { DiscoverPage } from "../features/discover/DiscoverPage";
 import { LibraryPage } from "../features/library/LibraryPage";
 import { NewsPage } from "../features/news/NewsPage";
-import { OAuthConsentPage } from "../features/oauth/OAuthConsentPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
+import { AccountPage } from "../features/account/AccountPage";
 import { AnimePanelProvider } from "./providers/AnimePanelProvider";
 import { CloudAuthProvider } from "./providers/CloudAuthProvider";
 import { TrackerProvider } from "./providers/TrackerProvider";
@@ -24,17 +24,14 @@ const queryClient = new QueryClient({
 
 const router = createBrowserRouter([
   {
-    path: "/oauth/consent",
-    element: <OAuthConsentPage />
-  },
-  {
     element: <AppShell />,
     children: [
       { path: "/", element: <DashboardPage /> },
       { path: "/discover", element: <DiscoverPage /> },
       { path: "/news", element: <NewsPage /> },
       { path: "/library", element: <LibraryPage /> },
-      { path: "/settings", element: <SettingsPage /> }
+      { path: "/settings", element: <SettingsPage /> },
+      { path: "/account", element: <AccountPage /> }
     ]
   }
 ]);

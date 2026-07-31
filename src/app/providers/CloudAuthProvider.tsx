@@ -5,97 +5,115 @@ import {
   useState,
   type PropsWithChildren
 } from "react";
-import type { User } from "@supabase/supabase-js";
 import {
-  getSupabaseClient,
-  isSupabaseConfigured
-} from "../../services/supabase/client";
+  accountApi,
+  type AccountUser
+} from "../../services/account/accountApi";
 import {
   CloudAuthContext,
   type AuthActionResult,
   type CloudAuthContextValue
 } from "./cloudAuthContext";
 
+const accountAuthEnabled =
+  import.meta.env.VITE_ACCOUNT_AUTH_ENABLED === "true";
+
 export function CloudAuthProvider({ children }: PropsWithChildren) {
-  const [user, setUser] = useState<User>();
-  const [initialized, setInitialized] = useState(!isSupabaseConfigured);
+  const [user, setUser] = useState<AccountUser>();
+  const [initialized, setInitialized] = useState(!accountAuthEnabled);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
+    if (!accountAuthEnabled) return;
     let active = true;
-    let unsubscribe: (() => void) | undefined;
-
-    void getSupabaseClient().then(async (client) => {
-      if (!client || !active) return;
-      const { data } = await client.auth.getSession();
+    void accountApi.session().then((result) => {
       if (!active) return;
-      setUser(data.session?.user);
+      setUser(result.user ?? undefined);
       setInitialized(true);
-
-      const { data: subscription } = client.auth.onAuthStateChange(
-        (_event, session) => {
-          setUser(session?.user);
-          setInitialized(true);
-        }
-      );
-      unsubscribe = () => subscription.subscription.unsubscribe();
     });
-
     return () => {
       active = false;
-      unsubscribe?.();
     };
   }, []);
 
-  const signIn = useCallback(
-    async (email: string, password: string): Promise<AuthActionResult> => {
-      const client = await getSupabaseClient();
-      if (!client) return { error: "Cloud sync is not configured." };
-      const { error } = await client.auth.signInWithPassword({
-        email,
-        password
-      });
-      return error ? { error: error.message } : { message: "Signed in." };
+  const run = useCallback(
+    async (
+      operation: () => Promise<{
+        error?: string;
+        message?: string;
+        user?: AccountUser | null;
+      }>
+    ): Promise<AuthActionResult> => {
+      const result = await operation();
+      if (result.user !== undefined) setUser(result.user ?? undefined);
+      return { error: result.error, message: result.message };
     },
     []
+  );
+
+  const signIn = useCallback(
+    (identifier: string, password: string) =>
+      run(() => accountApi.signIn(identifier, password)),
+    [run]
   );
 
   const signUp = useCallback(
-    async (email: string, password: string): Promise<AuthActionResult> => {
-      const client = await getSupabaseClient();
-      if (!client) return { error: "Cloud sync is not configured." };
-      const { data, error } = await client.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: window.location.origin }
-      });
-      if (error) return { error: error.message };
-      return {
-        message: data.session
-          ? "Account created and signed in."
-          : "Check your email to confirm the account, then sign in."
-      };
-    },
-    []
+    (email: string, username: string, password: string) =>
+      run(() => accountApi.signUp(email, username, password)),
+    [run]
+  );
+
+  const verifyEmail = useCallback(
+    (email: string, code: string) =>
+      run(() => accountApi.verifyEmail(email, code)),
+    [run]
+  );
+
+  const requestPasswordReset = useCallback(
+    (email: string) =>
+      run(() => accountApi.requestPasswordReset(email)),
+    [run]
+  );
+
+  const resetPassword = useCallback(
+    (email: string, code: string, password: string) =>
+      run(() => accountApi.resetPassword(email, code, password)),
+    [run]
   );
 
   const signOut = useCallback(async (): Promise<AuthActionResult> => {
-    const client = await getSupabaseClient();
-    if (!client) return { error: "Cloud sync is not configured." };
-    const { error } = await client.auth.signOut();
-    return error ? { error: error.message } : { message: "Signed out." };
+    const result = await accountApi.signOut();
+    if (!result.error) setUser(undefined);
+    return { error: result.error, message: result.message };
+  }, []);
+
+  const signInWithGoogle = useCallback(() => {
+    window.location.assign("/api/auth/google");
   }, []);
 
   const value = useMemo<CloudAuthContextValue>(
     () => ({
-      configured: isSupabaseConfigured,
+      configured: accountAuthEnabled,
       initialized,
       user,
       signIn,
       signUp,
+      verifyEmail,
+      requestPasswordReset,
+      resetPassword,
+      signInWithGoogle,
       signOut
     }),
-    [initialized, signIn, signOut, signUp, user]
+    [
+      initialized,
+      requestPasswordReset,
+      resetPassword,
+      signIn,
+      signInWithGoogle,
+      signOut,
+      signUp,
+      user,
+      verifyEmail
+    ]
   );
 
   return (

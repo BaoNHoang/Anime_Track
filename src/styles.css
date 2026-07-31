@@ -1733,6 +1733,210 @@ h3,
   outline: 3px solid color-mix(in srgb, var(--focus) 18%, transparent);
 }
 
+.account-page {
+  max-width: 980px;
+}
+
+.account-auth {
+  display: grid;
+  overflow: hidden;
+  grid-template-columns: 220px minmax(0, 1fr);
+  max-width: 820px;
+  min-height: 560px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
+}
+
+.account-auth__rail {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 34px 28px;
+  color: #f7f7fb;
+  background: #151620;
+}
+
+.account-auth__mark,
+.account-avatar {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 8px;
+}
+
+.account-auth__mark {
+  margin-bottom: auto;
+  color: #ffffff;
+  background: var(--accent);
+}
+
+.account-auth__rail strong {
+  font-family: var(--font-display);
+  font-size: 22px;
+}
+
+.account-auth__rail > span:last-child {
+  margin-top: 4px;
+  color: #c8c9d4;
+  font-size: 13px;
+}
+
+.account-auth__form {
+  width: min(100%, 500px);
+  padding: 38px 42px;
+}
+
+.account-form-heading {
+  margin: 30px 0 24px;
+}
+
+.account-form-heading h2 {
+  margin-bottom: 6px;
+  font-size: 24px;
+}
+
+.account-form-heading p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.account-google {
+  width: 100%;
+  color: var(--ink);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+}
+
+.account-google:hover {
+  border-color: var(--ink);
+  background: var(--surface-muted);
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: var(--faint);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  height: 1px;
+  flex: 1;
+  background: var(--border);
+  content: "";
+}
+
+.account-form {
+  width: 100%;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+}
+
+.account-form .button {
+  width: 100%;
+}
+
+.account-form-links {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.account-form-links button {
+  padding: 4px;
+  border: 0;
+  color: var(--muted);
+  background: transparent;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.account-form-links button:hover {
+  color: var(--ink);
+}
+
+.account-profile,
+.account-unavailable {
+  max-width: 720px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
+}
+
+.account-profile {
+  display: grid;
+  gap: 28px;
+  padding: 32px;
+}
+
+.account-profile__identity {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+
+.account-avatar {
+  color: #ffffff;
+  background: var(--accent);
+}
+
+.account-profile__identity h2 {
+  overflow-wrap: anywhere;
+  margin: 2px 0;
+  font-size: 24px;
+}
+
+.account-profile__identity p {
+  overflow-wrap: anywhere;
+  margin: 0;
+  color: var(--muted);
+}
+
+.account-kicker {
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.account-profile__status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.account-profile > .button {
+  justify-self: start;
+}
+
+.account-unavailable {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 26px;
+}
+
+.account-unavailable h2 {
+  margin-bottom: 4px;
+  font-size: 18px;
+}
+
+.account-unavailable p {
+  margin: 0;
+  color: var(--muted);
+}
+
 .form-message {
   width: 100%;
   margin: 11px 0 0 !important;
@@ -2206,7 +2410,7 @@ h3,
 
   .mobile-nav .navigation {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 3px;
     margin: 0;
   }
@@ -2306,6 +2510,18 @@ h3,
     grid-template-columns: 1fr;
   }
 
+  .account-auth {
+    grid-template-columns: 160px minmax(0, 1fr);
+  }
+
+  .account-auth__rail {
+    padding: 28px 20px;
+  }
+
+  .account-auth__form {
+    padding: 32px 28px;
+  }
+
   .detail-panel {
     top: 4vh;
     border-radius: 8px 8px 0 0;
@@ -2389,6 +2605,36 @@ h3,
   .settings-card__icon {
     width: 34px;
     height: 34px;
+  }
+
+  .account-auth {
+    grid-template-columns: 1fr;
+  }
+
+  .account-auth__rail {
+    min-height: 108px;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .account-auth__mark {
+    width: 44px;
+    height: 44px;
+    margin: 0;
+  }
+
+  .account-auth__rail > span:last-child {
+    display: none;
+  }
+
+  .account-auth__form {
+    padding: 24px 18px 28px;
+  }
+
+  .account-profile {
+    padding: 22px;
   }
 }
 

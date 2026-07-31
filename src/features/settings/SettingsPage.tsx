@@ -4,7 +4,6 @@ import {
   Database,
   Download,
   Info,
-  LogOut,
   MessageSquare,
   Moon,
   PlayCircle,
@@ -14,7 +13,8 @@ import {
   Upload,
   WifiOff
 } from "lucide-react";
-import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
+import { Link } from "react-router-dom";
 import {
   LibraryImportError,
   parseLibraryImport
@@ -28,47 +28,21 @@ import { useTracker } from "../../app/providers/useTracker";
 import { useWatchProvider } from "../../app/providers/useWatchProvider";
 import { enrichTrackedAnimeFromTenrai } from "../../services/tenrai/trackerEnrichment";
 
-type AuthMode = "sign_in" | "sign_up";
-
 export function SettingsPage() {
   const { items, syncStatus, syncError, importItems } = useTracker();
-  const { configured, initialized, user, signIn, signUp, signOut } =
-    useCloudAuth();
+  const { configured, initialized, user } = useCloudAuth();
   const { canInstall, installed, install, isIos } = usePwaInstall();
   const { theme, setTheme } = useTheme();
   const { provider, providerId, providers, setProviderId } =
     useWatchProvider();
   const { lastChecked, intervalMinutes } = useAppUpdateStatus();
   const importInput = useRef<HTMLInputElement>(null);
-  const [authMode, setAuthMode] = useState<AuthMode>("sign_in");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [authMessage, setAuthMessage] = useState<{
-    tone: "success" | "error";
-    text: string;
-  }>();
-  const [submitting, setSubmitting] = useState(false);
   const [importMessage, setImportMessage] = useState<{
     tone: "success" | "error";
     text: string;
   }>();
   const [importing, setImporting] = useState(false);
   const mcpUrl = import.meta.env.VITE_MCP_URL;
-
-  const handleAuth = async (event: FormEvent) => {
-    event.preventDefault();
-    setSubmitting(true);
-    setAuthMessage(undefined);
-    const result =
-      authMode === "sign_in"
-        ? await signIn(email, password)
-        : await signUp(email, password);
-    setSubmitting(false);
-    setAuthMessage({
-      tone: result.error ? "error" : "success",
-      text: result.error ?? result.message ?? "Done."
-    });
-  };
 
   const exportLibrary = () => {
     const payload = JSON.stringify(
@@ -234,12 +208,7 @@ export function SettingsPage() {
             <h2>Cross-device cloud sync</h2>
             {!configured ? (
               <>
-                <p>
-                  Local tracking works now. To sync this computer and your
-                  phone, create a Supabase project, run
-                  <code> supabase/schema.sql </code>, and add the project URL
-                  and publishable key to <code>.env.local</code>.
-                </p>
+                <p>Your library is stored on this device.</p>
                 <span className="status-pill">
                   <WifiOff size={14} /> Local-only mode
                 </span>
@@ -265,73 +234,14 @@ export function SettingsPage() {
                     {syncError}
                   </p>
                 )}
-                <button
-                  className="button button--ghost button--compact"
-                  onClick={() => void signOut()}
-                >
-                  <LogOut size={15} /> Sign out
-                </button>
+                <Link className="button button--ghost button--compact" to="/account">
+                  Manage account
+                </Link>
               </div>
             ) : (
-              <>
-                <div className="auth-tabs">
-                  <button
-                    className={authMode === "sign_in" ? "is-active" : ""}
-                    onClick={() => setAuthMode("sign_in")}
-                  >
-                    Sign in
-                  </button>
-                  <button
-                    className={authMode === "sign_up" ? "is-active" : ""}
-                    onClick={() => setAuthMode("sign_up")}
-                  >
-                    Create account
-                  </button>
-                </div>
-                <form className="auth-form" onSubmit={handleAuth}>
-                  <label className="field">
-                    <span>Email</span>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      autoComplete="email"
-                      maxLength={320}
-                      required
-                    />
-                  </label>
-                  <label className="field">
-                    <span>Password</span>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      autoComplete={
-                        authMode === "sign_in"
-                          ? "current-password"
-                          : "new-password"
-                      }
-                      minLength={6}
-                      maxLength={128}
-                      required
-                    />
-                  </label>
-                  <button className="button" disabled={submitting}>
-                    {submitting
-                      ? "Please wait..."
-                      : authMode === "sign_in"
-                        ? "Sign in and sync"
-                        : "Create sync account"}
-                  </button>
-                </form>
-                {authMessage && (
-                  <p
-                    className={`form-message form-message--${authMessage.tone}`}
-                  >
-                    {authMessage.text}
-                  </p>
-                )}
-              </>
+              <Link className="button button--compact" to="/account">
+                Sign in or create account
+              </Link>
             )}
           </div>
         </article>
