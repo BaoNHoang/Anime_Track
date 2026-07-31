@@ -22,8 +22,13 @@ import {
   type TrackerContextValue
 } from "./trackerContext";
 
+const accountAuthEnabled =
+  import.meta.env.VITE_ACCOUNT_AUTH_ENABLED === "true";
+
 export function TrackerProvider({ children }: PropsWithChildren) {
-  const [items, setItems] = useState(() => trackerRepository.getAll());
+  const [items, setItems] = useState<TrackedAnime[]>(() =>
+    accountAuthEnabled ? [] : trackerRepository.getAll()
+  );
   const [syncStatus, setSyncStatus] = useState<
     "local" | "syncing" | "synced" | "error"
   >("local");
@@ -31,7 +36,8 @@ export function TrackerProvider({ children }: PropsWithChildren) {
   const itemsRef = useRef(items);
   const syncQueueRef = useRef(Promise.resolve());
   const syncedUserRef = useRef<string | undefined>(undefined);
-  const { user, initialized } = useCloudAuth();
+  const { configured, user, initialized } = useCloudAuth();
+  const canManage = !configured || Boolean(user);
 
   const saveLocal = useCallback((next: TrackedAnime[]) => {
     itemsRef.current = next;
@@ -60,8 +66,16 @@ export function TrackerProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (!initialized) return;
+    if (!configured) return;
     if (!user) {
       syncedUserRef.current = undefined;
+      trackerRepository.clear();
+      void Promise.resolve().then(() => {
+        itemsRef.current = [];
+        setItems([]);
+        setSyncStatus("local");
+        setSyncError(undefined);
+      });
       return;
     }
     if (syncedUserRef.current === user.id) return;
@@ -76,9 +90,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       try {
         const cloudItems = await trackerCloudRepository.getAll();
         if (cancelled) return;
-        const merged = mergeTrackedAnime(itemsRef.current, cloudItems);
-        saveLocal(merged);
-        await trackerCloudRepository.upsertMany(merged);
+        saveLocal(cloudItems);
         if (cancelled) return;
         syncedUserRef.current = user.id;
         setSyncStatus("synced");
@@ -96,10 +108,11 @@ export function TrackerProvider({ children }: PropsWithChildren) {
     return () => {
       cancelled = true;
     };
-  }, [initialized, saveLocal, user]);
+  }, [configured, initialized, saveLocal, user]);
 
   const addAnime = useCallback(
     (anime: Anime, status: TrackingStatus = "plan_to_watch") => {
+      if (!canManage) return;
       if (itemsRef.current.some((item) => item.anime.id === anime.id)) return;
       const created = trackerRepository.create(anime, status);
       saveLocal([created, ...itemsRef.current]);
@@ -107,7 +120,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
         enqueueCloud(() => trackerCloudRepository.upsert(created));
       }
     },
-    [enqueueCloud, saveLocal, user]
+    [canManage, enqueueCloud, saveLocal, user]
   );
 
   const updateAnime = useCallback(
@@ -117,6 +130,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
         Pick<TrackedAnime, "status" | "progress" | "userScore" | "notes">
       >
     ) => {
+      if (!canManage) return;
       let updatedItem: TrackedAnime | undefined;
       const next = itemsRef.current.map((item) => {
         if (item.anime.id !== animeId) return item;
@@ -138,11 +152,12 @@ export function TrackerProvider({ children }: PropsWithChildren) {
         );
       }
     },
-    [enqueueCloud, saveLocal, user]
+    [canManage, enqueueCloud, saveLocal, user]
   );
 
   const removeAnime = useCallback(
     (animeId: number) => {
+      if (!canManage) return;
       saveLocal(
         itemsRef.current.filter((item) => item.anime.id !== animeId)
       );
@@ -150,7 +165,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
         enqueueCloud(() => trackerCloudRepository.remove(animeId));
       }
     },
-    [enqueueCloud, saveLocal, user]
+    [canManage, enqueueCloud, saveLocal, user]
   );
 
   const importItems = useCallback(
@@ -158,6 +173,9 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       importedItems: TrackedAnime[],
       options: { replaceOnEqualUpdatedAt?: boolean } = {}
     ) => {
+      if (!canManage) {
+        return { added: 0, updated: 0, total: itemsRef.current.length };
+      }
       const currentById = new Map(
         itemsRef.current.map((item) => [item.anime.id, item])
       );
@@ -189,12 +207,13 @@ export function TrackerProvider({ children }: PropsWithChildren) {
 
       return { added, updated, total: merged.length };
     },
-    [enqueueCloud, saveLocal, user]
+    [canManage, enqueueCloud, saveLocal, user]
   );
 
   const value = useMemo<TrackerContextValue>(
     () => ({
       items,
+      canManage,
       stats: calculateTrackerStats(items),
       syncStatus: user ? syncStatus : "local",
       syncError: user ? syncError : undefined,
@@ -207,6 +226,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
     }),
     [
       addAnime,
+      canManage,
       importItems,
       items,
       removeAnime,

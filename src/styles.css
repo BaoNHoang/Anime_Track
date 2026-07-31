@@ -2406,7 +2406,7 @@ h3,
   }
 
   .page {
-    padding: 28px 18px 48px;
+    padding: 28px 18px calc(84px + env(safe-area-inset-bottom));
   }
 
   .mobile-nav {
@@ -2609,9 +2609,12 @@ h3,
 
   .library-card {
     grid-template-columns: 88px minmax(0, 1fr);
+    width: 100%;
+    max-width: 100%;
   }
 
   .library-card__content {
+    overflow: hidden;
     padding: 13px 40px 13px 13px;
   }
 

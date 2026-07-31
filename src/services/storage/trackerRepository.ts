@@ -37,6 +37,11 @@ export const trackerRepository = {
     writeLibrary(items);
   },
 
+  clear() {
+    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+  },
+
   create(anime: Anime, status: TrackingStatus): TrackedAnime {
     const timestamp = new Date().toISOString();
     return {

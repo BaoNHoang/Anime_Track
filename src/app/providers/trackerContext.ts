@@ -8,6 +8,7 @@ import type {
 
 export interface TrackerContextValue {
   items: TrackedAnime[];
+  canManage: boolean;
   stats: ReturnType<typeof calculateTrackerStats>;
   syncStatus: "local" | "syncing" | "synced" | "error";
   syncError?: string;

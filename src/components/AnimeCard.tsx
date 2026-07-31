@@ -6,7 +6,7 @@ import { useTracker } from "../app/providers/useTracker";
 
 export function AnimeCard({ anime }: { anime: Anime }) {
   const { openAnime } = useAnimePanel();
-  const { addAnime, getTracked } = useTracker();
+  const { addAnime, canManage, getTracked } = useTracker();
   const tracked = getTracked(anime.id);
   const nextAiring = formatAiringRelative(anime);
 
@@ -55,9 +55,13 @@ export function AnimeCard({ anime }: { anime: Anime }) {
           <button
             className={`quick-add${tracked ? " is-added" : ""}`}
             onClick={() => addAnime(anime)}
-            disabled={Boolean(tracked)}
+            disabled={Boolean(tracked) || !canManage}
             aria-label={
-              tracked ? `${anime.title} is in your library` : `Add ${anime.title}`
+              tracked
+                ? `${anime.title} is in your library`
+                : canManage
+                  ? `Add ${anime.title}`
+                  : "Sign in to add anime to your library"
             }
           >
             {tracked ? <Check size={16} /> : <Plus size={16} />}

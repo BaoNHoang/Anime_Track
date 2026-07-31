@@ -7,6 +7,7 @@ import {
   type TrackingStatus
 } from "../../domain/tracker/types";
 import { useTracker } from "../../app/providers/useTracker";
+import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { LibraryCard } from "./LibraryCard";
 
 type Filter = "all" | TrackingStatus;
@@ -14,6 +15,7 @@ type Sort = "updated" | "title" | "score" | "progress" | "added";
 
 export function LibraryPage() {
   const { items } = useTracker();
+  const { configured, initialized, user } = useCloudAuth();
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [type, setType] = useState("all");
@@ -120,6 +122,32 @@ export function LibraryPage() {
     setMinimumScore("0");
     setSort("updated");
   };
+
+  if (configured && (!initialized || !user)) {
+    return (
+      <div className="page-stack">
+        <header className="page-heading">
+          <h1>Library</h1>
+          <p>Your tracker is private to your signed-in Banime account.</p>
+        </header>
+        <section className="empty-state empty-state--large">
+          <span className="empty-state__icon">
+            <LibraryBig size={28} />
+          </span>
+          <strong>
+            {initialized
+              ? "Sign in to view your library."
+              : "Checking your account..."}
+          </strong>
+          {initialized && (
+            <Link className="button" to="/account">
+              Sign in
+            </Link>
+          )}
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="page-stack">
