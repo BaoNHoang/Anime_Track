@@ -2407,6 +2407,21 @@ A future change is complete only when all applicable checks are satisfied:
 - Verification: Run lint, API typecheck, tests, production build, and diff
   checks before committing.
 
+### HIST-0027 - 2026-07-31 - Correct main-review ownership policy
+
+- Status: Configured in GitHub; documentation committed locally and not
+  pushed.
+- Incident: The initial ruleset required approval from someone other than the
+  latest pusher. This blocked the repository owner from completing their own
+  maintenance pull requests and exceeded the intended workflow.
+- Fix:
+  - Removed the latest-push approval condition.
+  - Added a `pull_request`-only bypass for the repository owner. The owner can
+    merge through a pull request when needed, but cannot push directly to
+    `main`.
+  - Contributors and collaborators without that individual bypass still need
+    the code-owner review, resolved conversations, and passing `verify` check.
+
 ## Release History
 
 No formal production release has been recorded.
