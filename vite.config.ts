@@ -8,6 +8,9 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["icon.svg"],
+      workbox: {
+        navigateFallbackDenylist: [/^\/api\//]
+      },
       manifest: {
         name: "Banime",
         short_name: "Banime",
