@@ -5,11 +5,13 @@ import { LoadingState } from "../../components/LoadingState";
 import { SectionHeader } from "../../components/SectionHeader";
 import { useCurrentSeason } from "../../hooks/useAnimeQueries";
 import { useTracker } from "../../app/providers/useTracker";
+import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { ContinueWatching } from "./ContinueWatching";
 import { NextAiring } from "./NextAiring";
 
 export function DashboardPage() {
   const { stats } = useTracker();
+  const { configured, initialized, user } = useCloudAuth();
   const season = useCurrentSeason();
   const featureAnime = season.data?.items[0];
   const statCards = [
@@ -65,19 +67,21 @@ export function DashboardPage() {
         </div>
       </section>
 
-      <section className="watch-summary" aria-label="Library summary">
-        {statCards.map(({ label, value, icon: Icon }) => (
-          <article className="watch-summary__item" key={label}>
-            <span className="watch-summary__icon" aria-hidden="true">
-              <Icon size={20} strokeWidth={1.8} />
-            </span>
-            <div>
-              <strong>{value}</strong>
-              <span>{label}</span>
-            </div>
-          </article>
-        ))}
-      </section>
+      {(!configured || (initialized && user)) && (
+        <section className="watch-summary" aria-label="Library summary">
+          {statCards.map(({ label, value, icon: Icon }) => (
+            <article className="watch-summary__item" key={label}>
+              <span className="watch-summary__icon" aria-hidden="true">
+                <Icon size={20} strokeWidth={1.8} />
+              </span>
+              <div>
+                <strong>{value}</strong>
+                <span>{label}</span>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
 
       <div className="dashboard-columns">
         <div className="dashboard-columns__main">
