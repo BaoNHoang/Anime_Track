@@ -8,6 +8,11 @@ import {
   type TrackedAnime,
   type TrackingStatus
 } from "../../domain/tracker/types";
+import {
+  MAX_USER_SCORE,
+  MIN_USER_SCORE,
+  normalizeUserScore
+} from "../../domain/tracker/score";
 
 export function LibraryCard({ item }: { item: TrackedAnime }) {
   const { openAnime } = useAnimePanel();
@@ -94,15 +99,15 @@ export function LibraryCard({ item }: { item: TrackedAnime }) {
               <Star size={14} />
               <input
                 type="number"
-                min="1"
-                max="10"
+                min={MIN_USER_SCORE}
+                max={MAX_USER_SCORE}
                 step="0.5"
                 value={item.userScore ?? ""}
                 placeholder="-"
                 onChange={(event) =>
                   updateAnime(item.anime.id, {
                     userScore: event.target.value
-                      ? Number(event.target.value)
+                      ? normalizeUserScore(event.target.valueAsNumber)
                       : undefined
                   })
                 }
