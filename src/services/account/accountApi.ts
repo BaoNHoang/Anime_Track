@@ -88,5 +88,10 @@ export const accountApi = {
       method: "POST",
       body: { scoreStep }
     }),
+  deleteAccount: (confirmation: string) =>
+    request("/api/auth/delete-account", {
+      method: "POST",
+      body: { confirmation }
+    }),
   signOut: () => request("/api/auth/logout", { method: "POST" })
 };

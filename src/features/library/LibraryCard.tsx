@@ -1,4 +1,5 @@
 import { ExternalLink, Minus, Plus, Star, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useTracker } from "../../app/providers/useTracker";
 import { useWatchProvider } from "../../app/providers/useWatchProvider";
@@ -15,13 +16,30 @@ import {
   normalizeUserScore
 } from "../../domain/tracker/score";
 
-export function LibraryCard({ item }: { item: TrackedAnime }) {
+export function LibraryCard({
+  item,
+  onScoreEditStart
+}: {
+  item: TrackedAnime;
+  onScoreEditStart?: () => void;
+}) {
   const { openAnime } = useAnimePanel();
   const { updateAnime, removeAnime } = useTracker();
   const { provider, getWatchUrl } = useWatchProvider();
   const { user } = useCloudAuth();
   const scoreStep = user?.scoreStep ?? 0.5;
   const watchUrl = getWatchUrl(item.anime);
+  const [scoreDraft, setScoreDraft] = useState<string>();
+  const scoreValue = scoreDraft ?? item.userScore?.toString() ?? "";
+
+  const saveScore = () => {
+    const nextScore = scoreValue
+      ? normalizeUserScore(Number(scoreValue), scoreStep)
+      : undefined;
+    setScoreDraft(undefined);
+    if (nextScore === item.userScore) return;
+    updateAnime(item.anime.id, { userScore: nextScore });
+  };
 
   return (
     <article className="library-card">
@@ -105,18 +123,21 @@ export function LibraryCard({ item }: { item: TrackedAnime }) {
                 min={MIN_USER_SCORE}
                 max={MAX_USER_SCORE}
                 step={scoreStep}
-                value={item.userScore ?? ""}
+                value={scoreValue}
                 placeholder="-"
-                onChange={(event) =>
-                  updateAnime(item.anime.id, {
-                    userScore: event.target.value
-                      ? normalizeUserScore(
-                          event.target.valueAsNumber,
-                          scoreStep
-                        )
-                      : undefined
-                  })
-                }
+                inputMode="decimal"
+                onFocus={() => {
+                  setScoreDraft(scoreValue);
+                  onScoreEditStart?.();
+                }}
+                onChange={(event) => setScoreDraft(event.target.value)}
+                onBlur={saveScore}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") event.currentTarget.blur();
+                  if (event.key === "Escape") {
+                    setScoreDraft(undefined);
+                  }
+                }}
                 aria-label="Your score"
               />
             </div>

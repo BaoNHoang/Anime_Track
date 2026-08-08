@@ -8,6 +8,7 @@ import { useTheme } from "../app/providers/useTheme";
 import { useCloudAuth } from "../app/providers/useCloudAuth";
 import { AuthPromptProvider } from "../app/providers/AuthPromptProvider";
 import { SiteFooter } from "./SiteFooter";
+import { profileAvatar } from "../domain/account/avatars";
 
 export function AppShell() {
   const { theme, toggleTheme } = useTheme();
@@ -36,13 +37,19 @@ export function AppShell() {
           <span className="topbar__title">{pageTitle}</span>
           <div className="topbar__spacer" />
           {initialized && user ? (
-            <button
-              className="icon-button"
-              onClick={toggleTheme}
-              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-            >
-              {theme === "dark" ? <Sun size={19} /> : <Moon size={19} />}
-            </button>
+            <div className="topbar-user">
+              <button
+                className="icon-button"
+                onClick={toggleTheme}
+                aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+              >
+                {theme === "dark" ? <Sun size={19} /> : <Moon size={19} />}
+              </button>
+              <Link className="topbar-profile" to="/account">
+                <span>{user.username}</span>
+                <img src={profileAvatar(user.avatarId).src} alt="" />
+              </Link>
+            </div>
           ) : initialized ? (
             <div className="topbar-auth" aria-label="Account access">
               <Link to="/account?mode=sign_in">

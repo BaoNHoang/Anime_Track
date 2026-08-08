@@ -13,6 +13,7 @@ import {
 } from "../_lib/http.js";
 import {
   USERNAME_PATTERN,
+  accountDeletionConfirmation,
   accountAvatarId,
   accountEmail,
   accountPassword,
@@ -390,6 +391,34 @@ async function logout(request: ApiRequest, response: ServerResponse) {
   sendJson(response, 200, { message: "Signed out." });
 }
 
+async function deleteAccount(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const body = accountRecord(await readJson(request));
+  accountDeletionConfirmation(body.confirmation);
+  const auth = await authenticateRequest(request, response);
+  await enforceAuthRateLimit(request, "delete-account", {
+    limit: 3,
+    windowSeconds: 24 * 60 * 60,
+    subject: auth.user.id
+  });
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.deleteUser(auth.user.id);
+  if (error) {
+    console.error("Account deletion failed.", {
+      message: error.message
+    });
+    throw new ApiError(502, "Your account could not be deleted.");
+  }
+  clearSessionCookies(response);
+  sendJson(response, 200, {
+    message: "Your account and cloud library were deleted."
+  });
+}
+
 async function google(request: ApiRequest, response: ServerResponse) {
   requireMethod(request, "GET");
   await enforceAuthRateLimit(request, "google", {
@@ -485,6 +514,8 @@ export default async function handler(
         return await updatePreferences(request, response);
       case "logout":
         return await logout(request, response);
+      case "delete-account":
+        return await deleteAccount(request, response);
       case "google":
         return await google(request, response);
       case "callback":

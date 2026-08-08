@@ -21,6 +21,7 @@
   --success: #20a886;
   --info: #2589c8;
   --warning: #c88b13;
+  --danger: #b4233f;
   --sidebar: #151620;
   --sidebar-muted: #a6a8b7;
   --focus: #2589c8;
@@ -48,6 +49,7 @@
   --success: #44c5a3;
   --info: #63b8ed;
   --warning: #e7b550;
+  --danger: #ff7189;
   --sidebar: #0b0c12;
   --sidebar-muted: #9294a4;
   --focus: #63b8ed;
@@ -409,6 +411,49 @@ h3,
   background: var(--surface-muted);
 }
 
+.topbar-user,
+.topbar-profile {
+  display: flex;
+  align-items: center;
+}
+
+.topbar-user {
+  gap: 8px;
+}
+
+.topbar-profile {
+  min-width: 0;
+  min-height: 40px;
+  gap: 10px;
+  padding: 3px 4px 3px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.topbar-profile:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-muted);
+}
+
+.topbar-profile span {
+  max-width: 160px;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-profile img {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
 .site-footer {
   margin-top: 28px;
   border-top: 1px solid var(--border);
@@ -666,6 +711,35 @@ h3,
   padding-left: 20px;
 }
 
+.cookie-list {
+  display: grid;
+  overflow: hidden;
+  margin: 18px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.cookie-list > div {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.35fr) minmax(0, 1fr);
+  gap: 18px;
+  padding: 14px 16px;
+}
+
+.cookie-list > div + div {
+  border-top: 1px solid var(--border);
+}
+
+.cookie-list dt {
+  color: var(--ink);
+  font-weight: 750;
+}
+
+.cookie-list dd {
+  margin: 0;
+}
+
 .legal-copy a:not(.text-link) {
   color: var(--accent);
   text-decoration: underline;
@@ -755,6 +829,16 @@ h3,
   min-height: 34px;
   padding: 0 12px;
   font-size: 11px;
+}
+
+.button--danger {
+  border-color: var(--danger);
+  background: var(--danger);
+}
+
+.button--danger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--danger) 78%, #000000);
+  background: color-mix(in srgb, var(--danger) 78%, #000000);
 }
 
 .button--full {
@@ -2304,6 +2388,37 @@ h3,
   border-top: 1px solid var(--border);
 }
 
+.account-danger-zone h3 {
+  color: var(--danger);
+}
+
+.account-danger-zone .text-link {
+  margin-top: 8px;
+}
+
+.account-delete-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 300px) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.account-delete-form input {
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  outline: 0;
+  color: var(--ink);
+  background: var(--canvas);
+}
+
+.account-delete-form input:focus {
+  border-color: var(--focus);
+  outline: 3px solid color-mix(in srgb, var(--focus) 18%, transparent);
+}
+
 .account-username-form {
   display: grid;
   max-width: 360px;
@@ -2789,6 +2904,10 @@ h3,
     display: none;
   }
 
+  .topbar-profile span {
+    max-width: 96px;
+  }
+
   .page {
     padding: 28px 18px calc(84px + env(safe-area-inset-bottom));
   }
@@ -2984,6 +3103,20 @@ h3,
 
   .topbar-auth a svg {
     display: none;
+  }
+
+  .topbar-profile {
+    gap: 6px;
+    padding-left: 8px;
+  }
+
+  .topbar-profile span {
+    max-width: 64px;
+  }
+
+  .cookie-list > div,
+  .account-delete-form {
+    grid-template-columns: 1fr;
   }
 
   .site-footer__inner,

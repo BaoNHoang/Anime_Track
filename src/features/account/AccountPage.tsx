@@ -7,10 +7,16 @@ import {
   LogOut,
   MailCheck,
   ShieldCheck,
+  Trash2,
   UserRound
 } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams
+} from "react-router-dom";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { useTracker } from "../../app/providers/useTracker";
 import {
@@ -47,6 +53,7 @@ export function AccountPage() {
     resetPassword,
     updateUsername,
     updateAvatar,
+    deleteAccount,
     signInWithGoogle,
     signOut
   } = useCloudAuth();
@@ -63,6 +70,7 @@ export function AccountPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [code, setCode] = useState("");
   const [profileUsername, setProfileUsername] = useState("");
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [message, setMessage] = useState<FormMessage | undefined>(() =>
     searchParams.get("auth_error")
       ? {
@@ -172,6 +180,19 @@ export function AccountPage() {
             text: result.message ?? "A new verification code has been sent."
           }
     );
+  };
+
+  const handleAccountDeletion = async (event: FormEvent) => {
+    event.preventDefault();
+    setMessage(undefined);
+    setSubmitting(true);
+    const result = await deleteAccount(deleteConfirmation);
+    setSubmitting(false);
+    if (result.error) {
+      setMessage({ tone: "error", text: result.error });
+      return;
+    }
+    navigate("/", { replace: true });
   };
 
   if (!configured) {
@@ -317,6 +338,38 @@ export function AccountPage() {
               <LogOut size={16} /> Sign out
             </button>
           </div>
+          <section className="account-profile__section account-danger-zone">
+            <div className="account-profile__section-heading">
+              <h3>Delete account</h3>
+              <p>
+                Permanently delete your sign-in, profile, and synchronized
+                library. Banime will also clear its local library from this
+                browser. This cannot be undone.
+              </p>
+              <Link className="text-link" to="/privacy">
+                Read how Banime handles your data
+              </Link>
+            </div>
+            <form className="account-delete-form" onSubmit={handleAccountDeletion}>
+              <label className="field">
+                <span>Enter DELETE to confirm</span>
+                <input
+                  value={deleteConfirmation}
+                  onChange={(event) => setDeleteConfirmation(event.target.value)}
+                  autoComplete="off"
+                  maxLength={6}
+                  required
+                />
+              </label>
+              <button
+                className="button button--danger"
+                disabled={submitting || deleteConfirmation !== "DELETE"}
+              >
+                <Trash2 size={16} />
+                {submitting ? "Deleting..." : "Delete account"}
+              </button>
+            </form>
+          </section>
         </section>
       </div>
     );

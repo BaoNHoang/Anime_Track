@@ -11,7 +11,7 @@ export function PrivacyPage() {
         </span>
         <div>
           <h1>Privacy Policy</h1>
-          <p>Last updated: July 31, 2026</p>
+          <p>Last updated: August 8, 2026</p>
         </div>
       </header>
 
@@ -84,6 +84,46 @@ export function PrivacyPage() {
             requests. Banime does not currently use advertising or analytics
             cookies.
           </p>
+          <dl className="cookie-list">
+            <div>
+              <dt><code>banime_access</code></dt>
+              <dd>
+                Authenticates account requests. It expires with the short-lived
+                access session, typically in about one hour.
+              </dd>
+            </div>
+            <div>
+              <dt><code>banime_refresh</code></dt>
+              <dd>
+                Renews a signed-in session without asking you to log in again.
+                It expires after 30 days or is removed when you sign out or
+                delete your account.
+              </dd>
+            </div>
+            <div>
+              <dt><code>banime_pkce</code></dt>
+              <dd>
+                Protects the Google sign-in redirect. It expires after 10
+                minutes and is removed when the sign-in callback finishes.
+              </dd>
+            </div>
+          </dl>
+          <p>
+            These cookies are limited to Banime, use <code>SameSite=Lax</code>,
+            cannot be read by browser JavaScript, and use <code>Secure</code> on
+            the production HTTPS site. They are strictly necessary for the
+            account service you request. Banime does not show a cookie-consent
+            banner because it does not currently set optional analytics,
+            advertising, or social-tracking cookies. If optional cookies are
+            introduced, Banime will request consent where required before
+            setting them.
+          </p>
+          <p>
+            Browser local storage and the offline application cache are not
+            cookies. They hold your local library, preferences, and public
+            catalog files. You can remove them through your browser&apos;s site-data
+            controls.
+          </p>
         </section>
 
         <section>
@@ -140,9 +180,13 @@ export function PrivacyPage() {
             We keep account and synchronized library data while your account is
             active or as needed for the purposes described here. You can change
             account details in Banime, export your library from Settings, sign
-            out, or ask us to access, correct, or delete account and cloud
-            library data. We may need to verify that a request comes from the
-            account holder before acting on it.
+            out, or delete your account from the Account page. Self-service
+            deletion removes the Supabase authentication user, profile, and
+            synchronized library, then clears Banime&apos;s session cookies and
+            local library on that browser. You can also ask us to access,
+            correct, or delete personal data. We may need to verify that a
+            request comes from the account holder before acting on it, and some
+            information may be retained where applicable law requires it.
           </p>
           <p>
             To make a privacy request, email <a href={`mailto:${PRIVACY_EMAIL}`}>{PRIVACY_EMAIL}</a> from the

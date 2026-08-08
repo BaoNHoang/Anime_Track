@@ -73,6 +73,13 @@ export function accountScoreStep(value: unknown): 0.5 | 1 {
   return value;
 }
 
+export function accountDeletionConfirmation(value: unknown) {
+  if (value !== "DELETE") {
+    throw new ApiError(400, "Enter DELETE to confirm account deletion.");
+  }
+  return value;
+}
+
 export function accountPassword(value: unknown, field = "Password") {
   const result = text(value, field, 12, 128);
   if (

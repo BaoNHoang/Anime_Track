@@ -22,6 +22,14 @@ export function LibraryPage() {
   const [genre, setGenre] = useState("all");
   const [minimumScore, setMinimumScore] = useState("0");
   const [sort, setSort] = useState<Sort>("updated");
+  const [frozenRecentOrder, setFrozenRecentOrder] = useState<number[]>();
+  const frozenRecentPositions = useMemo(
+    () =>
+      frozenRecentOrder
+        ? new Map(frozenRecentOrder.map((animeId, index) => [animeId, index]))
+        : undefined,
+    [frozenRecentOrder]
+  );
 
   const indexedItems = useMemo(
     () =>
@@ -95,10 +103,20 @@ export function LibraryPage() {
         }
         if (sort === "progress") return right.progress - left.progress;
         if (sort === "added") return right.addedAt.localeCompare(left.addedAt);
+        if (frozenRecentPositions) {
+          const leftPosition = frozenRecentPositions.get(left.anime.id);
+          const rightPosition = frozenRecentPositions.get(right.anime.id);
+          if (leftPosition !== undefined && rightPosition !== undefined) {
+            return leftPosition - rightPosition;
+          }
+          if (leftPosition !== undefined) return 1;
+          if (rightPosition !== undefined) return -1;
+        }
         return right.updatedAt.localeCompare(left.updatedAt);
       });
   }, [
     filter,
+    frozenRecentPositions,
     genre,
     indexedItems,
     minimumScore,
@@ -121,6 +139,7 @@ export function LibraryPage() {
     setGenre("all");
     setMinimumScore("0");
     setSort("updated");
+    setFrozenRecentOrder(undefined);
   };
 
   if (configured && (!initialized || !user)) {
@@ -225,7 +244,13 @@ export function LibraryPage() {
           </label>
           <label>
             <span>Sort</span>
-            <select value={sort} onChange={(event) => setSort(event.target.value as Sort)}>
+            <select
+              value={sort}
+              onChange={(event) => {
+                setSort(event.target.value as Sort);
+                setFrozenRecentOrder(undefined);
+              }}
+            >
               <option value="updated">Recently updated</option>
               <option value="added">Recently added</option>
               <option value="title">Title A-Z</option>
@@ -249,7 +274,16 @@ export function LibraryPage() {
       {filteredItems.length ? (
         <section className="library-list">
           {filteredItems.map((item) => (
-            <LibraryCard item={item} key={item.anime.id} />
+            <LibraryCard
+              item={item}
+              key={item.anime.id}
+              onScoreEditStart={() =>
+                setFrozenRecentOrder(
+                  (current) =>
+                    current ?? filteredItems.map((entry) => entry.anime.id)
+                )
+              }
+            />
           ))}
         </section>
       ) : (
