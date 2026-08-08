@@ -1,6 +1,5 @@
 import {
   CheckCircle2,
-  Cloud,
   Database,
   Download,
   Info,
@@ -8,13 +7,12 @@ import {
   Moon,
   PlayCircle,
   RefreshCw,
+  SlidersHorizontal,
   Smartphone,
   Sun,
   Upload,
-  WifiOff
 } from "lucide-react";
 import { useRef, useState, type ChangeEvent } from "react";
-import { Link } from "react-router-dom";
 import {
   LibraryImportError,
   parseLibraryImport
@@ -29,8 +27,8 @@ import { useWatchProvider } from "../../app/providers/useWatchProvider";
 import { enrichTrackedAnimeFromTenrai } from "../../services/tenrai/trackerEnrichment";
 
 export function SettingsPage() {
-  const { items, syncStatus, syncError, importItems } = useTracker();
-  const { configured, initialized, user } = useCloudAuth();
+  const { items, importItems } = useTracker();
+  const { user, updateScoreStep } = useCloudAuth();
   const { canInstall, installed, install, isIos } = usePwaInstall();
   const { theme, setTheme } = useTheme();
   const { provider, providerId, providers, setProviderId } =
@@ -42,7 +40,20 @@ export function SettingsPage() {
     text: string;
   }>();
   const [importing, setImporting] = useState(false);
+  const [scoreSaving, setScoreSaving] = useState(false);
+  const [scoreMessage, setScoreMessage] = useState<string>();
   const mcpUrl = import.meta.env.VITE_MCP_URL;
+
+  const saveScoreStep = async (scoreStep: 0.5 | 1) => {
+    if (user?.scoreStep === scoreStep) return;
+    setScoreSaving(true);
+    setScoreMessage(undefined);
+    const result = await updateScoreStep(scoreStep);
+    setScoreSaving(false);
+    setScoreMessage(
+      result.error ?? result.message ?? "Scoring preference updated."
+    );
+  };
 
   const exportLibrary = () => {
     const payload = JSON.stringify(
@@ -144,7 +155,7 @@ export function SettingsPage() {
     <div className="page-stack settings-page">
       <header className="page-heading">
         <h1>Settings</h1>
-        <p>Install Banime and control how your private library is stored.</p>
+        <p>Control how Banime looks, scores, stores, and opens your library.</p>
       </header>
 
       <section className="settings-grid">
@@ -174,6 +185,35 @@ export function SettingsPage() {
 
         <article className="settings-card">
           <span className="settings-card__icon">
+            <SlidersHorizontal size={22} />
+          </span>
+          <div className="settings-card__content">
+            <h2>Personal score increments</h2>
+            <p>Choose the level of precision used when you score anime.</p>
+            <div className="score-step-options" aria-label="Personal score increment">
+              <button
+                className={user?.scoreStep === 1 ? "is-active" : ""}
+                onClick={() => void saveScoreStep(1)}
+                disabled={scoreSaving}
+              >
+                <strong>Whole numbers</strong>
+                <span>1, 2, 3 ... 10</span>
+              </button>
+              <button
+                className={user?.scoreStep !== 1 ? "is-active" : ""}
+                onClick={() => void saveScoreStep(0.5)}
+                disabled={scoreSaving}
+              >
+                <strong>Half steps</strong>
+                <span>1, 1.5, 2 ... 10</span>
+              </button>
+            </div>
+            {scoreMessage && <p className="settings-hint">{scoreMessage}</p>}
+          </div>
+        </article>
+
+        <article className="settings-card">
+          <span className="settings-card__icon">
             <Smartphone size={22} />
           </span>
           <div className="settings-card__content">
@@ -196,52 +236,6 @@ export function SettingsPage() {
                   ? "On iPhone: open the Share menu in Safari, then choose Add to Home Screen."
                   : "Open the deployed HTTPS site in Chrome or Edge, then use Install app or Add to Home Screen."}
               </p>
-            )}
-          </div>
-        </article>
-
-        <article className="settings-card settings-card--sync">
-          <span className="settings-card__icon">
-            <Cloud size={22} />
-          </span>
-          <div className="settings-card__content">
-            <h2>Cross-device cloud sync</h2>
-            {!configured ? (
-              <>
-                <p>Your library is stored on this device.</p>
-                <span className="status-pill">
-                  <WifiOff size={14} /> Local-only mode
-                </span>
-              </>
-            ) : !initialized ? (
-              <p>Checking your saved session...</p>
-            ) : user ? (
-              <div className="sync-account">
-                <div>
-                  <span>Signed in as</span>
-                  <strong>{user.email}</strong>
-                </div>
-                <span
-                  className={`status-pill status-pill--${syncStatus}`}
-                >
-                  {syncStatus === "syncing" && "Syncing..."}
-                  {syncStatus === "synced" && "Library synced"}
-                  {syncStatus === "error" && "Sync needs attention"}
-                  {syncStatus === "local" && "Local changes"}
-                </span>
-                {syncError && (
-                  <p className="form-message form-message--error">
-                    {syncError}
-                  </p>
-                )}
-                <Link className="button button--ghost button--compact" to="/account">
-                  Manage account
-                </Link>
-              </div>
-            ) : (
-              <Link className="button button--compact" to="/account">
-                Sign in or create account
-              </Link>
             )}
           </div>
         </article>

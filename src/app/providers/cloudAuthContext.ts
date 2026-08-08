@@ -28,6 +28,8 @@ export interface CloudAuthContextValue {
     password: string
   ) => Promise<AuthActionResult>;
   updateUsername: (username: string) => Promise<AuthActionResult>;
+  updateAvatar: (avatarId: string) => Promise<AuthActionResult>;
+  updateScoreStep: (scoreStep: 0.5 | 1) => Promise<AuthActionResult>;
   signInWithGoogle: () => void;
   signOut: () => Promise<AuthActionResult>;
 }

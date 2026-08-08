@@ -2,6 +2,7 @@ import { ExternalLink, Minus, Plus, Star, Trash2 } from "lucide-react";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useTracker } from "../../app/providers/useTracker";
 import { useWatchProvider } from "../../app/providers/useWatchProvider";
+import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import {
   STATUS_LABELS,
   TRACKING_STATUSES,
@@ -18,6 +19,8 @@ export function LibraryCard({ item }: { item: TrackedAnime }) {
   const { openAnime } = useAnimePanel();
   const { updateAnime, removeAnime } = useTracker();
   const { provider, getWatchUrl } = useWatchProvider();
+  const { user } = useCloudAuth();
+  const scoreStep = user?.scoreStep ?? 0.5;
   const watchUrl = getWatchUrl(item.anime);
 
   return (
@@ -101,13 +104,16 @@ export function LibraryCard({ item }: { item: TrackedAnime }) {
                 type="number"
                 min={MIN_USER_SCORE}
                 max={MAX_USER_SCORE}
-                step="0.5"
+                step={scoreStep}
                 value={item.userScore ?? ""}
                 placeholder="-"
                 onChange={(event) =>
                   updateAnime(item.anime.id, {
                     userScore: event.target.value
-                      ? normalizeUserScore(event.target.valueAsNumber)
+                      ? normalizeUserScore(
+                          event.target.valueAsNumber,
+                          scoreStep
+                        )
                       : undefined
                   })
                 }

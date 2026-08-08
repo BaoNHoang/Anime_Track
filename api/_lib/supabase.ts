@@ -18,6 +18,8 @@ export interface AccountUser {
   username: string;
   emailVerified: boolean;
   provider: string;
+  avatarId: string;
+  scoreStep: 0.5 | 1;
 }
 
 function requiredEnv(name: string) {
@@ -171,7 +173,7 @@ export async function accountUser(
 ): Promise<AccountUser> {
   const { data } = await client
     .from("profiles")
-    .select("username")
+    .select("username, avatar_id, score_step")
     .eq("user_id", user.id)
     .maybeSingle();
   return {
@@ -185,7 +187,10 @@ export async function accountUser(
     provider:
       typeof user.app_metadata.provider === "string"
         ? user.app_metadata.provider
-        : "email"
+        : "email",
+    avatarId:
+      typeof data?.avatar_id === "string" ? data.avatar_id : "male-01",
+    scoreStep: data?.score_step === 1 ? 1 : 0.5
   };
 }
 

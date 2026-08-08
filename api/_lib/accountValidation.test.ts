@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   accountEmail,
+  accountAvatarId,
   accountPassword,
+  accountScoreStep,
   accountUsername,
   loginIdentifier,
   verificationCode
@@ -30,5 +32,18 @@ describe("account validation", () => {
   it("accepts numeric one-time codes only", () => {
     expect(verificationCode("123456", "Code")).toBe("123456");
     expect(() => verificationCode("12A456", "Code")).toThrow();
+  });
+
+  it("accepts only bundled profile pictures", () => {
+    expect(accountAvatarId("female-05")).toBe("female-05");
+    expect(() => accountAvatarId("../../secret")).toThrow();
+    expect(() => accountAvatarId("unknown-avatar")).toThrow();
+  });
+
+  it("accepts whole-number or half-step score preferences", () => {
+    expect(accountScoreStep(1)).toBe(1);
+    expect(accountScoreStep(0.5)).toBe(0.5);
+    expect(() => accountScoreStep(0.25)).toThrow();
+    expect(() => accountScoreStep("0.5")).toThrow();
   });
 });

@@ -3,6 +3,18 @@ import { ApiError } from "./http.js";
 type JsonRecord = Record<string, unknown>;
 export const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,24}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PROFILE_AVATAR_IDS = new Set([
+  "male-01",
+  "male-02",
+  "male-03",
+  "male-04",
+  "male-05",
+  "female-01",
+  "female-02",
+  "female-03",
+  "female-04",
+  "female-05"
+]);
 
 export function accountRecord(value: unknown): JsonRecord {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -45,6 +57,20 @@ export function accountUsername(value: unknown) {
     );
   }
   return result;
+}
+
+export function accountAvatarId(value: unknown) {
+  if (typeof value !== "string" || !PROFILE_AVATAR_IDS.has(value)) {
+    throw new ApiError(400, "Profile picture is invalid.");
+  }
+  return value;
+}
+
+export function accountScoreStep(value: unknown): 0.5 | 1 {
+  if (value !== 0.5 && value !== 1) {
+    throw new ApiError(400, "Score increment must be 0.5 or 1.");
+  }
+  return value;
 }
 
 export function accountPassword(value: unknown, field = "Password") {

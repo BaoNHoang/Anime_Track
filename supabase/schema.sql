@@ -3,14 +3,53 @@ create extension if not exists pg_trgm;
 create table if not exists public.profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   username text not null,
+  avatar_id text not null default 'male-01',
+  score_step numeric(2, 1) not null default 0.5,
   username_normalized text generated always as (lower(username)) stored,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint profiles_username_format_check check (
     username ~ '^[A-Za-z0-9_]{3,24}$'
   ),
-  constraint profiles_username_normalized_unique unique (username_normalized)
+  constraint profiles_username_normalized_unique unique (username_normalized),
+  constraint profiles_avatar_id_check check (
+    avatar_id in (
+      'male-01', 'male-02', 'male-03', 'male-04', 'male-05',
+      'female-01', 'female-02', 'female-03', 'female-04', 'female-05'
+    )
+  ),
+  constraint profiles_score_step_check check (score_step in (0.5, 1.0))
 );
+
+alter table public.profiles
+  add column if not exists avatar_id text not null default 'male-01',
+  add column if not exists score_step numeric(2, 1) not null default 0.5;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'profiles_avatar_id_check'
+      and conrelid = 'public.profiles'::regclass
+  ) then
+    alter table public.profiles add constraint profiles_avatar_id_check check (
+      avatar_id in (
+        'male-01', 'male-02', 'male-03', 'male-04', 'male-05',
+        'female-01', 'female-02', 'female-03', 'female-04', 'female-05'
+      )
+    );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'profiles_score_step_check'
+      and conrelid = 'public.profiles'::regclass
+  ) then
+    alter table public.profiles add constraint profiles_score_step_check
+      check (score_step in (0.5, 1.0));
+  end if;
+end
+$$;
 
 alter table public.profiles enable row level security;
 
