@@ -3,10 +3,12 @@ import { formatAiringRelative } from "../domain/anime/airing";
 import type { Anime } from "../domain/anime/types";
 import { useAnimePanel } from "../app/providers/useAnimePanel";
 import { useTracker } from "../app/providers/useTracker";
+import { useAuthPrompt } from "../app/providers/useAuthPrompt";
 
 export function AnimeCard({ anime }: { anime: Anime }) {
   const { openAnime } = useAnimePanel();
   const { addAnime, canManage, getTracked } = useTracker();
+  const { requestSignIn } = useAuthPrompt();
   const tracked = getTracked(anime.id);
   const nextAiring = formatAiringRelative(anime);
 
@@ -54,8 +56,16 @@ export function AnimeCard({ anime }: { anime: Anime }) {
           </span>
           <button
             className={`quick-add${tracked ? " is-added" : ""}`}
-            onClick={() => addAnime(anime)}
-            disabled={Boolean(tracked) || !canManage}
+            onClick={() => {
+              if (!canManage) {
+                requestSignIn(
+                  `Sign in to add ${anime.titleEnglish || anime.title} to your library.`
+                );
+                return;
+              }
+              addAnime(anime);
+            }}
+            disabled={Boolean(tracked)}
             aria-label={
               tracked
                 ? `${anime.title} is in your library`
