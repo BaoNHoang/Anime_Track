@@ -1,5 +1,7 @@
 import {
   BadgeCheck,
+  Check,
+  Cloud,
   KeyRound,
   LogIn,
   LogOut,
@@ -10,6 +12,11 @@ import {
 import { useState, type FormEvent } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
+import { useTracker } from "../../app/providers/useTracker";
+import {
+  PROFILE_AVATARS,
+  profileAvatar
+} from "../../domain/account/avatars";
 
 type AccountMode =
   | "sign_in"
@@ -39,9 +46,11 @@ export function AccountPage() {
     requestPasswordReset,
     resetPassword,
     updateUsername,
+    updateAvatar,
     signInWithGoogle,
     signOut
   } = useCloudAuth();
+  const { syncStatus, syncError } = useTracker();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [mode, setMode] = useState<AccountMode>(() =>
@@ -134,6 +143,22 @@ export function AccountPage() {
     );
   };
 
+  const handleAvatarUpdate = async (avatarId: string) => {
+    if (avatarId === user?.avatarId) return;
+    setMessage(undefined);
+    setSubmitting(true);
+    const result = await updateAvatar(avatarId);
+    setSubmitting(false);
+    setMessage(
+      result.error
+        ? { tone: "error", text: result.error }
+        : {
+            tone: "success",
+            text: result.message ?? "Profile picture updated."
+          }
+    );
+  };
+
   const handleResendVerification = async () => {
     setMessage(undefined);
     setSubmitting(true);
@@ -182,6 +207,7 @@ export function AccountPage() {
   }
 
   if (user) {
+    const avatar = profileAvatar(user.avatarId);
     return (
       <div className="page-stack account-page">
         <header className="page-heading">
@@ -191,7 +217,7 @@ export function AccountPage() {
         <section className="account-profile">
           <div className="account-profile__identity">
             <span className="account-avatar">
-              <UserRound size={28} />
+              <img src={avatar.src} alt="" />
             </span>
             <div>
               <span className="account-kicker">Signed in</span>
@@ -208,13 +234,53 @@ export function AccountPage() {
               <ShieldCheck size={14} /> Private sync
             </span>
           </div>
-          {user.username.startsWith("user_") && (
+          {message && (
+            <p
+              className={`form-message form-message--${message.tone}`}
+              role={message.tone === "error" ? "alert" : "status"}
+            >
+              {message.text}
+            </p>
+          )}
+          <section className="account-profile__section">
+            <div className="account-profile__section-heading">
+              <h3>Profile picture</h3>
+              <p>Choose an original Banime avatar for your account.</p>
+            </div>
+            <div className="avatar-picker" aria-label="Profile picture choices">
+              {PROFILE_AVATARS.map((option) => {
+                const selected = option.id === user.avatarId;
+                return (
+                  <button
+                    type="button"
+                    className={selected ? "is-selected" : ""}
+                    key={option.id}
+                    aria-label={`Use ${option.label} profile picture`}
+                    aria-pressed={selected}
+                    disabled={submitting}
+                    onClick={() => void handleAvatarUpdate(option.id)}
+                  >
+                    <img src={option.src} alt="" loading="lazy" />
+                    {selected && (
+                      <span aria-hidden="true"><Check size={15} /></span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+          <section className="account-profile__section">
+            <div className="account-profile__section-heading">
+              <h3>Username</h3>
+              <p>Change the name shown with your private Banime profile.</p>
+            </div>
             <form className="auth-form account-username-form" onSubmit={handleUsernameUpdate}>
               <label className="field">
-                <span>Choose a username</span>
+                <span>New username</span>
                 <input
                   value={profileUsername}
                   onChange={(event) => setProfileUsername(event.target.value)}
+                  placeholder={user.username}
                   autoComplete="username"
                   minLength={3}
                   maxLength={24}
@@ -222,20 +288,35 @@ export function AccountPage() {
                   required
                 />
               </label>
-              {message && (
-                <p className={`form-message form-message--${message.tone}`} role={message.tone === "error" ? "alert" : "status"}>
-                  {message.text}
-                </p>
-              )}
               <button className="button" disabled={submitting}>Save username</button>
             </form>
-          )}
-          <button
-            className="button button--ghost"
-            onClick={() => void signOut()}
-          >
-            <LogOut size={16} /> Sign out
-          </button>
+          </section>
+          <section className="account-profile__section account-profile__sync">
+            <span className="account-profile__section-icon" aria-hidden="true">
+              <Cloud size={20} />
+            </span>
+            <div>
+              <h3>Cloud sync</h3>
+              <p>Your library is connected to this Banime account.</p>
+              <span className={`status-pill status-pill--${syncStatus}`}>
+                {syncStatus === "syncing" && "Syncing..."}
+                {syncStatus === "synced" && "Library synced"}
+                {syncStatus === "error" && "Sync needs attention"}
+                {syncStatus === "local" && "Local changes"}
+              </span>
+              {syncError && (
+                <p className="form-message form-message--error">{syncError}</p>
+              )}
+            </div>
+          </section>
+          <div className="account-profile__actions">
+            <button
+              className="button button--ghost"
+              onClick={() => void signOut()}
+            >
+              <LogOut size={16} /> Sign out
+            </button>
+          </div>
         </section>
       </div>
     );

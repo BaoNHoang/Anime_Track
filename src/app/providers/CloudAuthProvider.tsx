@@ -90,6 +90,17 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
     [run]
   );
 
+  const updateAvatar = useCallback(
+    (avatarId: string) => run(() => accountApi.updateAvatar(avatarId)),
+    [run]
+  );
+
+  const updateScoreStep = useCallback(
+    (scoreStep: 0.5 | 1) =>
+      run(() => accountApi.updateScoreStep(scoreStep)),
+    [run]
+  );
+
   const signOut = useCallback(async (): Promise<AuthActionResult> => {
     const result = await accountApi.signOut();
     if (!result.error) setUser(undefined);
@@ -112,6 +123,8 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       requestPasswordReset,
       resetPassword,
       updateUsername,
+      updateAvatar,
+      updateScoreStep,
       signInWithGoogle,
       signOut
     }),
@@ -120,6 +133,8 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       requestPasswordReset,
       resetPassword,
       updateUsername,
+      updateAvatar,
+      updateScoreStep,
       signIn,
       signInWithGoogle,
       signOut,

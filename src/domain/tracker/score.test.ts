@@ -14,6 +14,12 @@ describe("normalizeUserScore", () => {
     expect(normalizeUserScore(100)).toBe(10);
   });
 
+  it("rounds scores to the selected increment", () => {
+    expect(normalizeUserScore(7.6, 1)).toBe(8);
+    expect(normalizeUserScore(7.6, 0.5)).toBe(7.5);
+    expect(normalizeUserScore(1.2, 1)).toBe(1);
+  });
+
   it("clears missing or non-finite scores", () => {
     expect(normalizeUserScore(undefined)).toBeUndefined();
     expect(normalizeUserScore(Number.NaN)).toBeUndefined();

@@ -13,9 +13,11 @@ import {
 } from "../_lib/http.js";
 import {
   USERNAME_PATTERN,
+  accountAvatarId,
   accountEmail,
   accountPassword,
   accountRecord,
+  accountScoreStep,
   accountUsername,
   loginIdentifier,
   loginPassword,
@@ -317,6 +319,56 @@ async function updateUsername(
   });
 }
 
+async function updateAvatar(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const body = accountRecord(await readJson(request));
+  const avatarId = accountAvatarId(body.avatarId);
+  const auth = await authenticateRequest(request, response);
+  await enforceAuthRateLimit(request, "update-avatar", {
+    limit: 20,
+    windowSeconds: 15 * 60,
+    subject: auth.user.id
+  });
+  const { error } = await auth.client
+    .from("profiles")
+    .update({ avatar_id: avatarId })
+    .eq("user_id", auth.user.id);
+  if (error) throw new ApiError(502, "Profile picture could not be updated.");
+  sendJson(response, 200, {
+    user: await accountUser(auth.user, auth.client),
+    message: "Profile picture updated."
+  });
+}
+
+async function updatePreferences(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const body = accountRecord(await readJson(request));
+  const scoreStep = accountScoreStep(body.scoreStep);
+  const auth = await authenticateRequest(request, response);
+  await enforceAuthRateLimit(request, "update-preferences", {
+    limit: 20,
+    windowSeconds: 15 * 60,
+    subject: auth.user.id
+  });
+  const { error } = await auth.client
+    .from("profiles")
+    .update({ score_step: scoreStep })
+    .eq("user_id", auth.user.id);
+  if (error) throw new ApiError(502, "Scoring preference could not be updated.");
+  sendJson(response, 200, {
+    user: await accountUser(auth.user, auth.client),
+    message: "Scoring preference updated."
+  });
+}
+
 async function logout(request: ApiRequest, response: ServerResponse) {
   requireMethod(request, "POST");
   requireSameOrigin(request);
@@ -427,6 +479,10 @@ export default async function handler(
         return await session(request, response);
       case "username":
         return await updateUsername(request, response);
+      case "avatar":
+        return await updateAvatar(request, response);
+      case "preferences":
+        return await updatePreferences(request, response);
       case "logout":
         return await logout(request, response);
       case "google":

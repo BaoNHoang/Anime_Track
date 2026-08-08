@@ -4,6 +4,8 @@ export interface AccountUser {
   username: string;
   emailVerified: boolean;
   provider: string;
+  avatarId: string;
+  scoreStep: 0.5 | 1;
 }
 
 interface ApiResult {
@@ -75,6 +77,16 @@ export const accountApi = {
     request("/api/auth/username", {
       method: "POST",
       body: { username }
+    }),
+  updateAvatar: (avatarId: string) =>
+    request("/api/auth/avatar", {
+      method: "POST",
+      body: { avatarId }
+    }),
+  updateScoreStep: (scoreStep: 0.5 | 1) =>
+    request("/api/auth/preferences", {
+      method: "POST",
+      body: { scoreStep }
     }),
   signOut: () => request("/api/auth/logout", { method: "POST" })
 };
