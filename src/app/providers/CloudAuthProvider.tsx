@@ -101,6 +101,15 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
     [run]
   );
 
+  const deleteAccount = useCallback(
+    async (confirmation: string): Promise<AuthActionResult> => {
+      const result = await accountApi.deleteAccount(confirmation);
+      if (!result.error) setUser(undefined);
+      return { error: result.error, message: result.message };
+    },
+    []
+  );
+
   const signOut = useCallback(async (): Promise<AuthActionResult> => {
     const result = await accountApi.signOut();
     if (!result.error) setUser(undefined);
@@ -125,6 +134,7 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       updateUsername,
       updateAvatar,
       updateScoreStep,
+      deleteAccount,
       signInWithGoogle,
       signOut
     }),
@@ -135,6 +145,7 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       updateUsername,
       updateAvatar,
       updateScoreStep,
+      deleteAccount,
       signIn,
       signInWithGoogle,
       signOut,

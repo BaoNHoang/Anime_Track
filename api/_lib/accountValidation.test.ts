@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  accountDeletionConfirmation,
   accountEmail,
   accountAvatarId,
   accountPassword,
@@ -45,5 +46,11 @@ describe("account validation", () => {
     expect(accountScoreStep(0.5)).toBe(0.5);
     expect(() => accountScoreStep(0.25)).toThrow();
     expect(() => accountScoreStep("0.5")).toThrow();
+  });
+
+  it("requires the exact account deletion confirmation", () => {
+    expect(accountDeletionConfirmation("DELETE")).toBe("DELETE");
+    expect(() => accountDeletionConfirmation("delete")).toThrow();
+    expect(() => accountDeletionConfirmation(undefined)).toThrow();
   });
 });

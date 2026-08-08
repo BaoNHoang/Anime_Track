@@ -30,6 +30,7 @@ export interface CloudAuthContextValue {
   updateUsername: (username: string) => Promise<AuthActionResult>;
   updateAvatar: (avatarId: string) => Promise<AuthActionResult>;
   updateScoreStep: (scoreStep: 0.5 | 1) => Promise<AuthActionResult>;
+  deleteAccount: (confirmation: string) => Promise<AuthActionResult>;
   signInWithGoogle: () => void;
   signOut: () => Promise<AuthActionResult>;
 }
