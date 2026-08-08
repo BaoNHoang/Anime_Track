@@ -11,10 +11,10 @@ import { NextAiring } from "./NextAiring";
 
 export function DashboardPage() {
   const { stats } = useTracker();
-  const { configured, initialized, user } = useCloudAuth();
+  const { initialized, user } = useCloudAuth();
   const season = useCurrentSeason();
   const featureAnime = season.data?.items[0];
-  const showPersonalTracking = !configured || (initialized && Boolean(user));
+  const showPersonalTracking = initialized && Boolean(user);
   const statCards = [
     {
       label: "Watching",
@@ -55,7 +55,6 @@ export function DashboardPage() {
           />
         )}
         <div className="dashboard-masthead__content">
-          <p className="dashboard-masthead__label">Your watch desk</p>
           <h1>
             {featureAnime?.titleEnglish ||
               featureAnime?.title ||

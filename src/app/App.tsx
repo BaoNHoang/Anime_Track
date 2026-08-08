@@ -6,8 +6,12 @@ import { DiscoverPage } from "../features/discover/DiscoverPage";
 import { LibraryPage } from "../features/library/LibraryPage";
 import { NewsPage } from "../features/news/NewsPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
-import { AccountPage } from "../features/account/AccountPage";
+import { AccountRoute } from "../features/account/AccountPage";
 import { PrivacyPage } from "../features/legal/PrivacyPage";
+import { AccessibilityPage } from "../features/legal/AccessibilityPage";
+import { SiteMapPage } from "../features/legal/SiteMapPage";
+import { TermsPage } from "../features/legal/TermsPage";
+import { RequireAuth } from "../components/RequireAuth";
 import { AnimePanelProvider } from "./providers/AnimePanelProvider";
 import { CloudAuthProvider } from "./providers/CloudAuthProvider";
 import { TrackerProvider } from "./providers/TrackerProvider";
@@ -30,10 +34,19 @@ const router = createBrowserRouter([
       { path: "/", element: <DashboardPage /> },
       { path: "/discover", element: <DiscoverPage /> },
       { path: "/news", element: <NewsPage /> },
-      { path: "/library", element: <LibraryPage /> },
-      { path: "/settings", element: <SettingsPage /> },
-      { path: "/account", element: <AccountPage /> },
-      { path: "/privacy", element: <PrivacyPage /> }
+      {
+        path: "/library",
+        element: <RequireAuth><LibraryPage /></RequireAuth>
+      },
+      {
+        path: "/settings",
+        element: <RequireAuth><SettingsPage /></RequireAuth>
+      },
+      { path: "/account", element: <AccountRoute /> },
+      { path: "/privacy", element: <PrivacyPage /> },
+      { path: "/accessibility", element: <AccessibilityPage /> },
+      { path: "/terms", element: <TermsPage /> },
+      { path: "/sitemap", element: <SiteMapPage /> }
     ]
   }
 ]);

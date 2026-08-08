@@ -17,12 +17,14 @@ import { useAnimeDetails } from "../../hooks/useAnimeQueries";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useTracker } from "../../app/providers/useTracker";
 import { useWatchProvider } from "../../app/providers/useWatchProvider";
+import { useAuthPrompt } from "../../app/providers/useAuthPrompt";
 
 export function AnimeDetailPanel() {
   const { selectedAnime, closeAnime } = useAnimePanel();
   const details = useAnimeDetails(selectedAnime?.id);
   const anime = details.data ?? selectedAnime;
-  const { addAnime, getTracked, updateAnime, removeAnime } = useTracker();
+  const { addAnime, canManage, getTracked, updateAnime, removeAnime } = useTracker();
+  const { requestSignIn } = useAuthPrompt();
   const { provider, getWatchUrl } = useWatchProvider();
   const tracked = anime ? getTracked(anime.id) : undefined;
   const nextAiring = anime ? formatNextAiring(anime) : undefined;
@@ -179,7 +181,16 @@ export function AnimeDetailPanel() {
           ) : (
             <button
               className="button button--full"
-              onClick={() => addAnime(anime, "plan_to_watch")}
+              onClick={() => {
+                if (!canManage) {
+                  closeAnime();
+                  requestSignIn(
+                    `Sign in to add ${anime.titleEnglish || anime.title} to your library.`
+                  );
+                  return;
+                }
+                addAnime(anime, "plan_to_watch");
+              }}
             >
               <Plus size={18} />
               Add to library

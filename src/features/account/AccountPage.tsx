@@ -8,7 +8,7 @@ import {
   UserRound
 } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
 
 type AccountMode =
@@ -17,6 +17,10 @@ type AccountMode =
   | "verify"
   | "forgot"
   | "reset";
+
+function readAccountMode(value: string | null): AccountMode {
+  return value === "sign_up" ? "sign_up" : "sign_in";
+}
 
 interface FormMessage {
   tone: "success" | "error";
@@ -39,7 +43,10 @@ export function AccountPage() {
     signOut
   } = useCloudAuth();
   const [searchParams] = useSearchParams();
-  const [mode, setMode] = useState<AccountMode>("sign_in");
+  const navigate = useNavigate();
+  const [mode, setMode] = useState<AccountMode>(() =>
+    readAccountMode(searchParams.get("mode"))
+  );
   const [identifier, setIdentifier] = useState("");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -92,6 +99,13 @@ export function AccountPage() {
     if (result.error) {
       setMessage({ tone: "error", text: result.error });
       return;
+    }
+    if (mode === "sign_in") {
+      const next = searchParams.get("next");
+      if (next?.startsWith("/") && !next.startsWith("//")) {
+        navigate(next);
+        return;
+      }
     }
     setMessage({
       tone: "success",
@@ -441,4 +455,9 @@ export function AccountPage() {
       </section>
     </div>
   );
+}
+
+export function AccountRoute() {
+  const { search } = useLocation();
+  return <AccountPage key={search} />;
 }

@@ -38,7 +38,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
   const syncQueueRef = useRef(Promise.resolve());
   const syncedUserRef = useRef<string | undefined>(undefined);
   const { configured, user, initialized } = useCloudAuth();
-  const canManage = !configured || Boolean(user);
+  const canManage = Boolean(user);
 
   const saveLocal = useCallback((next: TrackedAnime[]) => {
     itemsRef.current = next;
