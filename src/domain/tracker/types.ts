@@ -25,6 +25,7 @@ export interface TrackerStats {
   watching: number;
   completed: number;
   episodesWatched: number;
+  daysWatched: number;
   averageScore?: number;
 }
 

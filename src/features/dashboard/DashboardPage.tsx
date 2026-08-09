@@ -1,4 +1,3 @@
-import { Check, Hash, Play, Star } from "lucide-react";
 import { ErrorState } from "../../components/ErrorState";
 import { LoadingState } from "../../components/LoadingState";
 import { SectionHeader } from "../../components/SectionHeader";
@@ -19,26 +18,25 @@ export function DashboardPage() {
     month: "long",
     day: "numeric"
   }).format(new Date());
+  const completionPercent = stats.total
+    ? Math.round((stats.completed / stats.total) * 100)
+    : 0;
   const statCards = [
     {
-      label: "Watching",
-      value: stats.watching,
-      icon: Play
+      label: "Total anime",
+      value: stats.total
     },
     {
-      label: "Completed",
-      value: stats.completed,
-      icon: Check
+      label: "Days watched",
+      value: stats.daysWatched.toFixed(1)
     },
     {
       label: "Episodes",
-      value: stats.episodesWatched,
-      icon: Hash
+      value: stats.episodesWatched
     },
     {
       label: "Mean score",
-      value: stats.averageScore?.toFixed(1) ?? "-",
-      icon: Star
+      value: stats.averageScore?.toFixed(1) ?? "-"
     }
   ];
 
@@ -49,46 +47,66 @@ export function DashboardPage() {
           <h1>Home</h1>
           <p>{today}</p>
         </div>
-        <span className="broadcast-status">
-          <span aria-hidden="true" /> Schedule updated every 15 minutes
+        <span className="broadcast-status" aria-label="Live schedule">
+          <span aria-hidden="true" />
         </span>
       </header>
 
       {showPersonalTracking && (
         <section className="watch-summary" aria-label="Library summary">
-          {statCards.map(({ label, value, icon: Icon }) => (
-            <article className="watch-summary__item" key={label}>
-              <span className="watch-summary__icon" aria-hidden="true">
-                <Icon size={20} strokeWidth={1.8} />
-              </span>
-              <div>
+          <div className="watch-summary__stats">
+            {statCards.map(({ label, value }) => (
+              <div className="watch-summary__item" key={label}>
                 <strong>{value}</strong>
                 <span>{label}</span>
               </div>
-            </article>
-          ))}
+            ))}
+          </div>
+          <div className="watch-summary__progress">
+            <div>
+              <span>{stats.completed} completed</span>
+              <span>{stats.watching} watching</span>
+            </div>
+            <div
+              className="watch-summary__track"
+              role="progressbar"
+              aria-label="Library completion"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={completionPercent}
+            >
+              <span style={{ width: `${completionPercent}%` }} />
+            </div>
+          </div>
         </section>
       )}
 
-      <section className="dashboard-section dashboard-section--schedule">
-        <SectionHeader
-          title="Airing next"
-          action={{ label: "Browse airing", to: "/discover" }}
-        />
-        {airing.isLoading && <LoadingState />}
-        {airing.isError && <ErrorState onRetry={() => airing.refetch()} />}
-        {airing.data && <AiringSchedule items={airing.data.items} />}
-      </section>
-
-      {showPersonalTracking && (
-        <section className="dashboard-section">
+      <div
+        className={`dashboard-workspace${
+          showPersonalTracking ? "" : " dashboard-workspace--public"
+        }`}
+      >
+        {showPersonalTracking && (
+          <section className="dashboard-section dashboard-activity">
+            <SectionHeader
+              title="My activity"
+              action={{ label: "Open library", to: "/library" }}
+            />
+            <ContinueWatching />
+          </section>
+        )}
+        <section className="dashboard-section dashboard-airing">
           <SectionHeader
-            title="Continue watching"
-            action={{ label: "Open library", to: "/library" }}
+            title="Airing next"
+            action={{ label: "Browse", to: "/discover" }}
           />
-          <ContinueWatching />
+          {airing.isLoading && <LoadingState />}
+          {airing.isError && <ErrorState onRetry={() => airing.refetch()} />}
+          {airing.data && (
+            <AiringSchedule items={airing.data.items} compact />
+          )}
         </section>
-      )}
+      </div>
 
       <section className="dashboard-section dashboard-section--schedule">
         <SectionHeader

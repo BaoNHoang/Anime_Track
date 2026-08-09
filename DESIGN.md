@@ -18,11 +18,12 @@ catalog feel alive, while the controls stay compact and fast to scan.
   focus, plus a 1420px content maximum. Pointer clicks do not pin the rail
   open; the active route remains a complete centered icon tile when collapsed.
 - Mobile replaces the rail with a five-item bottom navigation.
-- The dashboard leads with a compact broadcast board for the next airing
-  episodes, followed by the active queue and a separate premiere board for
-  upcoming titles. Small screens turn both boards into horizontal snap rails.
-- Catalog pages use poster grids. The library uses denser poster tiles with
-  progress, score, and status controls directly beneath each cover.
+- The dashboard leads with a compact tracking summary and completion rail.
+  Below it, personal activity uses two columns beside a narrow chronological
+  airing list, followed by a separate premiere board for upcoming titles.
+- Catalog pages use poster grids. The library uses dense poster-only tiles;
+  clicking a cover opens the detail drawer for status, progress, and score
+  editing.
 - News uses equal-weight responsive cards; no article receives a viewport-sized
   featured treatment.
 - Discovery and search use server-backed pagination. Each visited page remains
@@ -36,6 +37,8 @@ catalog feel alive, while the controls stay compact and fast to scan.
 - Settings are grouped into one divided surface instead of separate floating
   cards.
 - Metadata is small but never used as decorative uppercase copy.
+- The anime detail drawer overlays the page without changing the background
+  layout width or interrupting its scroll position.
 
 ## Themes
 

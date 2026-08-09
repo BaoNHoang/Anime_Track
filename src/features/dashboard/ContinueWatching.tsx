@@ -79,7 +79,7 @@ export function ContinueWatching() {
   const watching = items
     .filter((item) => item.status === "watching")
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-    .slice(0, 3);
+    .slice(0, 6);
 
   if (!watching.length) {
     return (

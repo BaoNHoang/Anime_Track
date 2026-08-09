@@ -6,7 +6,7 @@ import {
   Trash2,
   X
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { formatNextAiring } from "../../domain/anime/airing";
 import {
   STATUS_LABELS,
@@ -18,6 +18,12 @@ import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useTracker } from "../../app/providers/useTracker";
 import { useWatchProvider } from "../../app/providers/useWatchProvider";
 import { useAuthPrompt } from "../../app/providers/useAuthPrompt";
+import { useCloudAuth } from "../../app/providers/useCloudAuth";
+import {
+  MAX_USER_SCORE,
+  MIN_USER_SCORE,
+  normalizeUserScore
+} from "../../domain/tracker/score";
 
 export function AnimeDetailPanel() {
   const { selectedAnime, closeAnime } = useAnimePanel();
@@ -25,10 +31,30 @@ export function AnimeDetailPanel() {
   const anime = details.data ?? selectedAnime;
   const { addAnime, canManage, getTracked, updateAnime, removeAnime } = useTracker();
   const { requestSignIn } = useAuthPrompt();
+  const { user } = useCloudAuth();
   const { provider, getWatchUrl } = useWatchProvider();
   const tracked = anime ? getTracked(anime.id) : undefined;
+  const scoreStep = user?.scoreStep ?? 0.5;
+  const [scoreDraft, setScoreDraft] = useState<{
+    animeId: number;
+    value: string;
+  }>();
+  const scoreValue =
+    scoreDraft && scoreDraft.animeId === anime?.id
+      ? scoreDraft.value
+      : tracked?.userScore?.toString() ?? "";
   const nextAiring = anime ? formatNextAiring(anime) : undefined;
   const watchUrl = anime ? getWatchUrl(anime) : "";
+
+  const saveScore = () => {
+    if (!anime || !tracked) return;
+    const nextScore = scoreValue
+      ? normalizeUserScore(Number(scoreValue), scoreStep)
+      : undefined;
+    setScoreDraft(undefined);
+    if (nextScore === tracked.userScore) return;
+    updateAnime(anime.id, { userScore: nextScore });
+  };
 
   useEffect(() => {
     if (!selectedAnime) return;
@@ -175,6 +201,35 @@ export function AnimeDetailPanel() {
                       progress: Number(event.target.value)
                     })
                   }
+                />
+              </label>
+              <label className="field">
+                <span>Your score</span>
+                <input
+                  type="number"
+                  min={MIN_USER_SCORE}
+                  max={MAX_USER_SCORE}
+                  step={scoreStep}
+                  value={scoreValue}
+                  placeholder="Not scored"
+                  inputMode="decimal"
+                  onFocus={() =>
+                    setScoreDraft({ animeId: anime.id, value: scoreValue })
+                  }
+                  onChange={(event) =>
+                    setScoreDraft({
+                      animeId: anime.id,
+                      value: event.target.value
+                    })
+                  }
+                  onBlur={saveScore}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") event.currentTarget.blur();
+                    if (event.key === "Escape") {
+                      setScoreDraft(undefined);
+                      event.currentTarget.blur();
+                    }
+                  }}
                 />
               </label>
             </section>
