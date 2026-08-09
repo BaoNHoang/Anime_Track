@@ -13,12 +13,18 @@ import {
 
 const originalAppUrl = process.env.APP_URL;
 const originalVercelEnv = process.env.VERCEL_ENV;
+const originalUpstashUrl = process.env.UPSTASH_REDIS_REST_URL;
+const originalUpstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
 afterEach(() => {
   if (originalAppUrl === undefined) delete process.env.APP_URL;
   else process.env.APP_URL = originalAppUrl;
   if (originalVercelEnv === undefined) delete process.env.VERCEL_ENV;
   else process.env.VERCEL_ENV = originalVercelEnv;
+  if (originalUpstashUrl === undefined) delete process.env.UPSTASH_REDIS_REST_URL;
+  else process.env.UPSTASH_REDIS_REST_URL = originalUpstashUrl;
+  if (originalUpstashToken === undefined) delete process.env.UPSTASH_REDIS_REST_TOKEN;
+  else process.env.UPSTASH_REDIS_REST_TOKEN = originalUpstashToken;
 });
 
 function request(
@@ -69,6 +75,15 @@ describe("HTTP API boundary", () => {
     await expect(readJson(streamed, 8)).rejects.toThrow(
       "Request body is too large."
     );
+  });
+
+  it("enforces byte limits on pre-parsed JSON bodies", async () => {
+    await expect(
+      readJson(
+        request({ "content-type": "application/json" }, { value: "too long" }),
+        8
+      )
+    ).rejects.toThrow("Request body is too large.");
   });
 
   it("allows only configured same-origin state changes", () => {
@@ -125,5 +140,45 @@ describe("HTTP API boundary", () => {
         subject: "person@example.com"
       })
     ).rejects.toThrow("Too many attempts. Try again later.");
+  });
+
+  it("limits account subjects and source addresses independently", async () => {
+    await enforceAuthRateLimit(
+      request({ "x-forwarded-for": "203.0.113.10" }),
+      "independent-subject-limit",
+      { limit: 1, ipLimit: 10, windowSeconds: 60, subject: "target@example.com" }
+    );
+    await expect(
+      enforceAuthRateLimit(
+        request({ "x-forwarded-for": "203.0.113.11" }),
+        "independent-subject-limit",
+        { limit: 1, ipLimit: 10, windowSeconds: 60, subject: "target@example.com" }
+      )
+    ).rejects.toThrow("Too many attempts");
+
+    await enforceAuthRateLimit(
+      request({ "x-forwarded-for": "203.0.113.12" }),
+      "independent-ip-limit",
+      { limit: 10, ipLimit: 1, windowSeconds: 60, subject: "first@example.com" }
+    );
+    await expect(
+      enforceAuthRateLimit(
+        request({ "x-forwarded-for": "203.0.113.12" }),
+        "independent-ip-limit",
+        { limit: 10, ipLimit: 1, windowSeconds: 60, subject: "second@example.com" }
+      )
+    ).rejects.toThrow("Too many attempts");
+  });
+
+  it("fails closed in production without distributed rate limiting", async () => {
+    process.env.VERCEL_ENV = "production";
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+    await expect(
+      enforceAuthRateLimit(request(), "production-limit", {
+        limit: 1,
+        windowSeconds: 60
+      })
+    ).rejects.toThrow("Rate limiting is temporarily unavailable");
   });
 });

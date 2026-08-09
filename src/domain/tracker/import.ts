@@ -1,7 +1,9 @@
 import type { Anime } from "../anime/types.js";
 import {
   isBoundedText,
-  safeExternalUrl
+  safeAnimeImageUrl,
+  safeMyAnimeListAnimeUrl,
+  safeTrailerUrl
 } from "../security/validation.js";
 import { mergeTrackedAnime } from "./merge.js";
 import {
@@ -11,7 +13,7 @@ import {
 } from "./types.js";
 
 type JsonRecord = Record<string, unknown>;
-const MAX_LIBRARY_ITEMS = 5000;
+export const MAX_LIBRARY_ITEMS = 5000;
 const MAX_TITLE_LENGTH = 500;
 const MAX_SHORT_TEXT_LENGTH = 200;
 const MAX_SYNOPSIS_LENGTH = 20_000;
@@ -104,10 +106,11 @@ function requiredString(
 function externalUrl(
   value: unknown,
   field: string,
+  validator: (value: unknown) => string | undefined,
   allowEmpty = false
 ) {
   if (allowEmpty && value === "") return "";
-  const url = safeExternalUrl(value);
+  const url = validator(value);
   if (!url) {
     throw new LibraryImportError(`${field} must be a valid HTTPS URL.`);
   }
@@ -155,11 +158,13 @@ function parseAnime(value: unknown, index: number): Anime {
     imageUrl: externalUrl(
       value.imageUrl,
       `Item ${index + 1} image URL`,
+      safeAnimeImageUrl,
       true
     ),
     largeImageUrl: externalUrl(
       value.largeImageUrl,
       `Item ${index + 1} large image URL`,
+      safeAnimeImageUrl,
       true
     ),
     synopsis: requiredString(
@@ -244,9 +249,15 @@ function parseAnime(value: unknown, index: number): Anime {
         ? undefined
         : externalUrl(
             value.trailerUrl,
-            `Item ${index + 1} trailer URL`
+            `Item ${index + 1} trailer URL`,
+            safeTrailerUrl
           ),
-    url: externalUrl(value.url, `Item ${index + 1} anime URL`, true)
+    url: externalUrl(
+      value.url,
+      `Item ${index + 1} anime URL`,
+      safeMyAnimeListAnimeUrl,
+      true
+    )
   };
 }
 

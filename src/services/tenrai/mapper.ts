@@ -1,17 +1,19 @@
 import type { Anime } from "../../domain/anime/types";
 import {
-  safeExternalUrl,
+  safeAnimeImageUrl,
+  safeMyAnimeListAnimeUrl,
+  safeTrailerUrl,
   truncateExternalText
 } from "../../domain/security/validation";
 import type { TenraiAnimeDto } from "./dto";
 
 export function mapTenraiAnime(dto: TenraiAnimeDto): Anime {
-  const imageUrl = safeExternalUrl(dto.images.jpg.image_url) ?? "";
+  const imageUrl = safeAnimeImageUrl(dto.images.jpg.image_url) ?? "";
   const largeImageUrl =
-    safeExternalUrl(dto.images.jpg.large_image_url) ?? imageUrl;
+    safeAnimeImageUrl(dto.images.jpg.large_image_url) ?? imageUrl;
   const bannerImageUrl =
-    safeExternalUrl(dto.trailer?.images?.maximum_image_url) ??
-    safeExternalUrl(dto.trailer?.images?.large_image_url);
+    safeAnimeImageUrl(dto.trailer?.images?.maximum_image_url) ??
+    safeAnimeImageUrl(dto.trailer?.images?.large_image_url);
 
   return {
     id: dto.mal_id,
@@ -56,7 +58,9 @@ export function mapTenraiAnime(dto: TenraiAnimeDto): Anime {
       dto.studios
         ?.slice(0, 50)
         .map((studio) => truncateExternalText(studio.name, 200)) ?? [],
-    trailerUrl: safeExternalUrl(dto.trailer?.url),
-    url: safeExternalUrl(dto.url) ?? ""
+    trailerUrl: safeTrailerUrl(dto.trailer?.url),
+    url:
+      safeMyAnimeListAnimeUrl(dto.url) ??
+      `https://myanimelist.net/anime/${dto.mal_id}`
   };
 }

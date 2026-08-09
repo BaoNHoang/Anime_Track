@@ -2,17 +2,21 @@ import type { TrackedAnime } from "../../domain/tracker/types";
 
 async function cloudRequest<T>(
   path: string,
-  options: { method?: string; body?: unknown } = {}
+  options: { method?: string; body?: unknown; expectedUserId?: string } = {}
 ): Promise<T> {
   let response: Response;
   try {
     response = await fetch(path, {
       method: options.method ?? "GET",
       credentials: "same-origin",
-      headers:
-        options.body === undefined
-          ? undefined
-          : { "Content-Type": "application/json" },
+      headers: {
+        ...(options.body === undefined
+          ? {}
+          : { "Content-Type": "application/json" }),
+        ...(options.expectedUserId
+          ? { "X-Banime-User": options.expectedUserId }
+          : {})
+      },
       body:
         options.body === undefined
           ? undefined
@@ -45,24 +49,29 @@ export const trackerCloudRepository = {
     return result.items;
   },
 
-  async upsert(item: TrackedAnime): Promise<void> {
+  async upsert(item: TrackedAnime, expectedUserId: string): Promise<void> {
     await cloudRequest("/api/library", {
       method: "PUT",
-      body: { items: [item] }
+      body: { items: [item] },
+      expectedUserId
     });
   },
 
-  async upsertMany(items: TrackedAnime[]): Promise<void> {
+  async upsertMany(items: TrackedAnime[], expectedUserId: string): Promise<void> {
     if (!items.length) return;
-    await cloudRequest("/api/library", {
-      method: "PUT",
-      body: { items }
-    });
+    for (let index = 0; index < items.length; index += 100) {
+      await cloudRequest("/api/library", {
+        method: "PUT",
+        body: { items: items.slice(index, index + 100) },
+        expectedUserId
+      });
+    }
   },
 
-  async remove(animeId: number): Promise<void> {
+  async remove(animeId: number, expectedUserId: string): Promise<void> {
     await cloudRequest(`/api/library/${encodeURIComponent(animeId)}`, {
-      method: "DELETE"
+      method: "DELETE",
+      expectedUserId
     });
   }
 };

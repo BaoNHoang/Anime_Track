@@ -3,6 +3,10 @@ import {
   escapePostgresLikePattern,
   hasUnsafeControlCharacters,
   safeExternalUrl,
+  safeAnimeImageUrl,
+  safeMyAnimeListAnimeUrl,
+  safeMyAnimeListNewsUrl,
+  safeTrailerUrl,
   truncateExternalText
 } from "./validation";
 
@@ -15,6 +19,17 @@ describe("security validation", () => {
     expect(
       safeExternalUrl("https://user:password@example.com")
     ).toBeUndefined();
+  });
+
+  it("allows only trusted hosts for catalog links and media", () => {
+    expect(safeMyAnimeListAnimeUrl("https://myanimelist.net/anime/1")).toBeTruthy();
+    expect(safeMyAnimeListAnimeUrl("https://phishing.example/anime/1")).toBeUndefined();
+    expect(safeMyAnimeListAnimeUrl("https://myanimelist.net/redirect")).toBeUndefined();
+    expect(safeMyAnimeListNewsUrl("https://myanimelist.net/news/42")).toBeTruthy();
+    expect(safeAnimeImageUrl("https://cdn.myanimelist.net/images/a.jpg")).toBeTruthy();
+    expect(safeAnimeImageUrl("https://tracker.example/pixel.gif")).toBeUndefined();
+    expect(safeTrailerUrl("https://www.youtube.com/watch?v=abc")).toBeTruthy();
+    expect(safeTrailerUrl("https://video.example/watch/abc")).toBeUndefined();
   });
 
   it("detects or removes unsafe control and direction characters", () => {

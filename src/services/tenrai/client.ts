@@ -3,6 +3,7 @@ const MIN_REQUEST_INTERVAL_MS = 500;
 const CACHE_STORAGE_PREFIX = "banime:tenrai-cache:v1:";
 const MAX_MEMORY_CACHE_ENTRIES = 120;
 const MAX_PERSISTENT_CACHE_ENTRIES = 120;
+const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 type CacheStorageTarget = "session" | "local";
 
 let requestQueue = Promise.resolve();
@@ -70,6 +71,39 @@ export function configureTenraiRequestGate(
   gate: (() => Promise<void>) | undefined
 ) {
   externalRequestGate = gate;
+}
+
+async function readBoundedJson<T>(response: Response): Promise<T> {
+  const contentLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > MAX_RESPONSE_BYTES) {
+    throw new TenraiApiError("Tenrai returned too much data.", 502);
+  }
+
+  if (!response.body) {
+    throw new TenraiApiError("Tenrai returned an empty response.", 502);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let total = 0;
+  let json = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_RESPONSE_BYTES) {
+      await reader.cancel();
+      throw new TenraiApiError("Tenrai returned too much data.", 502);
+    }
+    json += decoder.decode(value, { stream: true });
+  }
+  json += decoder.decode();
+
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    throw new TenraiApiError("Tenrai returned invalid data.", 502);
+  }
 }
 
 async function waitForRateLimit() {
@@ -176,7 +210,7 @@ export async function tenraiGet<T>(
     );
   }
 
-  const data = (await response.json()) as T;
+  const data = await readBoundedJson<T>(response);
   writeCachedResponse(
     path,
     data,

@@ -48,8 +48,7 @@ Both themes preserve semantic accent colors and readable contrast.
 
 ## Motion
 
-Seasonal background artwork crossfades every 12 seconds. The broadcast
-indicator pulses, cards lift with a slight cel-like tilt, and the navigation
-rail unfolds. Poster cards do not add a redundant
+Seasonal background artwork crossfades every 12 seconds. Cards lift with a
+slight cel-like tilt, and the navigation rail unfolds. Poster cards do not add a redundant
 "View details" overlay because the image itself is already the detail control.
 All motion stops when reduced motion is requested.

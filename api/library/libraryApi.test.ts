@@ -65,7 +65,10 @@ describe("private library API", () => {
     await deleteHandler(
       {
         method: "DELETE",
-        headers: { origin: "http://localhost:5173" },
+        headers: {
+          origin: "http://localhost:5173",
+          "x-banime-user": "user-a"
+        },
         query: { animeId: "42" }
       } as unknown as ApiRequest,
       result as never
@@ -74,6 +77,29 @@ describe("private library API", () => {
     expect(eqUser).toHaveBeenCalledWith("user_id", "user-a");
     expect(eqAnime).toHaveBeenCalledWith("anime_id", 42);
     expect(result.body).toBe('{"removed":42}');
+  });
+
+  it("rejects a mutation queued for a different signed-in user", async () => {
+    mocks.authenticateRequest.mockResolvedValue({
+      user: { id: "user-b" },
+      client: { from: vi.fn() }
+    });
+    const result = response();
+
+    await deleteHandler(
+      {
+        method: "DELETE",
+        headers: {
+          origin: "http://localhost:5173",
+          "x-banime-user": "user-a"
+        },
+        query: { animeId: "42" }
+      } as unknown as ApiRequest,
+      result as never
+    );
+
+    expect(result.statusCode).toBe(409);
+    expect(result.body).toContain("signed-in account changed");
   });
 
   it("does not query data when session authentication fails", async () => {

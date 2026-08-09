@@ -98,13 +98,16 @@ APP_URL=https://your-banime-domain.example
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 SUPABASE_SECRET_KEY=your-server-only-secret-key
+UPSTASH_REDIS_REST_URL=https://your-database.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your-upstash-token
 ```
 
 8. Add `http://localhost:3000` and the production account page to the Supabase
    redirect allow list. Set the production Site URL to the deployed origin.
 9. Configure Upstash in production with
    `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` so account rate
-   limits are shared by every serverless instance.
+   limits are shared by every serverless instance. Production account and
+   library mutations fail closed when these variables are absent.
 10. Run locally with `vercel dev`, then open `/account`.
 
 The SQL file is designed to be rerun. It backfills query columns for existing

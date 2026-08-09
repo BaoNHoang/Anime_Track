@@ -3,7 +3,8 @@ import type {
   AnimePromo
 } from "../../domain/news/types";
 import {
-  safeExternalUrl,
+  safeAnimeImageUrl,
+  safeMyAnimeListNewsUrl,
   truncateExternalText
 } from "../../domain/security/validation";
 import { tenraiGet } from "./client";
@@ -22,19 +23,20 @@ export async function getNewsForAnime(
   );
 
   return response.data
+    .slice(0, 100)
     .map((article) => ({
       id: article.mal_id,
       animeId,
       animeTitle,
       animeImageUrl,
       title: truncateExternalText(article.title, 500),
-      url: safeExternalUrl(article.url) ?? "",
+      url: safeMyAnimeListNewsUrl(article.url) ?? "",
       publishedAt: article.date,
       author: truncateExternalText(
         article.author_username ?? "MyAnimeList",
         200
       ),
-      imageUrl: safeExternalUrl(article.images.jpg.image_url),
+      imageUrl: safeAnimeImageUrl(article.images.jpg.image_url),
       excerpt: truncateExternalText(
         article.excerpt ?? "Open the article to read the full story.",
         2000
