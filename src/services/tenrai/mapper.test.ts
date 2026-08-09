@@ -20,6 +20,7 @@ describe("mapTenraiAnime", () => {
         }
       },
       episodes: null,
+      aired: { from: "2009-04-05T00:00:00+00:00" },
       synopsis: null,
       genres: [{ name: "Action" }],
       studios: [{ name: "Bones" }]
@@ -27,6 +28,7 @@ describe("mapTenraiAnime", () => {
 
     expect(result.id).toBe(5114);
     expect(result.episodes).toBeUndefined();
+    expect(result.startDate).toBe("2009-04-05T00:00:00+00:00");
     expect(result.synopsis).toBe("No synopsis is available yet.");
     expect(result.bannerImageUrl).toBe(
       "https://img.youtube.com/banner.jpg"

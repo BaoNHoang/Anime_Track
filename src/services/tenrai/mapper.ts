@@ -36,6 +36,10 @@ export function mapTenraiAnime(dto: TenraiAnimeDto): Anime {
     duration: dto.duration ?? undefined,
     year: dto.year ?? undefined,
     season: dto.season ?? undefined,
+    startDate:
+      dto.aired?.from && !Number.isNaN(Date.parse(dto.aired.from))
+        ? dto.aired.from
+        : undefined,
     broadcast: dto.broadcast
       ? {
           day: dto.broadcast.day ?? undefined,
