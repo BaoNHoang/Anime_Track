@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ApiRequest } from "../_lib/http";
+import type { ApiRequest } from "../../api/_lib/http";
 
 const mocks = vi.hoisted(() => ({
   createAdminClient: vi.fn(),
   createPublicClient: vi.fn()
 }));
 
-vi.mock("../_lib/supabase.js", () => ({
+vi.mock("../../api/_lib/supabase.js", () => ({
   PKCE_COOKIE: "pkce",
   REFRESH_COOKIE: "refresh",
   accountUser: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock("../_lib/supabase.js", () => ({
   setSessionCookies: vi.fn()
 }));
 
-import authHandler from "./[action]";
+import authHandler from "../../api/auth/[action]";
 
 function response() {
   let statusCode = 200;

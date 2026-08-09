@@ -1,8 +1,8 @@
 import type { IncomingHttpHeaders } from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Session } from "@supabase/supabase-js";
-import { requireSameOrigin, type ApiRequest } from "./http";
-import { setSessionCookies } from "./supabase";
+import { requireSameOrigin, type ApiRequest } from "../../api/_lib/http";
+import { setSessionCookies } from "../../api/_lib/supabase";
 
 const originalAppUrl = process.env.APP_URL;
 const originalVercelEnv = process.env.VERCEL_ENV;

@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
-import { ApiError, type ApiRequest } from "../_lib/http";
+import { ApiError, type ApiRequest } from "../../api/_lib/http";
 
 const mocks = vi.hoisted(() => ({
   authenticateRequest: vi.fn()
 }));
 
-vi.mock("../_lib/supabase.js", () => ({
+vi.mock("../../api/_lib/supabase.js", () => ({
   authenticateRequest: mocks.authenticateRequest
 }));
 
-import libraryHandler from "./index";
-import deleteHandler from "./[animeId]";
+import libraryHandler from "../../api/library/index";
+import deleteHandler from "../../api/library/[animeId]";
 
 function response() {
   const headers = new Map<string, string | string[]>();
