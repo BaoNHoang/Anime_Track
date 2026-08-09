@@ -165,3 +165,22 @@ export function formatAiringRelative(
   const days = Math.round(hours / 24);
   return `in ${days} day${days === 1 ? "" : "s"}`;
 }
+
+export function formatPremiereDate(anime: Anime): string {
+  if (anime.startDate) {
+    const premiere = new Date(anime.startDate);
+    if (!Number.isNaN(premiere.getTime())) {
+      return new Intl.DateTimeFormat(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      }).format(premiere);
+    }
+  }
+
+  if (anime.season && anime.year) {
+    return `${anime.season[0].toUpperCase()}${anime.season.slice(1)} ${anime.year}`;
+  }
+  if (anime.year) return String(anime.year);
+  return "Date TBA";
+}

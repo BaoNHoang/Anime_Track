@@ -18,12 +18,11 @@ catalog feel alive, while the controls stay compact and fast to scan.
   focus, plus a 1420px content maximum. Pointer clicks do not pin the rail
   open; the active route remains a complete centered icon tile when collapsed.
 - Mobile replaces the rail with a five-item bottom navigation.
-- The dashboard begins with a compact split feature: title and synopsis on a
-  dark field at left, with the highest available 16:9 trailer artwork masked
-  into the right edge. A poster is used only when no trailer banner exists. It
-  is followed by one compact, monochrome library data rail and eight seasonal
-  titles in a balanced grid.
-- Catalog pages use poster grids; library and settings use denser rows.
+- The dashboard leads with a compact broadcast board for the next airing
+  episodes, followed by the active queue and a separate premiere board for
+  upcoming titles. Small screens turn both boards into horizontal snap rails.
+- Catalog pages use poster grids. The library uses denser poster tiles with
+  progress, score, and status controls directly beneath each cover.
 - News uses equal-weight responsive cards; no article receives a viewport-sized
   featured treatment.
 - Discovery and search use server-backed pagination. Each visited page remains
@@ -46,8 +45,8 @@ Both themes preserve semantic accent colors and readable contrast.
 
 ## Motion
 
-Seasonal background artwork crossfades every 12 seconds. The dashboard frame
-drifts slowly, the broadcast indicator pulses, cards lift with a slight cel-like
-tilt, and the navigation rail unfolds. Poster cards do not add a redundant
+Seasonal background artwork crossfades every 12 seconds. The broadcast
+indicator pulses, cards lift with a slight cel-like tilt, and the navigation
+rail unfolds. Poster cards do not add a redundant
 "View details" overlay because the image itself is already the detail control.
 All motion stops when reduced motion is requested.

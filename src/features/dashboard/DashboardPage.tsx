@@ -1,20 +1,24 @@
 import { Check, Hash, Play, Star } from "lucide-react";
-import { AnimeCard } from "../../components/AnimeCard";
 import { ErrorState } from "../../components/ErrorState";
 import { LoadingState } from "../../components/LoadingState";
 import { SectionHeader } from "../../components/SectionHeader";
-import { useCurrentSeason } from "../../hooks/useAnimeQueries";
+import { useTopAnime } from "../../hooks/useAnimeQueries";
 import { useTracker } from "../../app/providers/useTracker";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { ContinueWatching } from "./ContinueWatching";
-import { NextAiring } from "./NextAiring";
+import { AiringSchedule, UpcomingSchedule } from "./NextAiring";
 
 export function DashboardPage() {
   const { stats } = useTracker();
   const { initialized, user } = useCloudAuth();
-  const season = useCurrentSeason();
-  const featureAnime = season.data?.items[0];
+  const airing = useTopAnime("airing");
+  const upcoming = useTopAnime("upcoming");
   const showPersonalTracking = initialized && Boolean(user);
+  const today = new Intl.DateTimeFormat(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric"
+  }).format(new Date());
   const statCards = [
     {
       label: "Watching",
@@ -40,32 +44,15 @@ export function DashboardPage() {
 
   return (
     <div className="dashboard-page">
-      <section className="dashboard-masthead">
-        {(featureAnime?.bannerImageUrl ||
-          featureAnime?.largeImageUrl ||
-          featureAnime?.imageUrl) && (
-          <img
-            className="dashboard-masthead__image"
-            src={
-              featureAnime.bannerImageUrl ||
-              featureAnime.largeImageUrl ||
-              featureAnime.imageUrl
-            }
-            alt=""
-          />
-        )}
-        <div className="dashboard-masthead__content">
-          <h1>
-            {featureAnime?.titleEnglish ||
-              featureAnime?.title ||
-              "Keep the next episode in sight."}
-          </h1>
-          <p>
-            {featureAnime?.synopsis ||
-              "Pick up where you left off, then find something worth adding."}
-          </p>
+      <header className="page-heading dashboard-heading">
+        <div>
+          <h1>Home</h1>
+          <p>{today}</p>
         </div>
-      </section>
+        <span className="broadcast-status">
+          <span aria-hidden="true" /> Schedule updated every 15 minutes
+        </span>
+      </header>
 
       {showPersonalTracking && (
         <section className="watch-summary" aria-label="Library summary">
@@ -83,36 +70,37 @@ export function DashboardPage() {
         </section>
       )}
 
-      <div className="dashboard-columns">
-        <div className="dashboard-columns__main">
-          {showPersonalTracking && (
-            <section>
-              <SectionHeader
-                title="Continue watching"
-                action={{ label: "Open library", to: "/library" }}
-              />
-              <ContinueWatching />
-            </section>
-          )}
+      <section className="dashboard-section dashboard-section--schedule">
+        <SectionHeader
+          title="Airing next"
+          action={{ label: "Browse airing", to: "/discover" }}
+        />
+        {airing.isLoading && <LoadingState />}
+        {airing.isError && <ErrorState onRetry={() => airing.refetch()} />}
+        {airing.data && <AiringSchedule items={airing.data.items} />}
+      </section>
 
-          <section>
-            <SectionHeader
-              title="Current season"
-              action={{ label: "Discover all", to: "/discover" }}
-            />
-            {season.isLoading && <LoadingState />}
-            {season.isError && <ErrorState onRetry={() => season.refetch()} />}
-            {season.data && (
-              <div className="anime-grid">
-                {season.data.items.slice(0, 8).map((anime) => (
-                  <AnimeCard anime={anime} key={anime.id} />
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-        {season.data && <NextAiring items={season.data.items} />}
-      </div>
+      {showPersonalTracking && (
+        <section className="dashboard-section">
+          <SectionHeader
+            title="Continue watching"
+            action={{ label: "Open library", to: "/library" }}
+          />
+          <ContinueWatching />
+        </section>
+      )}
+
+      <section className="dashboard-section dashboard-section--schedule">
+        <SectionHeader
+          title="Coming soon"
+          action={{ label: "Browse upcoming", to: "/discover" }}
+        />
+        {upcoming.isLoading && <LoadingState />}
+        {upcoming.isError && (
+          <ErrorState onRetry={() => upcoming.refetch()} />
+        )}
+        {upcoming.data && <UpcomingSchedule items={upcoming.data.items} />}
+      </section>
     </div>
   );
 }

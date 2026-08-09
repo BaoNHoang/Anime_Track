@@ -213,6 +213,10 @@ function parseAnime(value: unknown, index: number): Anime {
       true
     ),
     season: optionalString(value.season, `Item ${index + 1} season`),
+    startDate: optionalString(
+      value.startDate,
+      `Item ${index + 1} premiere date`
+    ),
     broadcast: isRecord(broadcast)
       ? {
           day: optionalString(

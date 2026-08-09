@@ -272,7 +272,7 @@ export function LibraryPage() {
       </div>
 
       {filteredItems.length ? (
-        <section className="library-list">
+        <section className="library-grid">
           {filteredItems.map((item) => (
             <LibraryCard
               item={item}

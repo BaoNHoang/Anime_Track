@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Anime } from "./types";
-import { getNextAiringAt } from "./airing";
+import { formatPremiereDate, getNextAiringAt } from "./airing";
 
 const anime: Anime = {
   id: 62568,
@@ -27,5 +27,29 @@ describe("getNextAiringAt", () => {
     expect(getNextAiringAt(anime, now)?.toISOString()).toBe(
       "2026-06-11T13:00:00.000Z"
     );
+  });
+});
+
+describe("formatPremiereDate", () => {
+  it("falls back to the announced season when no exact date exists", () => {
+    expect(
+      formatPremiereDate({
+        ...anime,
+        status: "Not yet aired",
+        broadcast: undefined,
+        season: "fall",
+        year: 2027
+      })
+    ).toBe("Fall 2027");
+  });
+
+  it("labels an unannounced premiere date clearly", () => {
+    expect(
+      formatPremiereDate({
+        ...anime,
+        status: "Not yet aired",
+        broadcast: undefined
+      })
+    ).toBe("Date TBA");
   });
 });

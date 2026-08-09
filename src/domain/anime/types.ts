@@ -16,6 +16,7 @@ export interface Anime {
   duration?: string;
   year?: number;
   season?: string;
+  startDate?: string;
   broadcast?: {
     day?: string;
     time?: string;

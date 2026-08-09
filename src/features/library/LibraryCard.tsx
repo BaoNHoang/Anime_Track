@@ -42,124 +42,119 @@ export function LibraryCard({
   };
 
   return (
-    <article className="library-card">
-      <button
-        className="library-card__poster"
-        onClick={() => openAnime(item.anime)}
-      >
-        {item.anime.imageUrl ? (
-          <img src={item.anime.imageUrl} alt="" />
-        ) : (
-          <span className="poster-placeholder">No image</span>
-        )}
-      </button>
-      <div className="library-card__content">
-        <div>
-          <span className="library-card__meta">
-            {item.anime.type} / {item.anime.year ?? "Year unknown"}
-          </span>
-          <button
-            className="library-card__title"
-            onClick={() => openAnime(item.anime)}
-          >
-            {item.anime.titleEnglish || item.anime.title}
-          </button>
-        </div>
-
-        <label className="field">
-          <span>Status</span>
-          <select
-            value={item.status}
-            onChange={(event) =>
-              updateAnime(item.anime.id, {
-                status: event.target.value as TrackingStatus
-              })
-            }
-          >
-            {TRACKING_STATUSES.map((status) => (
-              <option value={status} key={status}>
-                {STATUS_LABELS[status]}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <div className="library-card__metrics">
-          <div>
-            <span>Progress</span>
-            <div className="stepper">
-              <button
-                onClick={() =>
-                  updateAnime(item.anime.id, {
-                    progress: item.progress - 1
-                  })
-                }
-                aria-label="Decrease progress"
-              >
-                <Minus size={14} />
-              </button>
-              <strong>
-                {item.progress}
-                {item.anime.episodes ? ` / ${item.anime.episodes}` : ""}
-              </strong>
-              <button
-                onClick={() =>
-                  updateAnime(item.anime.id, {
-                    progress: item.progress + 1
-                  })
-                }
-                aria-label="Increase progress"
-              >
-                <Plus size={14} />
-              </button>
-            </div>
-          </div>
-          <label>
-            <span>Your score</span>
-            <div className="score-input">
-              <Star size={14} />
-              <input
-                type="number"
-                min={MIN_USER_SCORE}
-                max={MAX_USER_SCORE}
-                step={scoreStep}
-                value={scoreValue}
-                placeholder="-"
-                inputMode="decimal"
-                onFocus={() => {
-                  setScoreDraft(scoreValue);
-                  onScoreEditStart?.();
-                }}
-                onChange={(event) => setScoreDraft(event.target.value)}
-                onBlur={saveScore}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") event.currentTarget.blur();
-                  if (event.key === "Escape") {
-                    setScoreDraft(undefined);
-                  }
-                }}
-                aria-label="Your score"
-              />
-            </div>
-          </label>
-        </div>
-        <a
-          className="library-card__watch"
-          href={watchUrl}
-          target="_blank"
-          rel="noreferrer"
+    <article className={`library-card library-card--${item.status}`}>
+      <div className="library-card__visual">
+        <button
+          className="library-card__poster"
+          onClick={() => openAnime(item.anime)}
+          aria-label={`Open ${item.anime.titleEnglish || item.anime.title}`}
         >
-          <ExternalLink size={13} />
-          Find on {provider.label}
-        </a>
+          {item.anime.imageUrl ? (
+            <img src={item.anime.imageUrl} alt="" loading="lazy" />
+          ) : (
+            <span className="poster-placeholder">No image</span>
+          )}
+        </button>
+        <span
+          className="library-card__status-dot"
+          aria-label={STATUS_LABELS[item.status]}
+          title={STATUS_LABELS[item.status]}
+        />
+        <div className="library-card__overlay">
+          <strong>{item.anime.titleEnglish || item.anime.title}</strong>
+          <span>
+            {item.progress}
+            {item.anime.episodes ? ` / ${item.anime.episodes}` : " episodes"}
+            {item.userScore !== undefined ? `  |  ${item.userScore}/10` : ""}
+          </span>
+        </div>
+        <button
+          className="library-card__remove"
+          onClick={() => removeAnime(item.anime.id)}
+          aria-label={`Remove ${item.anime.title} from library`}
+          title="Remove from library"
+        >
+          <Trash2 size={16} />
+        </button>
       </div>
-      <button
-        className="library-card__remove"
-        onClick={() => removeAnime(item.anime.id)}
-        aria-label={`Remove ${item.anime.title} from library`}
-      >
-        <Trash2 size={17} />
-      </button>
+      <div className="library-card__content">
+        <select
+          className="library-card__status"
+          value={item.status}
+          onChange={(event) =>
+            updateAnime(item.anime.id, {
+              status: event.target.value as TrackingStatus
+            })
+          }
+          aria-label={`Status for ${item.anime.title}`}
+        >
+          {TRACKING_STATUSES.map((status) => (
+            <option value={status} key={status}>
+              {STATUS_LABELS[status]}
+            </option>
+          ))}
+        </select>
+        <div className="library-card__controls">
+          <div className="stepper">
+            <button
+              onClick={() =>
+                updateAnime(item.anime.id, {
+                  progress: item.progress - 1
+                })
+              }
+              aria-label="Decrease progress"
+              title="Decrease episode"
+            >
+              <Minus size={14} />
+            </button>
+            <strong>{item.progress}</strong>
+            <button
+              onClick={() =>
+                updateAnime(item.anime.id, {
+                  progress: item.progress + 1
+                })
+              }
+              aria-label="Increase progress"
+              title="Increase episode"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+          <div className="score-input">
+            <Star size={13} />
+            <input
+              type="number"
+              min={MIN_USER_SCORE}
+              max={MAX_USER_SCORE}
+              step={scoreStep}
+              value={scoreValue}
+              placeholder="-"
+              inputMode="decimal"
+              onFocus={() => {
+                setScoreDraft(scoreValue);
+                onScoreEditStart?.();
+              }}
+              onChange={(event) => setScoreDraft(event.target.value)}
+              onBlur={saveScore}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") event.currentTarget.blur();
+                if (event.key === "Escape") setScoreDraft(undefined);
+              }}
+              aria-label={`Score for ${item.anime.title}`}
+            />
+          </div>
+          <a
+            className="library-card__watch"
+            href={watchUrl}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={`Find ${item.anime.title} on ${provider.label}`}
+            title={`Find on ${provider.label}`}
+          >
+            <ExternalLink size={14} />
+          </a>
+        </div>
+      </div>
     </article>
   );
 }

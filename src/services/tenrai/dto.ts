@@ -27,6 +27,9 @@ export interface TenraiAnimeDto {
   synopsis?: string | null;
   season?: string | null;
   year?: number | null;
+  aired?: {
+    from?: string | null;
+  } | null;
   broadcast?: {
     day?: string | null;
     time?: string | null;
