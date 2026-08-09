@@ -277,7 +277,7 @@ export function LibraryPage() {
             <LibraryCard
               item={item}
               key={item.anime.id}
-              onScoreEditStart={() =>
+              onEditStart={() =>
                 setFrozenRecentOrder(
                   (current) =>
                     current ?? filteredItems.map((entry) => entry.anime.id)

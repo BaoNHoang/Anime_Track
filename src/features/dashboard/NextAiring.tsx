@@ -8,7 +8,13 @@ import {
 import type { Anime } from "../../domain/anime/types";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 
-export function AiringSchedule({ items }: { items: Anime[] }) {
+export function AiringSchedule({
+  items,
+  compact = false
+}: {
+  items: Anime[];
+  compact?: boolean;
+}) {
   const [now, setNow] = useState(() => new Date());
   const { openAnime } = useAnimePanel();
 
@@ -30,8 +36,8 @@ export function AiringSchedule({ items }: { items: Anime[] }) {
           } => Boolean(item.date)
         )
         .sort((left, right) => left.date.getTime() - right.date.getTime())
-        .slice(0, 10),
-    [items, now]
+        .slice(0, compact ? 6 : 10),
+    [compact, items, now]
   );
 
   if (!upcoming.length) {
@@ -39,6 +45,35 @@ export function AiringSchedule({ items }: { items: Anime[] }) {
       <p className="schedule-empty">
         Broadcast times are still being announced.
       </p>
+    );
+  }
+
+  if (compact) {
+    return (
+      <div className="airing-list">
+        {upcoming.map(({ anime }) => (
+          <button
+            className="airing-list__item"
+            onClick={() => openAnime(anime)}
+            key={anime.id}
+          >
+            <span className="airing-list__poster">
+              {anime.imageUrl ? (
+                <img src={anime.imageUrl} alt="" loading="lazy" />
+              ) : (
+                <span className="poster-placeholder">No image</span>
+              )}
+            </span>
+            <span className="airing-list__content">
+              <strong>{anime.titleEnglish || anime.title}</strong>
+              <small>{formatNextAiring(anime, now)?.split(" - ")[0]}</small>
+            </span>
+            <span className="airing-list__time">
+              {formatAiringRelative(anime, now) ?? "TBA"}
+            </span>
+          </button>
+        ))}
+      </div>
     );
   }
 

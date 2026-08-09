@@ -45,7 +45,15 @@ describe("calculateTrackerStats", () => {
       watching: 1,
       completed: 1,
       episodesWatched: 16,
+      daysWatched: 16 / 60,
       averageScore: 9
     });
+  });
+
+  it("uses each title's episode duration for days watched", () => {
+    const item = tracked("completed", 12);
+    item.anime.duration = "1 hr 30 min per ep";
+
+    expect(calculateTrackerStats([item]).daysWatched).toBe(0.75);
   });
 });
