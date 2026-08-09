@@ -71,4 +71,10 @@ describe("MyAnimeList XML import", () => {
       "MyAnimeList XML export"
     );
   });
+
+  it("rejects XML imports as soon as the item limit is exceeded", () => {
+    const entries = "<anime></anime>".repeat(5001);
+    expect(() => parseMyAnimeListXml(`<myanimelist>${entries}</myanimelist>`))
+      .toThrow("cannot contain more than 5000 items");
+  });
 });

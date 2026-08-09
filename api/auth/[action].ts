@@ -130,7 +130,12 @@ async function signup(request: ApiRequest, response: ServerResponse) {
     .select("user_id")
     .eq("username_normalized", signupUsername.toLowerCase())
     .maybeSingle();
-  if (existing) throw new ApiError(409, "That username is unavailable.");
+  const genericSignupMessage =
+    "If these details can be used, check your email for a verification code.";
+  if (existing) {
+    sendJson(response, 200, { message: genericSignupMessage });
+    return;
+  }
 
   const client = createPublicClient();
   const { data, error } = await client.auth.signUp({
@@ -145,15 +150,12 @@ async function signup(request: ApiRequest, response: ServerResponse) {
     throw new ApiError(400, "The account could not be created.");
   }
   if (data.user?.identities?.length === 0) {
-    throw new ApiError(
-      409,
-      "An account already uses this email. Sign in or reset the password instead."
-    );
+    sendJson(response, 200, { message: genericSignupMessage });
+    return;
   }
   if (data.session) setSessionCookies(response, data.session);
   sendJson(response, 200, {
-    message:
-      "Account created. Enter the verification code sent to your email."
+    message: genericSignupMessage
   });
 }
 

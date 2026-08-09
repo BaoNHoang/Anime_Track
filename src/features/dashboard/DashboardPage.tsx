@@ -47,9 +47,6 @@ export function DashboardPage() {
           <h1>Home</h1>
           <p>{today}</p>
         </div>
-        <span className="broadcast-status" aria-label="Live schedule">
-          <span aria-hidden="true" />
-        </span>
       </header>
 
       {showPersonalTracking && (

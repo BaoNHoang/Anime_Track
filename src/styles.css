@@ -895,32 +895,6 @@ h3,
   gap: 24px;
 }
 
-.broadcast-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 4px;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.broadcast-status > span {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--success);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--success) 16%, transparent);
-  animation: signal-pulse 1.8s ease-in-out infinite;
-}
-
-@keyframes signal-pulse {
-  50% {
-    opacity: 0.45;
-    transform: scale(0.78);
-  }
-}
-
 .watch-summary {
   overflow: hidden;
   border: 1px solid var(--border);
@@ -3035,10 +3009,6 @@ h3,
     align-items: flex-start;
     flex-direction: column;
     gap: 8px;
-  }
-
-  .broadcast-status {
-    padding-bottom: 0;
   }
 
   .dashboard-section--schedule {

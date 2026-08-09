@@ -39,6 +39,44 @@ export function safeExternalUrl(value: unknown) {
   }
 }
 
+function safeAllowedUrl(value: unknown, allowedHosts: ReadonlySet<string>) {
+  const safe = safeExternalUrl(value);
+  if (!safe) return undefined;
+  return allowedHosts.has(new URL(safe).hostname.toLowerCase())
+    ? safe
+    : undefined;
+}
+
+const MAL_HOSTS = new Set(["myanimelist.net", "www.myanimelist.net"]);
+const ANIME_IMAGE_HOSTS = new Set([
+  "cdn.myanimelist.net",
+  "img.youtube.com",
+  "i.ytimg.com"
+]);
+const TRAILER_HOSTS = new Set([
+  "youtube.com",
+  "www.youtube.com",
+  "youtu.be"
+]);
+
+function safeMyAnimeListPath(value: unknown, pathPattern: RegExp) {
+  const safe = safeAllowedUrl(value, MAL_HOSTS);
+  if (!safe) return undefined;
+  return pathPattern.test(new URL(safe).pathname) ? safe : undefined;
+}
+
+export const safeMyAnimeListAnimeUrl = (value: unknown) =>
+  safeMyAnimeListPath(value, /^\/anime\/\d+(?:\/|$)/);
+
+export const safeMyAnimeListNewsUrl = (value: unknown) =>
+  safeMyAnimeListPath(value, /^\/news\/\d+(?:\/|$)/);
+
+export const safeAnimeImageUrl = (value: unknown) =>
+  safeAllowedUrl(value, ANIME_IMAGE_HOSTS);
+
+export const safeTrailerUrl = (value: unknown) =>
+  safeAllowedUrl(value, TRAILER_HOSTS);
+
 export function truncateExternalText(value: string, maxLength: number) {
   const withoutUnsafeControls = [...value]
     .filter(

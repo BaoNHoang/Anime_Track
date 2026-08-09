@@ -17,7 +17,7 @@ export function getTopAnimeCacheMs(
 
 function mapPage(response: TenraiListResponse): AnimePage {
   return {
-    items: dedupeAnimeById(response.data.map(mapTenraiAnime)),
+    items: dedupeAnimeById(response.data.slice(0, 100).map(mapTenraiAnime)),
     currentPage: response.pagination.current_page,
     hasNextPage: response.pagination.has_next_page,
     lastPage: response.pagination.last_visible_page

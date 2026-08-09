@@ -1,6 +1,8 @@
 import type { ServerResponse } from "node:http";
 import {
   ApiError,
+  enforceAuthRateLimit,
+  requireExpectedUser,
   requireMethod,
   requireSameOrigin,
   routeParameter,
@@ -27,6 +29,13 @@ export default async function handler(
       throw new ApiError(400, "Anime ID is invalid.");
     }
     const auth = await authenticateRequest(request, response);
+    requireExpectedUser(request, auth.user.id);
+    await enforceAuthRateLimit(request, "library-write", {
+      limit: 60,
+      ipLimit: 180,
+      windowSeconds: 60,
+      subject: auth.user.id
+    });
     const { error } = await auth.client
       .from("tracked_anime")
       .delete()

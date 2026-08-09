@@ -1,5 +1,9 @@
 import { truncateExternalText } from "../security/validation";
-import { parseLibraryImport, LibraryImportError } from "./import";
+import {
+  MAX_LIBRARY_ITEMS,
+  parseLibraryImport,
+  LibraryImportError
+} from "./import";
 import type { TrackedAnime, TrackingStatus } from "./types";
 
 const MAX_XML_CHARACTERS = 5 * 1024 * 1024;
@@ -16,12 +20,19 @@ function rejectUnsafeXml(xml: string) {
   }
 }
 
-function xmlBlocks(source: string, name: string) {
-  return [
-    ...source.matchAll(
-      new RegExp(`<${name}\\b[^>]*>([\\s\\S]*?)</${name}>`, "gi")
-    )
-  ].map((match) => match[1]);
+function xmlBlocks(source: string, name: string, maxBlocks = Infinity) {
+  const blocks: string[] = [];
+  for (const match of source.matchAll(
+    new RegExp(`<${name}\\b[^>]*>([\\s\\S]*?)</${name}>`, "gi")
+  )) {
+    if (blocks.length >= maxBlocks) {
+      throw new LibraryImportError(
+        `A library import cannot contain more than ${MAX_LIBRARY_ITEMS} items.`
+      );
+    }
+    blocks.push(match[1]);
+  }
+  return blocks;
 }
 
 function firstXmlBlock(source: string, name: string) {
@@ -110,7 +121,7 @@ export function parseMyAnimeListXml(xml: string): TrackedAnime[] {
     );
   }
 
-  const animeBlocks = xmlBlocks(xml, "anime");
+  const animeBlocks = xmlBlocks(xml, "anime", MAX_LIBRARY_ITEMS);
   if (!animeBlocks.length) {
     throw new LibraryImportError("This MyAnimeList XML file contains no anime.");
   }

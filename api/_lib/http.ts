@@ -81,6 +81,14 @@ export async function readJson(
         throw new ApiError(400, "Request body must contain valid JSON.");
       }
     }
+    try {
+      if (Buffer.byteLength(JSON.stringify(request.body)) > maxBytes) {
+        throw new ApiError(413, "Request body is too large.");
+      }
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(400, "Request body must contain valid JSON.");
+    }
     return request.body;
   }
 
@@ -141,66 +149,99 @@ export function appUrl(request: ApiRequest) {
 function clientIp(request: ApiRequest) {
   const forwarded = request.headers["x-forwarded-for"];
   const value = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-  return value?.split(",", 1)[0]?.trim() || request.socket.remoteAddress || "unknown";
+  return value?.split(",", 1)[0]?.trim() || request.socket?.remoteAddress || "unknown";
 }
 
-function rateLimitKey(
-  request: ApiRequest,
-  action: string,
-  subject?: string
-) {
-  const subjectHash = subject
-    ? createHash("sha256").update(subject).digest("hex").slice(0, 20)
-    : "none";
-  return `${action}:${clientIp(request)}:${subjectHash}`;
+function hashedSubject(subject: string) {
+  return createHash("sha256").update(subject).digest("hex").slice(0, 20);
 }
 
-export async function enforceAuthRateLimit(
-  request: ApiRequest,
+async function enforceRateLimitBucket(
   action: string,
-  options: { limit: number; windowSeconds: number; subject?: string }
+  bucketKey: string,
+  limit: number,
+  windowSeconds: number
 ) {
-  const key = rateLimitKey(request, action, options.subject);
   const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
   const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
+  if (Boolean(upstashUrl) !== Boolean(upstashToken)) {
+    throw new ApiError(503, "Rate limiting is not configured correctly.");
+  }
+
   if (upstashUrl && upstashToken) {
     redis ??= new Redis({ url: upstashUrl, token: upstashToken });
-    const limiterKey = `${action}:${options.limit}:${options.windowSeconds}`;
+    const limiterKey = `${action}:${limit}:${windowSeconds}`;
     let limiter = distributedLimiters.get(limiterKey);
     if (!limiter) {
       limiter = new Ratelimit({
         redis,
-        limiter: Ratelimit.slidingWindow(
-          options.limit,
-          `${options.windowSeconds} s`
-        ),
+        limiter: Ratelimit.slidingWindow(limit, `${windowSeconds} s`),
         prefix: `banime:account:${action}`
       });
       distributedLimiters.set(limiterKey, limiter);
     }
-    const result = await limiter.limit(key);
+    const result = await limiter.limit(bucketKey);
     if (!result.success) {
       throw new ApiError(429, "Too many attempts. Try again later.");
     }
     return;
   }
 
+  if (process.env.VERCEL_ENV === "production") {
+    throw new ApiError(503, "Rate limiting is temporarily unavailable.");
+  }
+
   const now = Date.now();
+  const key = `${action}:${bucketKey}`;
   const current = memoryLimits.get(key);
   const bucket =
     !current || current.reset <= now
-      ? { count: 0, reset: now + options.windowSeconds * 1000 }
+      ? { count: 0, reset: now + windowSeconds * 1000 }
       : current;
   bucket.count += 1;
   memoryLimits.set(key, bucket);
-  if (bucket.count > options.limit) {
+  if (bucket.count > limit) {
     throw new ApiError(429, "Too many attempts. Try again later.");
   }
   if (memoryLimits.size > 10_000) {
     for (const [entry, value] of memoryLimits) {
       if (value.reset <= now) memoryLimits.delete(entry);
     }
+  }
+}
+
+export async function enforceAuthRateLimit(
+  request: ApiRequest,
+  action: string,
+  options: {
+    limit: number;
+    windowSeconds: number;
+    subject?: string;
+    ipLimit?: number;
+  }
+) {
+  await enforceRateLimitBucket(
+    `${action}:ip`,
+    clientIp(request),
+    options.ipLimit ?? options.limit * 5,
+    options.windowSeconds
+  );
+  if (options.subject) {
+    await enforceRateLimitBucket(
+      `${action}:subject`,
+      hashedSubject(options.subject),
+      options.limit,
+      options.windowSeconds
+    );
+  }
+}
+
+export function requireExpectedUser(request: ApiRequest, userId: string) {
+  const expected = request.headers["x-banime-user"];
+  const value = Array.isArray(expected) ? expected[0] : expected;
+  if (!value || value !== userId) {
+    throw new ApiError(409, "The signed-in account changed. Please try again.");
   }
 }
 

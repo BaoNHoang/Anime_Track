@@ -3,7 +3,9 @@ import { parseLibraryImport } from "../../src/domain/tracker/import.js";
 import type { TrackedAnime } from "../../src/domain/tracker/types.js";
 import {
   ApiError,
+  enforceAuthRateLimit,
   readJson,
+  requireExpectedUser,
   requireMethod,
   requireSameOrigin,
   sendError,
@@ -49,7 +51,22 @@ export default async function handler(
       return;
     }
 
-    const body = await readJson(request, 5 * 1024 * 1024);
+    requireExpectedUser(request, auth.user.id);
+    await enforceAuthRateLimit(request, "library-write", {
+      limit: 60,
+      ipLimit: 180,
+      windowSeconds: 60,
+      subject: auth.user.id
+    });
+    const body = await readJson(request, 512 * 1024);
+    const source = Array.isArray(body)
+      ? body
+      : typeof body === "object" && body !== null && "items" in body
+        ? (body as { items?: unknown }).items
+        : undefined;
+    if (Array.isArray(source) && source.length > 100) {
+      throw new ApiError(413, "Cloud sync batches cannot exceed 100 items.");
+    }
     const items = parseLibraryImport(body);
     const { error } = await auth.client
       .from("tracked_anime")
