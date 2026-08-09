@@ -8,7 +8,7 @@ import {
   accountUsername,
   loginIdentifier,
   verificationCode
-} from "./accountValidation";
+} from "../../api/_lib/accountValidation";
 
 describe("account validation", () => {
   it("normalizes emails and login identifiers", () => {

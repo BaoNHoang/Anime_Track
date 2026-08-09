@@ -9,7 +9,7 @@ import {
   requireSameOrigin,
   sendError,
   type ApiRequest
-} from "./http";
+} from "../../api/_lib/http";
 
 const originalAppUrl = process.env.APP_URL;
 const originalVercelEnv = process.env.VERCEL_ENV;

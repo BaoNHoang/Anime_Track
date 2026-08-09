@@ -10,3 +10,4 @@ mcp-dist
 !.env.mcp.example
 __pycache__/
 *.py[cod]
+.vercel
