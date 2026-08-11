@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accountFavorites } from "./accountValidation";
+import { accountFavorites } from "./accountValidation.js";
 
 const emptyFavorites = {
   anime: [],

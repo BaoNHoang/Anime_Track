@@ -42,9 +42,20 @@ time an episode becomes available on a streaming platform.
 
 ## Run locally
 
+Use Vite for local-only mode. It serves the browser application but does not
+run files under `api/`:
+
 ```bash
 npm install
 npm run dev
+```
+
+Use the Vercel development server when testing sign-in, cloud sync, or any
+other `/api` route:
+
+```bash
+npx vercel env pull .env.local
+npx vercel dev
 ```
 
 Production verification:
@@ -108,7 +119,7 @@ UPSTASH_REDIS_REST_TOKEN=your-upstash-token
    `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` so account rate
    limits are shared by every serverless instance. Production account and
    library mutations fail closed when these variables are absent.
-10. Run locally with `vercel dev`, then open `/account`.
+10. Run locally with `npx vercel dev`, then open `/account`.
 
 The SQL file is designed to be rerun. It backfills query columns for existing
 rows, creates private user profiles, adds missing constraints and indexes, and

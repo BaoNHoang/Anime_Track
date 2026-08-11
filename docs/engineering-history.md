@@ -2453,6 +2453,26 @@ A future change is complete only when all applicable checks are satisfied:
   - Impeccable's UI detector reported no findings, and the repository security
     scan reported no validated vulnerabilities.
 
+### HIST-0029 - 2026-08-11 - Restore account function module loading
+
+- Status: Local fix ready for review; not committed or pushed.
+- Incident:
+  - Production account routes returned `FUNCTION_INVOCATION_FAILED` before
+    entering their handlers.
+  - Vercel's Node ESM runtime could not resolve an extensionless import from
+    the new profile-favorites domain module. Vite and the previous Bundler-mode
+    API typecheck accepted the import, so local builds and CI did not catch it.
+- Fix:
+  - Added the required `.js` extension to the runtime import.
+  - Changed the API TypeScript check to NodeNext resolution so future
+    server-side extension mistakes fail CI.
+  - Added a client regression test and an actionable non-JSON response error.
+  - Clarified that `npm run dev` is local-only and `npx vercel dev` is required
+    to execute account API routes locally.
+- Verification: API typecheck, lint, all 96 tests, production build, and a
+  Vercel development-function request passed. The local request returned the
+  expected JSON configuration error rather than a module-loading crash.
+
 ## Release History
 
 No formal production release has been recorded.
