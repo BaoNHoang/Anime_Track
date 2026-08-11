@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useCloudAuth } from "../app/providers/useCloudAuth";
+import { RouteSkeleton } from "./LoadingState";
 
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { configured, initialized, user } = useCloudAuth();
@@ -9,7 +10,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   if (!configured) return children;
 
   if (!initialized) {
-    return <p className="route-status" role="status">Checking your session...</p>;
+    return <RouteSkeleton label="Loading your account" />;
   }
 
   if (!user) {

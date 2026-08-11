@@ -2473,6 +2473,28 @@ A future change is complete only when all applicable checks are satisfied:
   Vercel development-function request passed. The local request returned the
   expected JSON configuration error rather than a module-loading crash.
 
+### HIST-0030 - 2026-08-11 - Standardize loading skeletons
+
+- Status: Ready for review; not committed or pushed.
+- Changes:
+  - Replaced visible session-checking and search-loading copy with accessible,
+    layout-matched skeletons.
+  - Added shared poster, compact-list, news, trailer, account, route, and header
+    skeleton variants.
+  - Matched Home rankings and headlines, Profile airing rows, Discover result
+    pages, favorite search, and account gates to their final content footprint.
+  - Kept existing content visible during background news refreshes while using
+    a compact progress placeholder, and hid stale search or pagination results
+    during foreground requests.
+- Accessibility: Loading regions announce concise status text, set
+  `aria-busy`, hide decorative shapes, and honor reduced-motion preferences.
+- Verification:
+  - `npm run lint`, `npm run api:check`, and `npm run mcp:check` passed.
+  - `npm test` passed all 96 tests across 31 files.
+  - `npm run build` completed the production and PWA builds.
+  - `git diff --check` passed, and the Impeccable detector reported no
+    findings across the changed UI files.
+
 ## Release History
 
 No formal production release has been recorded.

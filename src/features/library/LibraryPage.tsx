@@ -9,6 +9,7 @@ import {
 import { useTracker } from "../../app/providers/useTracker";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { LibraryCard } from "./LibraryCard";
+import { RouteSkeleton } from "../../components/LoadingState";
 
 type Filter = "all" | TrackingStatus;
 type Sort = "updated" | "title" | "score" | "progress" | "added";
@@ -143,6 +144,8 @@ export function LibraryPage() {
   };
 
   if (configured && (!initialized || !user)) {
+    if (!initialized) return <RouteSkeleton label="Loading your library" />;
+
     return (
       <div className="page-stack">
         <h1 className="visually-hidden">Library</h1>
@@ -150,16 +153,10 @@ export function LibraryPage() {
           <span className="empty-state__icon">
             <LibraryBig size={28} />
           </span>
-          <strong>
-            {initialized
-              ? "Sign in to view your library."
-              : "Checking your account..."}
-          </strong>
-          {initialized && (
-            <Link className="button" to="/account">
-              Sign in
-            </Link>
-          )}
+          <strong>Sign in to view your library.</strong>
+          <Link className="button" to="/account">
+            Sign in
+          </Link>
         </section>
       </div>
     );

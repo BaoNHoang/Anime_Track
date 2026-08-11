@@ -1,6 +1,6 @@
 import { ExternalLink, Star } from "../../components/OwnedIcons";
 import { ErrorState } from "../../components/ErrorState";
-import { LoadingState } from "../../components/LoadingState";
+import { CompactListSkeleton, LoadingState } from "../../components/LoadingState";
 import { SectionHeader } from "../../components/SectionHeader";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useAnimeNews } from "../../hooks/useAnimeNews";
@@ -56,7 +56,7 @@ function HomeShelf({
   return (
     <section className="home-section home-section--shelf">
       <SectionHeader title={title} action={{ label: "Browse", to: "/discover" }} />
-      {result.isLoading && <LoadingState cards={limit} />}
+      {result.isLoading && <LoadingState cards={limit} layout="season" label={`Loading ${title}`} />}
       {result.isError && <ErrorState onRetry={() => void result.refetch()} />}
       {result.data && (
         <div className="home-season-grid">
@@ -91,7 +91,7 @@ export function DashboardPage() {
               title="Current season"
               action={{ label: "Browse season", to: "/discover" }}
             />
-            {season.isPending && <LoadingState />}
+            {season.isPending && <LoadingState cards={10} layout="season" label="Loading current season" />}
             {season.isError && <ErrorState onRetry={() => season.refetch()} />}
             {season.data && (
               <div className="home-season-grid">
@@ -113,7 +113,9 @@ export function DashboardPage() {
               title="Latest headlines"
               action={{ label: "All news", to: "/news" }}
             />
-            {news.articlesLoading && <LoadingState />}
+            {news.articlesLoading && (
+              <CompactListSkeleton items={6} variant="news" label="Loading latest headlines" />
+            )}
             {news.articlesError && !news.articles.length && (
               <ErrorState
                 message="Anime news could not be loaded."
@@ -155,7 +157,9 @@ export function DashboardPage() {
             title="Top airing"
             action={{ label: "Discover", to: "/discover" }}
           />
-          {airing.isLoading && <LoadingState />}
+          {airing.isLoading && (
+            <CompactListSkeleton items={8} variant="ranking" label="Loading top airing anime" />
+          )}
           {airing.isError && <ErrorState onRetry={() => airing.refetch()} />}
           {airing.data && (
             <ol>

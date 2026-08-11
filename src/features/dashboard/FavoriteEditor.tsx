@@ -10,6 +10,7 @@ import {
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
+import { CompactListSkeleton } from "../../components/LoadingState";
 import {
   FAVORITE_KINDS,
   MAX_FAVORITES_PER_KIND,
@@ -111,9 +112,15 @@ export function FavoriteEditor() {
             {query && <button type="button" onClick={() => setQuery("")} aria-label="Clear search"><X size={17} /></button>}
           </div>
           <div className="favorite-search-results" aria-live="polite">
-            {search.isFetching && <p>Searching...</p>}
+            {search.isFetching && (
+              <CompactListSkeleton
+                items={4}
+                variant="favorite"
+                label={`Searching ${LABELS[kind].toLowerCase()}`}
+              />
+            )}
             {!search.isFetching && debouncedQuery.length >= 2 && !search.data?.length && <p>No matches found.</p>}
-            {search.data?.map((item) => (
+            {!search.isFetching && search.data?.map((item) => (
               <button
                 type="button"
                 key={item.id}

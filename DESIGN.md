@@ -44,6 +44,10 @@ catalog feel alive, while the controls stay compact and fast to scan.
 - Metadata is small but never used as decorative uppercase copy.
 - The anime detail drawer overlays the page without changing the background
   layout width or interrupting its scroll position.
+- Loading regions use layout-matched skeletons for poster grids, compact lists,
+  search results, news, account forms, and route gates. Skeletons preserve the
+  final content footprint, expose a concise status to assistive technology,
+  and stop pulsing when reduced motion is requested.
 - Favorite anime, studios, directors, and characters use one profile editor.
   Drag ordering always has equivalent move-up and move-down controls.
 

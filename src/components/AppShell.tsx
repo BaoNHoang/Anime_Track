@@ -11,6 +11,7 @@ import { AuthPromptProvider } from "../app/providers/AuthPromptProvider";
 import { SiteFooter } from "./SiteFooter";
 import { UserMenu } from "./UserMenu";
 import { useLocalProfile } from "../hooks/useLocalProfile";
+import { HeaderAuthSkeleton } from "./LoadingState";
 
 export function AppShell() {
   const { configured, initialized, user } = useCloudAuth();
@@ -41,7 +42,7 @@ export function AppShell() {
                   </Link>
                 </div>
               ) : (
-                <span className="topbar-auth__loading" aria-label="Checking session" />
+                <HeaderAuthSkeleton />
               )}
             </div>
           </header>
