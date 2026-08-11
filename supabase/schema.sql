@@ -20,7 +20,7 @@ create table if not exists public.profiles (
       'male-01', 'male-02', 'male-03', 'male-04', 'male-05',
       'female-01', 'female-02', 'female-03', 'female-04', 'female-05'
     )
-  ),
+    ),
   constraint profiles_score_step_check check (score_step in (0.5, 1.0)),
   constraint profiles_banner_id_check check (
     banner_id in ('banner-01', 'banner-02', 'banner-03', 'banner-04', 'banner-05')

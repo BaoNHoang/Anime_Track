@@ -456,7 +456,8 @@ This order is intentional:
 
 | Path | Component | Purpose |
 | --- | --- | --- |
-| `/` | `DashboardPage` | Personal summary, queue, current season |
+| `/` | `DashboardPage` | Current season, headlines, and airing rankings |
+| `/profile` | `ProfilePage` | Personal summary, activity, genres, and library highlights |
 | `/discover` | `DiscoverPage` | Search, filter, and sort catalog feeds |
 | `/news` | `NewsPage` | Current-title news and popular promotions |
 | `/library` | `LibraryPage` | Search, filter, sort, and manage saved records |

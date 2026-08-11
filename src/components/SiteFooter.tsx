@@ -21,8 +21,9 @@ export function SiteFooter() {
           <strong>Account</strong>
           {user ? (
             <>
+              <Link to="/profile">Profile</Link>
               <Link to="/library">Library</Link>
-              <Link to="/account">Profile</Link>
+              <Link to="/account">Account</Link>
               <Link to="/settings">Settings</Link>
             </>
           ) : (

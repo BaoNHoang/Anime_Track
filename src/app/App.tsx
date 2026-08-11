@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
+import { ProfilePage } from "../features/dashboard/ProfilePage";
 import { DiscoverPage } from "../features/discover/DiscoverPage";
 import { LibraryPage } from "../features/library/LibraryPage";
 import { NewsPage } from "../features/news/NewsPage";
@@ -32,6 +33,10 @@ const router = createBrowserRouter([
     element: <AppShell />,
     children: [
       { path: "/", element: <DashboardPage /> },
+      {
+        path: "/profile",
+        element: <RequireAuth><ProfilePage /></RequireAuth>
+      },
       { path: "/discover", element: <DiscoverPage /> },
       { path: "/news", element: <NewsPage /> },
       {

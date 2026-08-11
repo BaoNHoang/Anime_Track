@@ -56,7 +56,6 @@ export function NewsPage() {
                   decoding="async"
                 />
                 <div className="news-card__body">
-                  <span className="news-label">{article.animeTitle}</span>
                   <h3>{article.title}</h3>
                   <p>{article.excerpt}</p>
                   <div className="news-card__footer">

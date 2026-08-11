@@ -1,216 +1,138 @@
+import { ExternalLink, Star } from "lucide-react";
 import { ErrorState } from "../../components/ErrorState";
 import { LoadingState } from "../../components/LoadingState";
 import { SectionHeader } from "../../components/SectionHeader";
-import { useTopAnime } from "../../hooks/useAnimeQueries";
-import { useTracker } from "../../app/providers/useTracker";
-import { useCloudAuth } from "../../app/providers/useCloudAuth";
-import { profileAvatarSrc } from "../../domain/account/avatars";
-import { profileBannerSrc } from "../../domain/account/banners";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
-import { RecentActivity } from "./RecentActivity";
-import { AiringSchedule } from "./NextAiring";
-import { useLocalProfile } from "../../hooks/useLocalProfile";
+import { useAnimeNews } from "../../hooks/useAnimeNews";
+import { useCurrentSeason, useTopAnime } from "../../hooks/useAnimeQueries";
+import type { Anime } from "../../domain/anime/types";
 
-const GENRE_COLORS = ["#62d83f", "#18acef", "#8e4de8", "#f06a9b", "#e85770"];
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric"
+});
 
-export function DashboardPage() {
-  const { items, stats } = useTracker();
-  const { configured, initialized, user } = useCloudAuth();
-  const { profile: localProfile } = useLocalProfile();
+function SeasonTile({ anime }: { anime: Anime }) {
   const { openAnime } = useAnimePanel();
-  const airing = useTopAnime("airing");
-  const showPersonalTracking = initialized && (!configured || Boolean(user));
-  const displayProfile = user ?? (!configured ? localProfile : undefined);
-  const completionPercent = stats.total
-    ? Math.round((stats.completed / stats.total) * 100)
-    : 0;
-  const statCards = [
-    {
-      label: "Total anime",
-      value: stats.total
-    },
-    {
-      label: "Days watched",
-      value: stats.daysWatched.toFixed(1)
-    },
-    {
-      label: "Episodes",
-      value: stats.episodesWatched
-    },
-    {
-      label: "Mean score",
-      value: stats.averageScore?.toFixed(1) ?? "-"
-    }
-  ];
-  const recentItems = [...items]
-    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
-  const genreCounts = items
-    .flatMap((item) => item.anime.genres)
-    .reduce<Map<string, number>>((counts, genre) => {
-      counts.set(genre, (counts.get(genre) ?? 0) + 1);
-      return counts;
-    }, new Map());
-  const favoriteGenres = [...genreCounts.entries()]
-    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
-    .slice(0, 5);
-  const favoriteGenreTotal = favoriteGenres.reduce(
-    (total, [, count]) => total + count,
-    0
-  );
-  const airingPriority = new Map(
-    items.map((item) => [
-      item.anime.id,
-      {
-        rank: item.status === "watching" ? 0 : item.status === "plan_to_watch" ? 1 : 2,
-        label: item.status === "watching" ? "Watching" : item.status === "plan_to_watch" ? "Planning" : undefined
-      }
-    ])
-  );
-  const prioritizedAiringItems = airing.data
-    ? [
-        ...items
-          .filter(
-            (item) =>
-              (item.status === "watching" || item.status === "plan_to_watch") &&
-              item.anime.status.toLowerCase().includes("currently airing")
-          )
-          .map((item) => item.anime),
-        ...airing.data.items
-      ].filter(
-        (anime, index, merged) =>
-          merged.findIndex((candidate) => candidate.id === anime.id) === index
-      )
-    : [];
+  const title = anime.titleEnglish || anime.title;
 
   return (
-    <div className="dashboard-page">
-      {showPersonalTracking && displayProfile ? (
-        <header className="profile-hero">
-          <img
-            className="profile-hero__banner"
-            src={profileBannerSrc(displayProfile)}
-            alt=""
-          />
-          <div className="profile-hero__shade" />
-          <div className="profile-hero__identity">
-            <img src={profileAvatarSrc(displayProfile)} alt="" />
-            <div>
-              <span>Your Banime profile</span>
-              <h1>{displayProfile.username}</h1>
-              <p>{stats.watching} watching, {stats.completed} completed</p>
-            </div>
-          </div>
-        </header>
-      ) : (
-        <header className="page-heading"><h1>Home</h1></header>
-      )}
+    <article className="home-season-tile">
+      <button type="button" onClick={() => openAnime(anime)}>
+        <img src={anime.imageUrl} alt="" loading="lazy" />
+      </button>
+      <div>
+        <button type="button" onClick={() => openAnime(anime)} title={title}>
+          {title}
+        </button>
+        <span>
+          {anime.type || "Anime"}
+          {anime.score ? <><Star size={11} fill="currentColor" /> {anime.score.toFixed(1)}</> : null}
+        </span>
+      </div>
+    </article>
+  );
+}
 
-      {showPersonalTracking && (
-        <section className="watch-summary" aria-label="Library summary">
-          <div className="watch-summary__stats">
-            {statCards.map(({ label, value }) => (
-              <div className="watch-summary__item" key={label}>
-                <strong>{value}</strong>
-                <span>{label}</span>
-              </div>
-            ))}
-          </div>
-          <div className="watch-summary__progress">
-            <div>
-              <span>{stats.completed} completed</span>
-              <span>{stats.watching} watching</span>
-            </div>
-            <div
-              className="watch-summary__track"
-              role="progressbar"
-              aria-label="Library completion"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={completionPercent}
-            >
-              <span style={{ width: `${completionPercent}%` }} />
-            </div>
-          </div>
-        </section>
-      )}
+export function DashboardPage() {
+  const { openAnime } = useAnimePanel();
+  const season = useCurrentSeason();
+  const airing = useTopAnime("airing");
+  const news = useAnimeNews();
 
-      <div
-        className={`dashboard-workspace${
-          showPersonalTracking ? "" : " dashboard-workspace--public"
-        }`}
-      >
-        {showPersonalTracking && (
-          <section className="dashboard-section dashboard-activity">
+  return (
+    <div className="home-page">
+      <header className="page-heading">
+        <h1>Home</h1>
+      </header>
+
+      <div className="home-layout">
+        <div className="home-main">
+          <section className="home-section">
             <SectionHeader
-              title="My activity"
-              action={{ label: "Open library", to: "/library" }}
+              title="Current season"
+              action={{ label: "Browse season", to: "/discover" }}
             />
-            <RecentActivity />
+            {season.isPending && <LoadingState />}
+            {season.isError && <ErrorState onRetry={() => season.refetch()} />}
+            {season.data && (
+              <div className="home-season-grid">
+                {season.data.items.slice(0, 10).map((anime) => (
+                  <SeasonTile anime={anime} key={anime.id} />
+                ))}
+              </div>
+            )}
           </section>
-        )}
-        <section className="dashboard-section dashboard-airing">
+
+          <section className="home-section">
+            <SectionHeader
+              title="Latest headlines"
+              action={{ label: "All news", to: "/news" }}
+            />
+            {news.articlesLoading && <LoadingState />}
+            {news.articlesError && !news.articles.length && (
+              <ErrorState
+                message="Anime news could not be loaded."
+                onRetry={() => void news.refetchArticles()}
+              />
+            )}
+            {news.articles.length > 0 && (
+              <div className="home-news-list">
+                {news.articles.slice(0, 6).map((article) => (
+                  <article key={article.url}>
+                    <img
+                      src={article.imageUrl || article.animeImageUrl}
+                      alt=""
+                      loading="lazy"
+                    />
+                    <div>
+                      <h3>{article.title}</h3>
+                      <time dateTime={article.publishedAt}>
+                        {dateFormatter.format(new Date(article.publishedAt))}
+                      </time>
+                    </div>
+                    <a
+                      href={article.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`Read ${article.title}`}
+                    >
+                      <ExternalLink size={15} />
+                    </a>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+
+        <aside className="home-ranking" aria-label="Top airing anime">
           <SectionHeader
-            title="Airing next"
-            action={{ label: "Browse", to: "/discover" }}
+            title="Top airing"
+            action={{ label: "Discover", to: "/discover" }}
           />
           {airing.isLoading && <LoadingState />}
           {airing.isError && <ErrorState onRetry={() => airing.refetch()} />}
           {airing.data && (
-            <AiringSchedule
-              items={prioritizedAiringItems}
-              priorityByAnimeId={airingPriority}
-              compact
-            />
-          )}
-        </section>
-      </div>
-
-      {showPersonalTracking && (favoriteGenres.length > 0 || recentItems.length > 0) && (
-        <section className="profile-overview">
-          {favoriteGenres.length > 0 && (
-            <div className="profile-genres">
-              <h2>Genre overview</h2>
-              <div className="profile-genres__legend">
-                {favoriteGenres.map(([genre, count], index) => (
-                  <div key={genre}>
-                    <span style={{ backgroundColor: GENRE_COLORS[index] }}>{genre}</span>
-                    <strong>{count} <small>anime</small></strong>
-                  </div>
-                ))}
-              </div>
-              <div className="profile-genres__bar" aria-label="Favorite genre distribution">
-                {favoriteGenres.map(([genre, count], index) => (
-                  <span
-                    key={genre}
-                    title={`${genre}: ${count}`}
-                    style={{
-                      width: `${(count / favoriteGenreTotal) * 100}%`,
-                      backgroundColor: GENRE_COLORS[index]
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-          {recentItems.length > 0 && (
-            <div className="profile-library">
-              <h2>Anime</h2>
-              <div>
-                {recentItems.slice(0, 8).map((item) => (
-                  <button
-                    key={item.anime.id}
-                    onClick={() => openAnime(item.anime)}
-                    title={item.anime.titleEnglish || item.anime.title}
-                    aria-label={`Open ${item.anime.titleEnglish || item.anime.title}`}
-                  >
-                    <img src={item.anime.imageUrl} alt="" loading="lazy" />
+            <ol>
+              {airing.data.items.slice(0, 8).map((anime, index) => (
+                <li key={anime.id}>
+                  <span>{index + 1}</span>
+                  <button type="button" onClick={() => openAnime(anime)}>
+                    <img src={anime.imageUrl} alt="" loading="lazy" />
                   </button>
-                ))}
-              </div>
-            </div>
+                  <button type="button" onClick={() => openAnime(anime)}>
+                    <strong>{anime.titleEnglish || anime.title}</strong>
+                    <small>
+                      {anime.score ? `${anime.score.toFixed(2)} score` : anime.type}
+                    </small>
+                  </button>
+                </li>
+              ))}
+            </ol>
           )}
-        </section>
-      )}
+        </aside>
+      </div>
     </div>
   );
 }

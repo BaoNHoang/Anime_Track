@@ -1,4 +1,4 @@
-import { LibraryBig, Map, Newspaper, Search, Settings2, UserRound } from "lucide-react";
+import { IdCard, LibraryBig, Map, Newspaper, Search, Settings2, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
 
@@ -9,6 +9,7 @@ const publicLinks = [
 ];
 
 const personalLinks = [
+  { to: "/profile", label: "Profile", icon: IdCard },
   { to: "/library", label: "Library", icon: LibraryBig },
   { to: "/account", label: "Account", icon: UserRound },
   { to: "/settings", label: "Settings", icon: Settings2 }

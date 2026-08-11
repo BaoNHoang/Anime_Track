@@ -1,7 +1,6 @@
 import {
   BadgeCheck,
   Check,
-  Cloud,
   HardDrive,
   ImageUp,
   KeyRound,
@@ -19,7 +18,6 @@ import {
   useSearchParams
 } from "react-router-dom";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
-import { useTracker } from "../../app/providers/useTracker";
 import {
   PROFILE_AVATARS,
   profileAvatarSrc
@@ -179,7 +177,6 @@ export function AccountPage() {
     deleteAccount,
     signInWithGoogle
   } = useCloudAuth();
-  const { syncStatus, syncError } = useTracker();
   const { profile: localProfile, updateProfile } = useLocalProfile();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -428,7 +425,7 @@ export function AccountPage() {
           <section className="account-profile__section">
             <div className="account-profile__section-heading">
               <h3>Profile name</h3>
-              <p>Used on your local Home profile.</p>
+              <p>Used on your local profile.</p>
             </div>
             <form
               className="auth-form account-username-form"
@@ -532,24 +529,6 @@ export function AccountPage() {
               </label>
               <button className="button" disabled={submitting}>Save username</button>
             </form>
-          </section>
-          <section className="account-profile__section account-profile__sync">
-            <span className="account-profile__section-icon" aria-hidden="true">
-              <Cloud size={20} />
-            </span>
-            <div>
-              <h3>Cloud sync</h3>
-              <p>Your library is connected to this Banime account.</p>
-              <span className={`status-pill status-pill--${syncStatus}`}>
-                {syncStatus === "syncing" && "Syncing..."}
-                {syncStatus === "synced" && "Library synced"}
-                {syncStatus === "error" && "Sync needs attention"}
-                {syncStatus === "local" && "Local changes"}
-              </span>
-              {syncError && (
-                <p className="form-message form-message--error">{syncError}</p>
-              )}
-            </div>
           </section>
           <section className="account-profile__section account-danger-zone">
             <div className="account-profile__section-heading">
