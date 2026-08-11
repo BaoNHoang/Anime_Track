@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAnimePanel } from "../app/providers/useAnimePanel";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { useAnimeSearch } from "../hooks/useAnimeQueries";
+import { CompactListSkeleton } from "./LoadingState";
 
 export function HeaderSearch() {
   const [query, setQuery] = useState("");
@@ -86,7 +87,9 @@ export function HeaderSearch() {
       </form>
       {open && debouncedQuery.length >= 2 && (
         <div className="header-search__results">
-          {results.isLoading && <span>Searching...</span>}
+          {results.isLoading && (
+            <CompactListSkeleton items={5} variant="search" label="Searching anime" />
+          )}
           {!results.isLoading && suggestions.length === 0 && <span>No titles found</span>}
           {suggestions.map((anime) => (
             <button

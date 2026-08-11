@@ -1,5 +1,5 @@
 import { ErrorState } from "../../components/ErrorState";
-import { LoadingState } from "../../components/LoadingState";
+import { CompactListSkeleton } from "../../components/LoadingState";
 import { SectionHeader } from "../../components/SectionHeader";
 import { useTopAnime } from "../../hooks/useAnimeQueries";
 import { useTracker } from "../../app/providers/useTracker";
@@ -171,7 +171,9 @@ export function ProfilePage() {
             title="Airing next"
             action={{ label: "Browse", to: "/discover" }}
           />
-          {airing.isLoading && <LoadingState />}
+          {airing.isLoading && (
+            <CompactListSkeleton items={6} variant="airing" label="Loading airing schedule" />
+          )}
           {airing.isError && <ErrorState onRetry={() => airing.refetch()} />}
           {airing.data && (
             <AiringSchedule

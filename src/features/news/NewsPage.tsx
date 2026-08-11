@@ -1,6 +1,7 @@
 import { ExternalLink, MessageCircle, PlayCircle } from "../../components/OwnedIcons";
 import { ErrorState } from "../../components/ErrorState";
 import { useAnimeNews } from "../../hooks/useAnimeNews";
+import { NewsGridSkeleton, PromoGridSkeleton } from "../../components/LoadingState";
 
 const publishedAtFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -19,13 +20,7 @@ export function NewsPage() {
     <div className="page-stack">
       <h1 className="visually-hidden">Anime news</h1>
 
-      {news.articlesLoading && (
-        <div className="news-grid" aria-label="Loading anime news">
-          {Array.from({ length: 6 }, (_, index) => (
-            <div className="skeleton news-loading-card" key={index} />
-          ))}
-        </div>
-      )}
+      {news.articlesLoading && <NewsGridSkeleton />}
 
       {news.articlesError && !news.articles.length && (
         <ErrorState
@@ -41,7 +36,10 @@ export function NewsPage() {
               <h2>Latest stories</h2>
             </div>
             {news.articlesRefreshing && (
-              <span className="section-status">Loading more stories...</span>
+              <span className="section-status section-status--skeleton" role="status">
+                <span className="visually-hidden">Refreshing stories</span>
+                <span className="skeleton" aria-hidden="true" />
+              </span>
             )}
           </div>
           <div className="news-grid">
@@ -92,13 +90,7 @@ export function NewsPage() {
           </div>
         </div>
 
-        {news.promosLoading && (
-          <div className="promo-row" aria-label="Loading popular trailers">
-            {Array.from({ length: 4 }, (_, index) => (
-              <div className="skeleton promo-loading-card" key={index} />
-            ))}
-          </div>
-        )}
+        {news.promosLoading && <PromoGridSkeleton />}
 
         {news.promosError && !news.promos.length && (
           <ErrorState

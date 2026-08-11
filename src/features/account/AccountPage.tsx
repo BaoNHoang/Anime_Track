@@ -1,4 +1,4 @@
-import { KeyRound, LogIn, MailCheck, ShieldCheck, UserRound } from "../../components/OwnedIcons";
+import { KeyRound, LogIn, MailCheck, UserRound } from "../../components/OwnedIcons";
 import { useState, type FormEvent } from "react";
 import {
   Navigate,
@@ -7,6 +7,7 @@ import {
   useSearchParams
 } from "react-router-dom";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
+import { AccountSkeleton } from "../../components/LoadingState";
 
 type AccountMode = "sign_in" | "sign_up" | "verify" | "forgot" | "reset";
 
@@ -96,7 +97,7 @@ export function AccountPage() {
   };
 
   if (!initialized) {
-    return <section className="account-unavailable"><ShieldCheck size={24} /><p>Checking your session...</p></section>;
+    return <AccountSkeleton />;
   }
 
   return (
