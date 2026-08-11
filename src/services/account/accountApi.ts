@@ -37,7 +37,19 @@ async function request(
           ? undefined
           : JSON.stringify(options.body)
     });
-    const data = (await response.json()) as ApiResult;
+    const contentType = response.headers.get("content-type")?.toLowerCase();
+    if (!contentType?.startsWith("application/json")) {
+      return {
+        error: import.meta.env.DEV
+          ? "The account API is not running. Use vercel dev for local account testing."
+          : "Account services returned an invalid response."
+      };
+    }
+    const value = (await response.json()) as unknown;
+    const data =
+      typeof value === "object" && value !== null && !Array.isArray(value)
+        ? (value as ApiResult)
+        : {};
     if (!response.ok) {
       return { error: data.error ?? "The request could not be completed." };
     }

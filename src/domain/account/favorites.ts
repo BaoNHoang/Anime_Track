@@ -1,4 +1,7 @@
-import { safeAnimeImageUrl, truncateExternalText } from "../security/validation";
+import {
+  safeAnimeImageUrl,
+  truncateExternalText
+} from "../security/validation.js";
 
 export const FAVORITE_KINDS = [
   "anime",
