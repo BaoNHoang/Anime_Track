@@ -3,8 +3,10 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useCloudAuth } from "../app/providers/useCloudAuth";
 
 export function RequireAuth({ children }: { children: ReactNode }) {
-  const { initialized, user } = useCloudAuth();
+  const { configured, initialized, user } = useCloudAuth();
   const location = useLocation();
+
+  if (!configured) return children;
 
   if (!initialized) {
     return <p className="route-status" role="status">Checking your session...</p>;

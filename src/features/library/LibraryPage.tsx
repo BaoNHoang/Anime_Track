@@ -147,7 +147,6 @@ export function LibraryPage() {
       <div className="page-stack">
         <header className="page-heading">
           <h1>Library</h1>
-          <p>Your tracker is private to your signed-in Banime account.</p>
         </header>
         <section className="empty-state empty-state--large">
           <span className="empty-state__icon">
@@ -172,7 +171,6 @@ export function LibraryPage() {
     <div className="page-stack">
       <header className="page-heading">
         <h1>Library</h1>
-        <p>{items.length} titles stored on this device.</p>
       </header>
 
       <section className="query-panel">

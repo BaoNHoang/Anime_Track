@@ -39,7 +39,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
   const syncedUserRef = useRef<string | undefined>(undefined);
   const { configured, user, initialized } = useCloudAuth();
   const activeUserIdRef = useRef(user?.id);
-  const canManage = Boolean(user);
+  const canManage = !configured || Boolean(user);
 
   useEffect(() => {
     activeUserIdRef.current = user?.id;

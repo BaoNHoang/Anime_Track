@@ -5,14 +5,15 @@ import { ErrorState } from "../../components/ErrorState";
 import { LoadingState } from "../../components/LoadingState";
 import { useAnimeSearch, useTopAnime } from "../../hooks/useAnimeQueries";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import { SectionHeader } from "../../components/SectionHeader";
+import { UpcomingSchedule } from "../dashboard/NextAiring";
 
-type Feed = "airing" | "bypopularity" | "upcoming";
+type Feed = "airing" | "bypopularity";
 type Sort = "default" | "score" | "popularity" | "title" | "year";
 
 const feeds: Array<{ value: Feed; label: string }> = [
   { value: "airing", label: "Airing now" },
-  { value: "bypopularity", label: "Most popular" },
-  { value: "upcoming", label: "Upcoming" }
+  { value: "bypopularity", label: "Most popular" }
 ];
 
 export function DiscoverPage() {
@@ -26,6 +27,7 @@ export function DiscoverPage() {
   const debouncedQuery = useDebouncedValue(query.trim(), 500);
   const search = useAnimeSearch(debouncedQuery, page);
   const top = useTopAnime(feed, page);
+  const upcoming = useTopAnime("upcoming");
   const isSearching = debouncedQuery.length >= 2;
   const result = isSearching ? search : top;
 
@@ -110,7 +112,6 @@ export function DiscoverPage() {
     <div className="page-stack">
       <header className="page-heading">
         <h1>Search anime</h1>
-        <p>Search by title, then narrow the results.</p>
       </header>
 
       <section className="query-panel">
@@ -252,6 +253,13 @@ export function DiscoverPage() {
             </button>
           </nav>
         )}
+      </section>
+
+      <section className="discover-upcoming">
+        <SectionHeader title="Coming soon" />
+        {upcoming.isLoading && <LoadingState cards={4} />}
+        {upcoming.isError && <ErrorState onRetry={() => upcoming.refetch()} />}
+        {upcoming.data && <UpcomingSchedule items={upcoming.data.items} />}
       </section>
     </div>
   );

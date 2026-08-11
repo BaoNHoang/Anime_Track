@@ -4,20 +4,23 @@ import { SectionHeader } from "../../components/SectionHeader";
 import { useTopAnime } from "../../hooks/useAnimeQueries";
 import { useTracker } from "../../app/providers/useTracker";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
-import { ContinueWatching } from "./ContinueWatching";
-import { AiringSchedule, UpcomingSchedule } from "./NextAiring";
+import { profileAvatarSrc } from "../../domain/account/avatars";
+import { profileBannerSrc } from "../../domain/account/banners";
+import { useAnimePanel } from "../../app/providers/useAnimePanel";
+import { RecentActivity } from "./RecentActivity";
+import { AiringSchedule } from "./NextAiring";
+import { useLocalProfile } from "../../hooks/useLocalProfile";
+
+const GENRE_COLORS = ["#62d83f", "#18acef", "#8e4de8", "#f06a9b", "#e85770"];
 
 export function DashboardPage() {
-  const { stats } = useTracker();
-  const { initialized, user } = useCloudAuth();
+  const { items, stats } = useTracker();
+  const { configured, initialized, user } = useCloudAuth();
+  const { profile: localProfile } = useLocalProfile();
+  const { openAnime } = useAnimePanel();
   const airing = useTopAnime("airing");
-  const upcoming = useTopAnime("upcoming");
-  const showPersonalTracking = initialized && Boolean(user);
-  const today = new Intl.DateTimeFormat(undefined, {
-    weekday: "long",
-    month: "long",
-    day: "numeric"
-  }).format(new Date());
+  const showPersonalTracking = initialized && (!configured || Boolean(user));
+  const displayProfile = user ?? (!configured ? localProfile : undefined);
   const completionPercent = stats.total
     ? Math.round((stats.completed / stats.total) * 100)
     : 0;
@@ -39,15 +42,68 @@ export function DashboardPage() {
       value: stats.averageScore?.toFixed(1) ?? "-"
     }
   ];
+  const recentItems = [...items]
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+  const genreCounts = items
+    .flatMap((item) => item.anime.genres)
+    .reduce<Map<string, number>>((counts, genre) => {
+      counts.set(genre, (counts.get(genre) ?? 0) + 1);
+      return counts;
+    }, new Map());
+  const favoriteGenres = [...genreCounts.entries()]
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+    .slice(0, 5);
+  const favoriteGenreTotal = favoriteGenres.reduce(
+    (total, [, count]) => total + count,
+    0
+  );
+  const airingPriority = new Map(
+    items.map((item) => [
+      item.anime.id,
+      {
+        rank: item.status === "watching" ? 0 : item.status === "plan_to_watch" ? 1 : 2,
+        label: item.status === "watching" ? "Watching" : item.status === "plan_to_watch" ? "Planning" : undefined
+      }
+    ])
+  );
+  const prioritizedAiringItems = airing.data
+    ? [
+        ...items
+          .filter(
+            (item) =>
+              (item.status === "watching" || item.status === "plan_to_watch") &&
+              item.anime.status.toLowerCase().includes("currently airing")
+          )
+          .map((item) => item.anime),
+        ...airing.data.items
+      ].filter(
+        (anime, index, merged) =>
+          merged.findIndex((candidate) => candidate.id === anime.id) === index
+      )
+    : [];
 
   return (
     <div className="dashboard-page">
-      <header className="page-heading dashboard-heading">
-        <div>
-          <h1>Home</h1>
-          <p>{today}</p>
-        </div>
-      </header>
+      {showPersonalTracking && displayProfile ? (
+        <header className="profile-hero">
+          <img
+            className="profile-hero__banner"
+            src={profileBannerSrc(displayProfile)}
+            alt=""
+          />
+          <div className="profile-hero__shade" />
+          <div className="profile-hero__identity">
+            <img src={profileAvatarSrc(displayProfile)} alt="" />
+            <div>
+              <span>Your Banime profile</span>
+              <h1>{displayProfile.username}</h1>
+              <p>{stats.watching} watching, {stats.completed} completed</p>
+            </div>
+          </div>
+        </header>
+      ) : (
+        <header className="page-heading"><h1>Home</h1></header>
+      )}
 
       {showPersonalTracking && (
         <section className="watch-summary" aria-label="Library summary">
@@ -89,7 +145,7 @@ export function DashboardPage() {
               title="My activity"
               action={{ label: "Open library", to: "/library" }}
             />
-            <ContinueWatching />
+            <RecentActivity />
           </section>
         )}
         <section className="dashboard-section dashboard-airing">
@@ -100,22 +156,61 @@ export function DashboardPage() {
           {airing.isLoading && <LoadingState />}
           {airing.isError && <ErrorState onRetry={() => airing.refetch()} />}
           {airing.data && (
-            <AiringSchedule items={airing.data.items} compact />
+            <AiringSchedule
+              items={prioritizedAiringItems}
+              priorityByAnimeId={airingPriority}
+              compact
+            />
           )}
         </section>
       </div>
 
-      <section className="dashboard-section dashboard-section--schedule">
-        <SectionHeader
-          title="Coming soon"
-          action={{ label: "Browse upcoming", to: "/discover" }}
-        />
-        {upcoming.isLoading && <LoadingState />}
-        {upcoming.isError && (
-          <ErrorState onRetry={() => upcoming.refetch()} />
-        )}
-        {upcoming.data && <UpcomingSchedule items={upcoming.data.items} />}
-      </section>
+      {showPersonalTracking && (favoriteGenres.length > 0 || recentItems.length > 0) && (
+        <section className="profile-overview">
+          {favoriteGenres.length > 0 && (
+            <div className="profile-genres">
+              <h2>Genre overview</h2>
+              <div className="profile-genres__legend">
+                {favoriteGenres.map(([genre, count], index) => (
+                  <div key={genre}>
+                    <span style={{ backgroundColor: GENRE_COLORS[index] }}>{genre}</span>
+                    <strong>{count} <small>anime</small></strong>
+                  </div>
+                ))}
+              </div>
+              <div className="profile-genres__bar" aria-label="Favorite genre distribution">
+                {favoriteGenres.map(([genre, count], index) => (
+                  <span
+                    key={genre}
+                    title={`${genre}: ${count}`}
+                    style={{
+                      width: `${(count / favoriteGenreTotal) * 100}%`,
+                      backgroundColor: GENRE_COLORS[index]
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          {recentItems.length > 0 && (
+            <div className="profile-library">
+              <h2>Anime</h2>
+              <div>
+                {recentItems.slice(0, 8).map((item) => (
+                  <button
+                    key={item.anime.id}
+                    onClick={() => openAnime(item.anime)}
+                    title={item.anime.titleEnglish || item.anime.title}
+                    aria-label={`Open ${item.anime.titleEnglish || item.anime.title}`}
+                  >
+                    <img src={item.anime.imageUrl} alt="" loading="lazy" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

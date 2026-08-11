@@ -4,6 +4,9 @@ create table if not exists public.profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   username text not null,
   avatar_id text not null default 'male-01',
+  avatar_path text,
+  banner_id text not null default 'banner-01',
+  banner_path text,
   score_step numeric(2, 1) not null default 0.5,
   username_normalized text generated always as (lower(username)) stored,
   created_at timestamptz not null default now(),
@@ -18,11 +21,23 @@ create table if not exists public.profiles (
       'female-01', 'female-02', 'female-03', 'female-04', 'female-05'
     )
   ),
-  constraint profiles_score_step_check check (score_step in (0.5, 1.0))
+  constraint profiles_score_step_check check (score_step in (0.5, 1.0)),
+  constraint profiles_banner_id_check check (
+    banner_id in ('banner-01', 'banner-02', 'banner-03', 'banner-04', 'banner-05')
+  ),
+  constraint profiles_avatar_path_check check (
+    avatar_path is null or avatar_path = user_id::text || '/avatar.webp'
+  ),
+  constraint profiles_banner_path_check check (
+    banner_path is null or banner_path = user_id::text || '/banner.webp'
+  )
 );
 
 alter table public.profiles
   add column if not exists avatar_id text not null default 'male-01',
+  add column if not exists avatar_path text,
+  add column if not exists banner_id text not null default 'banner-01',
+  add column if not exists banner_path text,
   add column if not exists score_step numeric(2, 1) not null default 0.5;
 
 do $$
@@ -48,6 +63,36 @@ begin
     alter table public.profiles add constraint profiles_score_step_check
       check (score_step in (0.5, 1.0));
   end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'profiles_banner_id_check'
+      and conrelid = 'public.profiles'::regclass
+  ) then
+    alter table public.profiles add constraint profiles_banner_id_check check (
+      banner_id in ('banner-01', 'banner-02', 'banner-03', 'banner-04', 'banner-05')
+    );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'profiles_avatar_path_check'
+      and conrelid = 'public.profiles'::regclass
+  ) then
+    alter table public.profiles add constraint profiles_avatar_path_check check (
+      avatar_path is null or avatar_path = user_id::text || '/avatar.webp'
+    );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'profiles_banner_path_check'
+      and conrelid = 'public.profiles'::regclass
+  ) then
+    alter table public.profiles add constraint profiles_banner_path_check check (
+      banner_path is null or banner_path = user_id::text || '/banner.webp'
+    );
+  end if;
 end
 $$;
 
@@ -72,6 +117,88 @@ create policy "Users can update their own profile"
   to authenticated
   using ((select auth.uid()) = user_id)
   with check ((select auth.uid()) = user_id);
+
+insert into storage.buckets (
+  id,
+  name,
+  public,
+  file_size_limit,
+  allowed_mime_types
+)
+values (
+  'profile-media',
+  'profile-media',
+  false,
+  1048576,
+  array['image/webp']
+)
+on conflict (id) do update set
+  public = false,
+  file_size_limit = 1048576,
+  allowed_mime_types = array['image/webp'];
+
+drop policy if exists "Users can read their own profile media"
+  on storage.objects;
+create policy "Users can read their own profile media"
+  on storage.objects
+  for select
+  to authenticated
+  using (
+    bucket_id = 'profile-media'
+    and name in (
+      (select auth.uid())::text || '/avatar.webp',
+      (select auth.uid())::text || '/banner.webp'
+    )
+  );
+
+drop policy if exists "Users can insert their own profile media"
+  on storage.objects;
+create policy "Users can insert their own profile media"
+  on storage.objects
+  for insert
+  to authenticated
+  with check (
+    bucket_id = 'profile-media'
+    and name in (
+      (select auth.uid())::text || '/avatar.webp',
+      (select auth.uid())::text || '/banner.webp'
+    )
+  );
+
+drop policy if exists "Users can update their own profile media"
+  on storage.objects;
+create policy "Users can update their own profile media"
+  on storage.objects
+  for update
+  to authenticated
+  using (
+    bucket_id = 'profile-media'
+    and name in (
+      (select auth.uid())::text || '/avatar.webp',
+      (select auth.uid())::text || '/banner.webp'
+    )
+  )
+  with check (
+    bucket_id = 'profile-media'
+    and name in (
+      (select auth.uid())::text || '/avatar.webp',
+      (select auth.uid())::text || '/banner.webp'
+    )
+  );
+
+drop policy if exists "Users can delete their own profile media"
+  on storage.objects;
+create policy "Users can delete their own profile media"
+  on storage.objects
+  for delete
+  to authenticated
+  using (
+    bucket_id = 'profile-media'
+    and name in (
+      (select auth.uid())::text || '/avatar.webp',
+      (select auth.uid())::text || '/banner.webp'
+    )
+  );
 
 create or replace function public.handle_new_auth_user()
 returns trigger
