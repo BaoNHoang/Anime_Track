@@ -1,35 +1,46 @@
-import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, X } from "../../components/OwnedIcons";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AnimeCard } from "../../components/AnimeCard";
 import { ErrorState } from "../../components/ErrorState";
 import { LoadingState } from "../../components/LoadingState";
-import { useAnimeSearch, useTopAnime } from "../../hooks/useAnimeQueries";
+import { useAnimeBrowse, useAnimeSearch } from "../../hooks/useAnimeQueries";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
-import { SectionHeader } from "../../components/SectionHeader";
-import { UpcomingSchedule } from "../dashboard/NextAiring";
+import type { AnimeBrowsePreset } from "../../services/tenrai/animeService";
 
-type Feed = "airing" | "bypopularity";
 type Sort = "default" | "score" | "popularity" | "title" | "year";
 
-const feeds: Array<{ value: Feed; label: string }> = [
+const feeds: Array<{ value: AnimeBrowsePreset; label: string }> = [
   { value: "airing", label: "Airing now" },
-  { value: "bypopularity", label: "Most popular" }
+  { value: "upcoming", label: "Coming soon" },
+  { value: "popular", label: "Most popular" },
+  { value: "classics", label: "Classics" },
+  { value: "ghibli", label: "Studio Ghibli" },
+  { value: "family", label: "Family" },
+  { value: "movies", label: "Movies" },
+  { value: "favorites", label: "Most favorited" }
 ];
 
 export function DiscoverPage() {
-  const [query, setQuery] = useState("");
-  const [feed, setFeed] = useState<Feed>("airing");
+  const [searchParams] = useSearchParams();
+  const urlQuery = searchParams.get("q") ?? "";
+  const [queryState, setQueryState] = useState(() => ({
+    source: urlQuery,
+    value: urlQuery
+  }));
+  const query = queryState.source === urlQuery ? queryState.value : urlQuery;
+  const [feed, setFeed] = useState<AnimeBrowsePreset>("airing");
   const [type, setType] = useState("all");
   const [genre, setGenre] = useState("all");
   const [minimumScore, setMinimumScore] = useState("0");
   const [sort, setSort] = useState<Sort>("default");
-  const [page, setPage] = useState(1);
+  const [pageState, setPageState] = useState(() => ({ source: urlQuery, value: 1 }));
+  const page = pageState.source === urlQuery ? pageState.value : 1;
   const debouncedQuery = useDebouncedValue(query.trim(), 500);
   const search = useAnimeSearch(debouncedQuery, page);
-  const top = useTopAnime(feed, page);
-  const upcoming = useTopAnime("upcoming");
+  const browse = useAnimeBrowse(feed, page);
   const isSearching = debouncedQuery.length >= 2;
-  const result = isSearching ? search : top;
+  const result = isSearching ? search : browse;
 
   const types = useMemo(
     () =>
@@ -80,19 +91,19 @@ export function DiscoverPage() {
     setSort("default");
   };
   const updateQuery = (value: string) => {
-    setQuery(value);
-    setPage(1);
+    setQueryState({ source: urlQuery, value });
+    setPageState({ source: urlQuery, value: 1 });
     setType("all");
     setGenre("all");
   };
-  const updateFeed = (value: Feed) => {
+  const updateFeed = (value: AnimeBrowsePreset) => {
     setFeed(value);
-    setPage(1);
+    setPageState({ source: urlQuery, value: 1 });
     setType("all");
     setGenre("all");
   };
   const changePage = (nextPage: number) => {
-    setPage(nextPage);
+    setPageState({ source: urlQuery, value: nextPage });
     window.requestAnimationFrame(() => {
       document.getElementById("discover-results")?.scrollIntoView({
         behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -110,9 +121,7 @@ export function DiscoverPage() {
 
   return (
     <div className="page-stack">
-      <header className="page-heading">
-        <h1>Search anime</h1>
-      </header>
+      <h1 className="visually-hidden">Discover anime</h1>
 
       <section className="query-panel">
         <div className="search-box">
@@ -255,12 +264,6 @@ export function DiscoverPage() {
         )}
       </section>
 
-      <section className="discover-upcoming">
-        <SectionHeader title="Coming soon" />
-        {upcoming.isLoading && <LoadingState cards={4} />}
-        {upcoming.isError && <ErrorState onRetry={() => upcoming.refetch()} />}
-        {upcoming.data && <UpcomingSchedule items={upcoming.data.items} />}
-      </section>
     </div>
   );
 }

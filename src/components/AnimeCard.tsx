@@ -1,4 +1,4 @@
-import { Check, Plus, Star } from "lucide-react";
+import { Check, Plus, Star } from "./OwnedIcons";
 import { formatAiringRelative } from "../domain/anime/airing";
 import type { Anime } from "../domain/anime/types";
 import { useAnimePanel } from "../app/providers/useAnimePanel";

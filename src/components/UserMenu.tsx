@@ -1,4 +1,4 @@
-import { IdCard, LogOut, Moon, Settings2, Sun, UserRound } from "lucide-react";
+import { IdCard, LogOut, Moon, Settings2, Sun } from "./OwnedIcons";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCloudAuth } from "../app/providers/useCloudAuth";
@@ -67,9 +67,6 @@ export function UserMenu({ user, localProfile }: UserMenuProps) {
           </div>
           <Link to="/profile" role="menuitem" onClick={() => setOpen(false)}>
             <IdCard size={17} /> Profile
-          </Link>
-          <Link to="/account" role="menuitem" onClick={() => setOpen(false)}>
-            <UserRound size={17} /> Account
           </Link>
           <Link to="/settings" role="menuitem" onClick={() => setOpen(false)}>
             <Settings2 size={17} /> Settings

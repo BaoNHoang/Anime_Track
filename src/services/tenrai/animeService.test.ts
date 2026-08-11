@@ -8,7 +8,7 @@ vi.mock("./client", () => ({
   tenraiGet: tenraiGetMock
 }));
 
-import { getTopAnime, searchAnime } from "./animeService";
+import { browseAnime, getTopAnime, searchAnime } from "./animeService";
 
 describe("getTopAnime", () => {
   beforeEach(() => {
@@ -57,6 +57,15 @@ describe("getTopAnime", () => {
         cacheMs: 30 * 60 * 1000,
         cacheStorage: "local"
       })
+    );
+  });
+
+  it("builds bounded preset browse requests", async () => {
+    await browseAnime("2010s", 2);
+
+    expect(tenraiGetMock).toHaveBeenCalledWith(
+      "/anime?start_date=2010-01-01&end_date=2019-12-31&order_by=score&sort=desc&limit=24&sfw=true&page=2",
+      expect.objectContaining({ cacheStorage: "local" })
     );
   });
 });

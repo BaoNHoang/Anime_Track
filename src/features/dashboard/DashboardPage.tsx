@@ -1,11 +1,16 @@
-import { ExternalLink, Star } from "lucide-react";
+import { ExternalLink, Star } from "../../components/OwnedIcons";
 import { ErrorState } from "../../components/ErrorState";
 import { LoadingState } from "../../components/LoadingState";
 import { SectionHeader } from "../../components/SectionHeader";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useAnimeNews } from "../../hooks/useAnimeNews";
-import { useCurrentSeason, useTopAnime } from "../../hooks/useAnimeQueries";
+import {
+  useAnimeBrowse,
+  useCurrentSeason,
+  useTopAnime
+} from "../../hooks/useAnimeQueries";
 import type { Anime } from "../../domain/anime/types";
+import type { AnimePage } from "../../domain/anime/types";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -34,17 +39,50 @@ function SeasonTile({ anime }: { anime: Anime }) {
   );
 }
 
+function HomeShelf({
+  title,
+  result,
+  limit = 5
+}: {
+  title: string;
+  result: {
+    data?: AnimePage;
+    isLoading: boolean;
+    isError: boolean;
+    refetch: () => unknown;
+  };
+  limit?: number;
+}) {
+  return (
+    <section className="home-section home-section--shelf">
+      <SectionHeader title={title} action={{ label: "Browse", to: "/discover" }} />
+      {result.isLoading && <LoadingState cards={limit} />}
+      {result.isError && <ErrorState onRetry={() => void result.refetch()} />}
+      {result.data && (
+        <div className="home-season-grid">
+          {result.data.items.slice(0, limit).map((anime) => (
+            <SeasonTile anime={anime} key={anime.id} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function DashboardPage() {
   const { openAnime } = useAnimePanel();
   const season = useCurrentSeason();
   const airing = useTopAnime("airing");
+  const upcoming = useAnimeBrowse("upcoming");
+  const past = useAnimeBrowse("past");
+  const twoThousands = useAnimeBrowse("2000s");
+  const twentyTens = useAnimeBrowse("2010s");
+  const twentyTwenties = useAnimeBrowse("2020s");
   const news = useAnimeNews();
 
   return (
     <div className="home-page">
-      <header className="page-heading">
-        <h1>Home</h1>
-      </header>
+      <h1 className="visually-hidden">Home</h1>
 
       <div className="home-layout">
         <div className="home-main">
@@ -63,6 +101,12 @@ export function DashboardPage() {
               </div>
             )}
           </section>
+
+          <HomeShelf title="Coming soon" result={upcoming} />
+          <HomeShelf title="Blast from the past" result={past} />
+          <HomeShelf title="Top anime of the 2000s" result={twoThousands} />
+          <HomeShelf title="Top anime of the 2010s" result={twentyTens} />
+          <HomeShelf title="Top anime of the 2020s" result={twentyTwenties} />
 
           <section className="home-section">
             <SectionHeader

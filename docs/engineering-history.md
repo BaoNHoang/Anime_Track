@@ -2423,6 +2423,36 @@ A future change is complete only when all applicable checks are satisfied:
   - Contributors and collaborators without that individual bypass still need
     the code-owner review, resolved conversations, and passing `verify` check.
 
+### HIST-0028 - 2026-08-11 - Consolidate profile and expand browsing
+
+- Status: Ready for verification and main integration.
+- Changes:
+  - Replaced redundant page-title bands with content-first layouts and added
+    Profile to desktop primary navigation.
+  - Added cached discovery presets for upcoming, classics, Studio Ghibli,
+    family, movies, and most-favorited anime.
+  - Added compact Home shelves for upcoming anime and top titles from the
+    pre-2000, 2000s, 2010s, and 2020s eras.
+  - Consolidated signed-in and local profile editing under `/profile`.
+  - Added searchable, bounded, ordered favorites for anime, studios,
+    directors, and characters, including local persistence, authenticated
+    profile sync, drag reordering, and accessible move controls.
+  - Tightened the footer and removed superseded profile, account, discovery,
+    and icon code.
+- Security:
+  - Favorite profile writes require same-origin authentication, owner-scoped
+    RLS, rate limiting, strict keys, bounded arrays and text, and allowlisted
+    image hosts.
+  - The Supabase migration adds a bounded `favorites` JSONB profile column.
+- Verification:
+  - `npm run lint`, `npm run api:check`, and `npm run mcp:check` passed.
+  - `npm test` passed all 95 tests across 30 files.
+  - `npm run build` completed the production and PWA builds.
+  - Full and production-only `npm audit` checks reported zero known
+    vulnerabilities.
+  - Impeccable's UI detector reported no findings, and the repository security
+    scan reported no validated vulnerabilities.
+
 ## Release History
 
 No formal production release has been recorded.

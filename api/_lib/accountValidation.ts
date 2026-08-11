@@ -1,4 +1,14 @@
 import { ApiError } from "./http.js";
+import {
+  FAVORITE_KINDS,
+  MAX_FAVORITES_PER_KIND,
+  type FavoriteEntry,
+  type ProfileFavorites
+} from "../../src/domain/account/favorites.js";
+import {
+  hasUnsafeControlCharacters,
+  safeAnimeImageUrl
+} from "../../src/domain/security/validation.js";
 
 type JsonRecord = Record<string, unknown>;
 export const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,24}$/;
@@ -85,6 +95,54 @@ export function accountScoreStep(value: unknown): 0.5 | 1 {
     throw new ApiError(400, "Score increment must be 0.5 or 1.");
   }
   return value;
+}
+
+export function accountFavorites(value: unknown): ProfileFavorites {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new ApiError(400, "Favorites are invalid.");
+  }
+  const record = value as Record<string, unknown>;
+  if (Object.keys(record).some((key) => !FAVORITE_KINDS.includes(key as never))) {
+    throw new ApiError(400, "Favorites contain unsupported fields.");
+  }
+  const result = {} as ProfileFavorites;
+  for (const kind of FAVORITE_KINDS) {
+    const entries = record[kind];
+    if (!Array.isArray(entries) || entries.length > MAX_FAVORITES_PER_KIND) {
+      throw new ApiError(400, `Favorite ${kind} are invalid.`);
+    }
+    const ids = new Set<number>();
+    result[kind] = entries.map((entry): FavoriteEntry => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        throw new ApiError(400, `Favorite ${kind} are invalid.`);
+      }
+      const item = entry as Record<string, unknown>;
+      if (
+        !Number.isSafeInteger(item.id) ||
+        (item.id as number) <= 0 ||
+        ids.has(item.id as number) ||
+        typeof item.name !== "string" ||
+        !item.name.trim() ||
+        item.name.length > 200 ||
+        hasUnsafeControlCharacters(item.name)
+      ) {
+        throw new ApiError(400, `Favorite ${kind} are invalid.`);
+      }
+      ids.add(item.id as number);
+      const imageUrl = item.imageUrl === undefined
+        ? undefined
+        : safeAnimeImageUrl(item.imageUrl);
+      if (item.imageUrl !== undefined && !imageUrl) {
+        throw new ApiError(400, "Favorite image URL is invalid.");
+      }
+      return {
+        id: item.id as number,
+        name: item.name.trim(),
+        ...(imageUrl ? { imageUrl } : {})
+      };
+    });
+  }
+  return result;
 }
 
 export function accountDeletionConfirmation(value: unknown) {

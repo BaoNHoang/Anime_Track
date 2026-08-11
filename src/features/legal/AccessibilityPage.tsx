@@ -1,4 +1,4 @@
-import { Accessibility } from "lucide-react";
+import { Accessibility } from "../../components/OwnedIcons";
 
 export function AccessibilityPage() {
   return (

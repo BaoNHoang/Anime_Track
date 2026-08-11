@@ -1,5 +1,6 @@
 import { createContext } from "react";
 import type { AccountUser } from "../../services/account/accountApi";
+import type { ProfileFavorites } from "../../domain/account/favorites";
 
 export interface AuthActionResult {
   error?: string;
@@ -35,6 +36,7 @@ export interface CloudAuthContextValue {
     dataUrl: string
   ) => Promise<AuthActionResult>;
   updateScoreStep: (scoreStep: 0.5 | 1) => Promise<AuthActionResult>;
+  updateFavorites: (favorites: ProfileFavorites) => Promise<AuthActionResult>;
   deleteAccount: (confirmation: string) => Promise<AuthActionResult>;
   signInWithGoogle: () => void;
   signOut: () => Promise<AuthActionResult>;

@@ -24,14 +24,15 @@ public anime catalog and optional Supabase sync.
 
 ## Operating Context
 
-Users browse seasonal and popular anime, search the catalog, update episode
-progress, and occasionally import a MyAnimeList XML export. The interface is
-used repeatedly for short scanning and update tasks on desktop and mobile.
+Users browse seasonal, upcoming, historical, studio, and family collections;
+search the catalog; maintain an ordered set of profile favorites; update
+episode progress; and occasionally import a MyAnimeList XML export.
 
 ## Capabilities and Constraints
 
-- React and TypeScript PWA using ordinary CSS and Lucide icons.
+- React and TypeScript PWA using ordinary CSS and a Banime-owned SVG icon set.
 - Tenrai provides read-only catalog and news data.
+- Profile favorites are bounded local data with optional authenticated sync.
 - Existing light and dark themes must remain available.
 - The user requested a modern, simple redesign with transitioning background
   images, without visual clutter or heavyweight runtime dependencies.

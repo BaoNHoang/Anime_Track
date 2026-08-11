@@ -7,6 +7,60 @@ import { mapTenraiAnime } from "./mapper";
 const SHORT_LIST_CACHE_MS = 15 * 60 * 1000;
 const POPULAR_LIST_CACHE_MS = 6 * 60 * 60 * 1000;
 
+export type AnimeBrowsePreset =
+  | "airing"
+  | "upcoming"
+  | "popular"
+  | "classics"
+  | "ghibli"
+  | "family"
+  | "movies"
+  | "favorites"
+  | "past"
+  | "2000s"
+  | "2010s"
+  | "2020s";
+
+const BROWSE_PRESETS: Record<AnimeBrowsePreset, Record<string, string>> = {
+  airing: { status: "airing", order_by: "popularity", sort: "asc" },
+  upcoming: { status: "upcoming", order_by: "popularity", sort: "asc" },
+  popular: { order_by: "popularity", sort: "asc" },
+  classics: {
+    start_date: "1900-01-01",
+    end_date: "1999-12-31",
+    order_by: "score",
+    sort: "desc"
+  },
+  ghibli: { producers: "21", order_by: "score", sort: "desc" },
+  family: { rating: "g,pg", order_by: "popularity", sort: "asc" },
+  movies: { type: "movie", order_by: "score", sort: "desc" },
+  favorites: { order_by: "favorites", sort: "desc" },
+  past: {
+    start_date: "1970-01-01",
+    end_date: "1999-12-31",
+    order_by: "score",
+    sort: "desc"
+  },
+  "2000s": {
+    start_date: "2000-01-01",
+    end_date: "2009-12-31",
+    order_by: "score",
+    sort: "desc"
+  },
+  "2010s": {
+    start_date: "2010-01-01",
+    end_date: "2019-12-31",
+    order_by: "score",
+    sort: "desc"
+  },
+  "2020s": {
+    start_date: "2020-01-01",
+    end_date: "2029-12-31",
+    order_by: "score",
+    sort: "desc"
+  }
+};
+
 export function getTopAnimeCacheMs(
   filter: "airing" | "upcoming" | "bypopularity"
 ) {
@@ -71,6 +125,24 @@ export async function searchAnime(
       cacheMs: 30 * 60 * 1000,
       cacheStorage: "local"
     }
+  );
+  return mapPage(response);
+}
+
+export async function browseAnime(
+  preset: AnimeBrowsePreset,
+  page = 1,
+  signal?: AbortSignal
+): Promise<AnimePage> {
+  const params = new URLSearchParams({
+    ...BROWSE_PRESETS[preset],
+    limit: "24",
+    sfw: "true",
+    page: String(page)
+  });
+  const response = await tenraiGet<TenraiListResponse>(
+    `/anime?${params.toString()}`,
+    { signal, cacheMs: POPULAR_LIST_CACHE_MS, cacheStorage: "local" }
   );
   return mapPage(response);
 }

@@ -11,7 +11,7 @@ import {
   Smartphone,
   Sun,
   Upload,
-} from "lucide-react";
+} from "../../components/OwnedIcons";
 import { useRef, useState, type ChangeEvent } from "react";
 import {
   LibraryImportError,
@@ -153,9 +153,7 @@ export function SettingsPage() {
 
   return (
     <div className="page-stack settings-page">
-      <header className="page-heading">
-        <h1>Settings</h1>
-      </header>
+      <h1 className="visually-hidden">Settings</h1>
 
       <section className="settings-grid">
         <article className="settings-card">

@@ -8,6 +8,7 @@ create table if not exists public.profiles (
   banner_id text not null default 'banner-01',
   banner_path text,
   score_step numeric(2, 1) not null default 0.5,
+  favorites jsonb not null default '{"anime":[],"studios":[],"directors":[],"characters":[]}'::jsonb,
   username_normalized text generated always as (lower(username)) stored,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -22,6 +23,9 @@ create table if not exists public.profiles (
     )
     ),
   constraint profiles_score_step_check check (score_step in (0.5, 1.0)),
+  constraint profiles_favorites_check check (
+    jsonb_typeof(favorites) = 'object' and octet_length(favorites::text) <= 30000
+  ),
   constraint profiles_banner_id_check check (
     banner_id in ('banner-01', 'banner-02', 'banner-03', 'banner-04', 'banner-05')
   ),
@@ -38,7 +42,8 @@ alter table public.profiles
   add column if not exists avatar_path text,
   add column if not exists banner_id text not null default 'banner-01',
   add column if not exists banner_path text,
-  add column if not exists score_step numeric(2, 1) not null default 0.5;
+  add column if not exists score_step numeric(2, 1) not null default 0.5,
+  add column if not exists favorites jsonb not null default '{"anime":[],"studios":[],"directors":[],"characters":[]}'::jsonb;
 
 do $$
 begin
@@ -52,6 +57,16 @@ begin
         'male-01', 'male-02', 'male-03', 'male-04', 'male-05',
         'female-01', 'female-02', 'female-03', 'female-04', 'female-05'
       )
+    );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'profiles_favorites_check'
+      and conrelid = 'public.profiles'::regclass
+  ) then
+    alter table public.profiles add constraint profiles_favorites_check check (
+      jsonb_typeof(favorites) = 'object' and octet_length(favorites::text) <= 30000
     );
   end if;
 

@@ -1,4 +1,4 @@
-import { IdCard, LibraryBig, Map, Newspaper, Search, Settings2, UserRound } from "lucide-react";
+import { IdCard, LibraryBig, Map, Newspaper, Search, Settings2, UserRound } from "../../components/OwnedIcons";
 import { Link } from "react-router-dom";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
 
@@ -11,12 +11,12 @@ const publicLinks = [
 const personalLinks = [
   { to: "/profile", label: "Profile", icon: IdCard },
   { to: "/library", label: "Library", icon: LibraryBig },
-  { to: "/account", label: "Account", icon: UserRound },
   { to: "/settings", label: "Settings", icon: Settings2 }
 ];
 
 export function SiteMapPage() {
-  const { user } = useCloudAuth();
+  const { configured, user } = useCloudAuth();
+  const hasProfile = !configured || Boolean(user);
 
   return (
     <div className="page-stack legal-page">
@@ -39,8 +39,8 @@ export function SiteMapPage() {
           ))}
         </section>
         <section>
-          <h2>{user ? "Your account" : "Account"}</h2>
-          {user ? (
+          <h2>{hasProfile ? "Your Banime" : "Account"}</h2>
+          {hasProfile ? (
             personalLinks.map(({ to, label, icon: Icon }) => (
               <Link to={to} key={to}>
                 <Icon size={18} /> <span>{label}</span>

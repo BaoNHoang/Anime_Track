@@ -1,4 +1,4 @@
-import { ExternalLink, MessageCircle, PlayCircle } from "lucide-react";
+import { ExternalLink, MessageCircle, PlayCircle } from "../../components/OwnedIcons";
 import { ErrorState } from "../../components/ErrorState";
 import { useAnimeNews } from "../../hooks/useAnimeNews";
 
@@ -17,9 +17,7 @@ export function NewsPage() {
 
   return (
     <div className="page-stack">
-      <header className="page-heading">
-        <h1>Anime news</h1>
-      </header>
+      <h1 className="visually-hidden">Anime news</h1>
 
       {news.articlesLoading && (
         <div className="news-grid" aria-label="Loading anime news">

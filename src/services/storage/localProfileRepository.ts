@@ -1,4 +1,9 @@
 import { PROFILE_AVATARS } from "../../domain/account/avatars";
+import {
+  emptyProfileFavorites,
+  normalizeProfileFavorites,
+  type ProfileFavorites
+} from "../../domain/account/favorites";
 
 export interface LocalProfile {
   username: string;
@@ -6,13 +11,15 @@ export interface LocalProfile {
   avatarDataUrl?: string;
   bannerId: string;
   bannerDataUrl?: string;
+  favorites: ProfileFavorites;
 }
 
 const STORAGE_KEY = "banime.local-profile.v1";
 const DEFAULT_PROFILE: LocalProfile = {
   username: "Local profile",
   avatarId: PROFILE_AVATARS[0].id,
-  bannerId: "banner-01"
+  bannerId: "banner-01",
+  favorites: emptyProfileFavorites()
 };
 
 function readProfile(): LocalProfile {
@@ -44,7 +51,8 @@ function readProfile(): LocalProfile {
         parsed.bannerDataUrl.length <= 1_400_000 &&
         parsed.bannerDataUrl.startsWith("data:image/webp;base64,")
           ? parsed.bannerDataUrl
-          : undefined
+          : undefined,
+      favorites: normalizeProfileFavorites(parsed.favorites)
     };
   } catch {
     return DEFAULT_PROFILE;

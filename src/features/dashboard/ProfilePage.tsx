@@ -6,10 +6,14 @@ import { useTracker } from "../../app/providers/useTracker";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { profileAvatarSrc } from "../../domain/account/avatars";
 import { profileBannerSrc } from "../../domain/account/banners";
-import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { RecentActivity } from "./RecentActivity";
 import { AiringSchedule } from "./NextAiring";
 import { useLocalProfile } from "../../hooks/useLocalProfile";
+import type { CSSProperties } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { FavoriteEditor } from "./FavoriteEditor";
+import { ProfileSettings } from "./ProfileSettings";
+import type { FavoriteKind } from "../../domain/account/favorites";
 
 const GENRE_COLORS = [
   "var(--genre-1)",
@@ -20,10 +24,11 @@ const GENRE_COLORS = [
 ];
 
 export function ProfilePage() {
+  const [searchParams] = useSearchParams();
+  const editMode = searchParams.get("edit");
   const { items, stats } = useTracker();
   const { configured, initialized, user } = useCloudAuth();
   const { profile: localProfile } = useLocalProfile();
-  const { openAnime } = useAnimePanel();
   const airing = useTopAnime("airing");
   const showPersonalTracking = initialized && (!configured || Boolean(user));
   const displayProfile = user ?? (!configured ? localProfile : undefined);
@@ -48,8 +53,6 @@ export function ProfilePage() {
       value: stats.averageScore?.toFixed(1) ?? "-"
     }
   ];
-  const recentItems = [...items]
-    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
   const genreCounts = items
     .flatMap((item) => item.anime.genres)
     .reduce<Map<string, number>>((counts, genre) => {
@@ -88,6 +91,16 @@ export function ProfilePage() {
       )
     : [];
 
+  if (editMode === "favorites") return <FavoriteEditor />;
+  if (editMode === "profile") return <ProfileSettings />;
+
+  const favorites = displayProfile?.favorites;
+  const favoriteGroups: Array<{ kind: FavoriteKind; label: string }> = [
+    { kind: "studios", label: "Studios" },
+    { kind: "directors", label: "Directors" },
+    { kind: "characters", label: "Characters" }
+  ];
+
   return (
     <div className="dashboard-page">
       {showPersonalTracking && displayProfile ? (
@@ -101,14 +114,14 @@ export function ProfilePage() {
           <div className="profile-hero__identity">
             <img src={profileAvatarSrc(displayProfile)} alt="" />
             <div>
-              <span>Your Banime profile</span>
               <h1>{displayProfile.username}</h1>
               <p>{stats.watching} watching, {stats.completed} completed</p>
             </div>
           </div>
+          <Link className="profile-hero__edit" to="/profile?edit=profile">Edit profile</Link>
         </header>
       ) : (
-        <header className="page-heading"><h1>Home</h1></header>
+        <h1 className="visually-hidden">Profile</h1>
       )}
 
       {showPersonalTracking && (
@@ -171,15 +184,19 @@ export function ProfilePage() {
         </section>
       </div>
 
-      {showPersonalTracking && (favoriteGenres.length > 0 || recentItems.length > 0) && (
-        <section className="profile-overview">
+      {showPersonalTracking && favoriteGenres.length > 0 && (
+        <section className="profile-overview profile-overview--genres">
           {favoriteGenres.length > 0 && (
             <div className="profile-genres">
               <h2>Genre overview</h2>
               <div className="profile-genres__legend">
                 {favoriteGenres.map(([genre, count], index) => (
                   <div key={genre}>
-                    <span style={{ backgroundColor: GENRE_COLORS[index] }}>{genre}</span>
+                    <span
+                      style={{ "--genre-color": GENRE_COLORS[index] } as CSSProperties}
+                    >
+                      {genre}
+                    </span>
                     <strong>{count} <small>anime</small></strong>
                   </div>
                 ))}
@@ -198,23 +215,38 @@ export function ProfilePage() {
               </div>
             </div>
           )}
-          {recentItems.length > 0 && (
-            <div className="profile-library">
-              <h2>Anime</h2>
-              <div>
-                {recentItems.slice(0, 8).map((item) => (
-                  <button
-                    key={item.anime.id}
-                    onClick={() => openAnime(item.anime)}
-                    title={item.anime.titleEnglish || item.anime.title}
-                    aria-label={`Open ${item.anime.titleEnglish || item.anime.title}`}
-                  >
-                    <img src={item.anime.imageUrl} alt="" loading="lazy" />
-                  </button>
-                ))}
-              </div>
+        </section>
+      )}
+
+      {showPersonalTracking && favorites && (
+        <section className="profile-favorites">
+          <div className="section-header">
+            <div><h2>Favorites</h2></div>
+            <Link to="/profile?edit=favorites">Edit favorites</Link>
+          </div>
+          {favorites.anime.length > 0 ? (
+            <div className="profile-favorites__anime">
+              {favorites.anime.map((item, index) => (
+                <article key={item.id}>
+                  <span>{index + 1}</span>
+                  {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy" /> : <div>{item.name.slice(0, 1)}</div>}
+                  <strong>{item.name}</strong>
+                </article>
+              ))}
             </div>
+          ) : (
+            <p className="profile-favorites__empty">No favorite anime selected yet.</p>
           )}
+          <div className="profile-favorites__groups">
+            {favoriteGroups.map(({ kind, label }) => (
+              <div key={kind}>
+                <h3>{label}</h3>
+                {favorites[kind].length > 0 ? (
+                  <ol>{favorites[kind].map((item) => <li key={item.id}>{item.name}</li>)}</ol>
+                ) : <p>None selected</p>}
+              </div>
+            ))}
+          </div>
         </section>
       )}
     </div>

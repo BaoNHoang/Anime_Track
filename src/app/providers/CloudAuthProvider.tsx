@@ -112,6 +112,12 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
     [run]
   );
 
+  const updateFavorites = useCallback(
+    (favorites: import("../../domain/account/favorites").ProfileFavorites) =>
+      run(() => accountApi.updateFavorites(favorites)),
+    [run]
+  );
+
   const deleteAccount = useCallback(
     async (confirmation: string): Promise<AuthActionResult> => {
       const result = await accountApi.deleteAccount(confirmation);
@@ -147,6 +153,7 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       updateBanner,
       uploadProfileMedia,
       updateScoreStep,
+      updateFavorites,
       deleteAccount,
       signInWithGoogle,
       signOut
@@ -160,6 +167,7 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       updateBanner,
       uploadProfileMedia,
       updateScoreStep,
+      updateFavorites,
       deleteAccount,
       signIn,
       signInWithGoogle,
