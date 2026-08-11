@@ -115,7 +115,6 @@ export function ProfilePage() {
             <img src={profileAvatarSrc(displayProfile)} alt="" />
             <div>
               <h1>{displayProfile.username}</h1>
-              <p>{stats.watching} watching, {stats.completed} completed</p>
             </div>
           </div>
           <Link className="profile-hero__edit" to="/profile?edit=profile">Edit profile</Link>
