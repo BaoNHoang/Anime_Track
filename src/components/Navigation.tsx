@@ -3,9 +3,8 @@ import {
   LibraryBig,
   LayoutDashboard,
   Newspaper,
-  Settings2,
-  UserRound
-} from "lucide-react";
+  IdCard
+} from "./OwnedIcons";
 import { NavLink } from "react-router-dom";
 import { useCloudAuth } from "../app/providers/useCloudAuth";
 
@@ -15,21 +14,19 @@ const publicLinks = [
   { to: "/news", label: "News", icon: Newspaper }
 ];
 
-const personalLinks = [
-  { to: "/library", label: "Library", icon: LibraryBig },
-  { to: "/account", label: "Account", icon: UserRound },
-  { to: "/settings", label: "Settings", icon: Settings2 }
-];
+const libraryLink = { to: "/library", label: "Library", icon: LibraryBig };
+const profileLink = { to: "/profile", label: "Profile", icon: IdCard };
 
-export function Navigation() {
+export function Navigation({ variant = "header" }: { variant?: "header" | "mobile" }) {
   const { configured, initialized, user } = useCloudAuth();
-  const links = initialized && (!configured || user)
-    ? [...publicLinks, ...personalLinks]
+  const hasPersonalAccess = initialized && (!configured || user);
+  const links = hasPersonalAccess
+    ? [...publicLinks, libraryLink, profileLink]
     : publicLinks;
 
   return (
     <nav
-      className="navigation"
+      className={`navigation navigation--${variant}`}
       aria-label="Main navigation"
       data-count={links.length}
     >

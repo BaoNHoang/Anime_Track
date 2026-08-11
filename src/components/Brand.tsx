@@ -1,15 +1,16 @@
-import { Play } from "lucide-react";
+import { Link } from "react-router-dom";
+import { BanimeMark } from "./OwnedIcons";
 
 export function Brand() {
   return (
-    <div className="brand" aria-label="Banime home">
+    <Link className="brand" to="/" aria-label="Banime home">
       <span className="brand__mark" aria-hidden="true">
-        <Play size={15} fill="currentColor" />
+        <BanimeMark size={30} />
       </span>
       <span>
         <strong>Banime</strong>
         <small>Anime tracker</small>
       </span>
-    </div>
+    </Link>
   );
 }

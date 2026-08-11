@@ -3,7 +3,8 @@ import { useCloudAuth } from "../app/providers/useCloudAuth";
 import { Brand } from "./Brand";
 
 export function SiteFooter() {
-  const { user } = useCloudAuth();
+  const { configured, user } = useCloudAuth();
+  const hasProfile = !configured || Boolean(user);
 
   return (
     <footer className="site-footer">
@@ -17,12 +18,12 @@ export function SiteFooter() {
           <Link to="/discover">Discover</Link>
           <Link to="/news">News</Link>
         </nav>
-        <nav className="site-footer__group" aria-label="Account">
-          <strong>Account</strong>
-          {user ? (
+        <nav className="site-footer__group" aria-label={hasProfile ? "Your Banime" : "Account"}>
+          <strong>{hasProfile ? "Your Banime" : "Account"}</strong>
+          {hasProfile ? (
             <>
+              <Link to="/profile">Profile</Link>
               <Link to="/library">Library</Link>
-              <Link to="/account">Profile</Link>
               <Link to="/settings">Settings</Link>
             </>
           ) : (

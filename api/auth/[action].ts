@@ -20,6 +20,7 @@ import {
   accountPassword,
   accountRecord,
   accountScoreStep,
+  accountFavorites,
   accountUsername,
   loginIdentifier,
   loginPassword,
@@ -456,6 +457,31 @@ async function updatePreferences(
   });
 }
 
+async function updateFavorites(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const body = accountRecord(await readJson(request, 40_000));
+  const favorites = accountFavorites(body.favorites);
+  const auth = await authenticateRequest(request, response);
+  await enforceAuthRateLimit(request, "update-favorites", {
+    limit: 30,
+    windowSeconds: 15 * 60,
+    subject: auth.user.id
+  });
+  const { error } = await auth.client
+    .from("profiles")
+    .update({ favorites })
+    .eq("user_id", auth.user.id);
+  if (error) throw new ApiError(502, "Favorites could not be updated.");
+  sendJson(response, 200, {
+    user: await accountUser(auth.user, auth.client),
+    message: "Favorites updated."
+  });
+}
+
 async function logout(request: ApiRequest, response: ServerResponse) {
   requireMethod(request, "POST");
   requireSameOrigin(request);
@@ -611,6 +637,8 @@ export default async function handler(
         return await uploadProfileMedia(request, response);
       case "preferences":
         return await updatePreferences(request, response);
+      case "favorites":
+        return await updateFavorites(request, response);
       case "logout":
         return await logout(request, response);
       case "delete-account":

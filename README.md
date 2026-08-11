@@ -291,6 +291,7 @@ when deployed to Vercel or Netlify.
 - `src/app`: Application composition, routing, and shared providers
 - `src/app/providers`: Context providers and their colocated consumer hooks
 - `src/domain`: Framework-independent anime, news, and tracker models
+- `src/domain/account`: Profile appearance and bounded favorites models
 - `src/domain/watch`: Watch-provider registry and search-link builder
 - `src/services/tenrai`: Tenrai DTOs, mapping, throttling, news, and API access
 - `src/services/storage`: Local browser repository and legacy data migration
@@ -304,6 +305,11 @@ when deployed to Vercel or Netlify.
 
 Tenrai is read-only. Personal tracking data is never sent to Tenrai or
 MyAnimeList.
+
+Profile favorites use Tenrai only for public catalog search. The selected and
+ordered favorites remain in local browser storage or the authenticated Banime
+profile. Rerun `supabase/schema.sql` after updating so cloud profiles receive
+the `favorites` JSONB column and size constraint.
 
 Provider references:
 

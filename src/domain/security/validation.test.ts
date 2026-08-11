@@ -36,6 +36,7 @@ describe("security validation", () => {
     expect(hasUnsafeControlCharacters("safe text")).toBe(false);
     expect(hasUnsafeControlCharacters("unsafe\u0000text")).toBe(true);
     expect(truncateExternalText("a\u202Eb", 10)).toBe("ab");
+    expect(truncateExternalText("123456789", 8)).toBe("12345...");
   });
 
   it("escapes wildcard characters used by ILIKE", () => {

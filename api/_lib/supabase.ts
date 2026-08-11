@@ -7,6 +7,10 @@ import {
 } from "@supabase/supabase-js";
 import type { ApiRequest } from "./http.js";
 import { ApiError } from "./http.js";
+import {
+  normalizeProfileFavorites,
+  type ProfileFavorites
+} from "../../src/domain/account/favorites.js";
 
 const ACCESS_COOKIE = "banime_access";
 export const REFRESH_COOKIE = "banime_refresh";
@@ -23,6 +27,7 @@ export interface AccountUser {
   bannerId: string;
   bannerUrl?: string;
   scoreStep: 0.5 | 1;
+  favorites: ProfileFavorites;
 }
 
 function requiredEnv(name: string) {
@@ -176,7 +181,7 @@ export async function accountUser(
 ): Promise<AccountUser> {
   const { data } = await client
     .from("profiles")
-    .select("username, avatar_id, score_step")
+    .select("username, avatar_id, score_step, favorites")
     .eq("user_id", user.id)
     .maybeSingle();
   const { data: media } = await client
@@ -213,7 +218,8 @@ export async function accountUser(
     bannerId:
       typeof media?.banner_id === "string" ? media.banner_id : "banner-01",
     bannerUrl,
-    scoreStep: data?.score_step === 1 ? 1 : 0.5
+    scoreStep: data?.score_step === 1 ? 1 : 0.5,
+    favorites: normalizeProfileFavorites(data?.favorites)
   };
 }
 

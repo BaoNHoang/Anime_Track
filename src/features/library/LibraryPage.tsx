@@ -1,4 +1,4 @@
-import { LibraryBig, Search, X } from "lucide-react";
+import { LibraryBig, Search, X } from "../../components/OwnedIcons";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -145,9 +145,7 @@ export function LibraryPage() {
   if (configured && (!initialized || !user)) {
     return (
       <div className="page-stack">
-        <header className="page-heading">
-          <h1>Library</h1>
-        </header>
+        <h1 className="visually-hidden">Library</h1>
         <section className="empty-state empty-state--large">
           <span className="empty-state__icon">
             <LibraryBig size={28} />
@@ -169,9 +167,7 @@ export function LibraryPage() {
 
   return (
     <div className="page-stack">
-      <header className="page-heading">
-        <h1>Library</h1>
-      </header>
+      <h1 className="visually-hidden">Library</h1>
 
       <section className="query-panel">
         <div className="search-box">

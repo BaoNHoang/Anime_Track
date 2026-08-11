@@ -1,4 +1,4 @@
-import { LogIn, UserPlus, X } from "lucide-react";
+import { LogIn, UserPlus, X } from "../../components/OwnedIcons";
 import {
   useCallback,
   useEffect,

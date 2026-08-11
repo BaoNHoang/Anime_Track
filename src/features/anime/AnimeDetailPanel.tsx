@@ -1,11 +1,12 @@
 import {
   ExternalLink,
+  Heart,
   Play,
   Plus,
   Star,
   Trash2,
   X
-} from "lucide-react";
+} from "../../components/OwnedIcons";
 import { useEffect, useState } from "react";
 import { formatNextAiring } from "../../domain/anime/airing";
 import {
@@ -19,6 +20,8 @@ import { useTracker } from "../../app/providers/useTracker";
 import { useWatchProvider } from "../../app/providers/useWatchProvider";
 import { useAuthPrompt } from "../../app/providers/useAuthPrompt";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
+import { useLocalProfile } from "../../hooks/useLocalProfile";
+import { MAX_FAVORITES_PER_KIND } from "../../domain/account/favorites";
 import {
   MAX_USER_SCORE,
   MIN_USER_SCORE,
@@ -31,7 +34,8 @@ export function AnimeDetailPanel() {
   const anime = details.data ?? selectedAnime;
   const { addAnime, canManage, getTracked, updateAnime, removeAnime } = useTracker();
   const { requestSignIn } = useAuthPrompt();
-  const { user } = useCloudAuth();
+  const { configured, user, updateFavorites } = useCloudAuth();
+  const { profile: localProfile, updateProfile } = useLocalProfile();
   const { provider, getWatchUrl } = useWatchProvider();
   const tracked = anime ? getTracked(anime.id) : undefined;
   const scoreStep = user?.scoreStep ?? 0.5;
@@ -45,6 +49,31 @@ export function AnimeDetailPanel() {
       : tracked?.userScore?.toString() ?? "";
   const nextAiring = anime ? formatNextAiring(anime) : undefined;
   const watchUrl = anime ? getWatchUrl(anime) : "";
+  const favorites = user?.favorites ?? localProfile.favorites;
+  const isFavorite = anime
+    ? favorites.anime.some((item) => item.id === anime.id)
+    : false;
+
+  const toggleFavorite = () => {
+    if (!anime) return;
+    if (!canManage) {
+      closeAnime();
+      requestSignIn(`Sign in to favorite ${anime.titleEnglish || anime.title}.`);
+      return;
+    }
+    const nextAnime = isFavorite
+      ? favorites.anime.filter((item) => item.id !== anime.id)
+      : favorites.anime.length >= MAX_FAVORITES_PER_KIND
+        ? favorites.anime
+        : [...favorites.anime, {
+            id: anime.id,
+            name: anime.titleEnglish || anime.title,
+            ...(anime.imageUrl ? { imageUrl: anime.imageUrl } : {})
+          }];
+    const next = { ...favorites, anime: nextAnime };
+    if (!configured) updateProfile({ favorites: next });
+    else void updateFavorites(next);
+  };
 
   const saveScore = () => {
     if (!anime || !tracked) return;
@@ -101,6 +130,16 @@ export function AnimeDetailPanel() {
 
         <div className="detail-panel__body">
           <header className="detail-panel__heading">
+            <button
+              className={`detail-panel__favorite${isFavorite ? " is-active" : ""}`}
+              type="button"
+              onClick={toggleFavorite}
+              aria-pressed={isFavorite}
+              aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
+              {isFavorite ? "Favorited" : "Favorite"}
+            </button>
             <div className="detail-panel__tags">
               <span>{anime.type}</span>
               {anime.year && <span>{anime.year}</span>}

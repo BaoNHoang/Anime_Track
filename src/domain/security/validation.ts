@@ -86,7 +86,7 @@ export function truncateExternalText(value: string, maxLength: number) {
   if (withoutUnsafeControls.length <= maxLength) {
     return withoutUnsafeControls;
   }
-  return `${withoutUnsafeControls.slice(0, Math.max(0, maxLength - 1))}…`;
+  return `${withoutUnsafeControls.slice(0, Math.max(0, maxLength - 3))}...`;
 }
 
 export function escapePostgresLikePattern(value: string) {

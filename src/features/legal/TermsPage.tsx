@@ -1,4 +1,4 @@
-import { Scale } from "lucide-react";
+import { Scale } from "../../components/OwnedIcons";
 
 export function TermsPage() {
   return (

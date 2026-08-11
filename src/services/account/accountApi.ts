@@ -1,3 +1,5 @@
+import type { ProfileFavorites } from "../../domain/account/favorites";
+
 export interface AccountUser {
   id: string;
   email: string;
@@ -9,6 +11,7 @@ export interface AccountUser {
   bannerId: string;
   bannerUrl?: string;
   scoreStep: 0.5 | 1;
+  favorites: ProfileFavorites;
 }
 
 interface ApiResult {
@@ -100,6 +103,11 @@ export const accountApi = {
     request("/api/auth/preferences", {
       method: "POST",
       body: { scoreStep }
+    }),
+  updateFavorites: (favorites: ProfileFavorites) =>
+    request("/api/auth/favorites", {
+      method: "POST",
+      body: { favorites }
     }),
   deleteAccount: (confirmation: string) =>
     request("/api/auth/delete-account", {

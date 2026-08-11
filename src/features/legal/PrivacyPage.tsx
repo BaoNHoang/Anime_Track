@@ -1,4 +1,4 @@
-import { ExternalLink, ShieldCheck } from "lucide-react";
+import { ExternalLink, ShieldCheck } from "../../components/OwnedIcons";
 
 const PRIVACY_EMAIL = "bao12162003@gmail.com";
 
@@ -180,7 +180,7 @@ export function PrivacyPage() {
             We keep account and synchronized library data while your account is
             active or as needed for the purposes described here. You can change
             account details in Banime, export your library from Settings, sign
-            out, or delete your account from the Account page. Self-service
+            out, or delete your account from the Profile page. Self-service
             deletion removes the Supabase authentication user, profile, and
             synchronized library, then clears Banime&apos;s session cookies and
             local library on that browser. You can also ask us to access,
