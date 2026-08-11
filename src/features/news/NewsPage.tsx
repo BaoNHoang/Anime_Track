@@ -19,7 +19,6 @@ export function NewsPage() {
     <div className="page-stack">
       <header className="page-heading">
         <h1>Anime news</h1>
-        <p>Read recent stories and watch promotional videos.</p>
       </header>
 
       {news.articlesLoading && (

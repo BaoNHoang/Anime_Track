@@ -15,6 +15,13 @@ const PROFILE_AVATAR_IDS = new Set([
   "female-04",
   "female-05"
 ]);
+const PROFILE_BANNER_IDS = new Set([
+  "banner-01",
+  "banner-02",
+  "banner-03",
+  "banner-04",
+  "banner-05"
+]);
 
 export function accountRecord(value: unknown): JsonRecord {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -62,6 +69,13 @@ export function accountUsername(value: unknown) {
 export function accountAvatarId(value: unknown) {
   if (typeof value !== "string" || !PROFILE_AVATAR_IDS.has(value)) {
     throw new ApiError(400, "Profile picture is invalid.");
+  }
+  return value;
+}
+
+export function accountBannerId(value: unknown) {
+  if (typeof value !== "string" || !PROFILE_BANNER_IDS.has(value)) {
+    throw new ApiError(400, "Profile banner is invalid.");
   }
   return value;
 }

@@ -17,3 +17,11 @@ export function profileAvatar(avatarId: string) {
   return PROFILE_AVATARS.find((avatar) => avatar.id === avatarId) ??
     PROFILE_AVATARS[0];
 }
+
+export function profileAvatarSrc(profile: {
+  avatarId: string;
+  avatarUrl?: string;
+  avatarDataUrl?: string;
+}) {
+  return profile.avatarUrl || profile.avatarDataUrl || profileAvatar(profile.avatarId).src;
+}

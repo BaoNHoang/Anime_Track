@@ -19,6 +19,9 @@ export interface AccountUser {
   emailVerified: boolean;
   provider: string;
   avatarId: string;
+  avatarUrl?: string;
+  bannerId: string;
+  bannerUrl?: string;
   scoreStep: 0.5 | 1;
 }
 
@@ -176,6 +179,22 @@ export async function accountUser(
     .select("username, avatar_id, score_step")
     .eq("user_id", user.id)
     .maybeSingle();
+  const { data: media } = await client
+    .from("profiles")
+    .select("avatar_path, banner_id, banner_path")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const signedUrl = async (path: unknown, expectedName: string) => {
+    if (path !== `${user.id}/${expectedName}`) return undefined;
+    const { data: signed } = await client.storage
+      .from("profile-media")
+      .createSignedUrl(path, 60 * 60);
+    return signed?.signedUrl;
+  };
+  const [avatarUrl, bannerUrl] = await Promise.all([
+    signedUrl(media?.avatar_path, "avatar.webp"),
+    signedUrl(media?.banner_path, "banner.webp")
+  ]);
   return {
     id: user.id,
     email: user.email ?? "",
@@ -190,6 +209,10 @@ export async function accountUser(
         : "email",
     avatarId:
       typeof data?.avatar_id === "string" ? data.avatar_id : "male-01",
+    avatarUrl,
+    bannerId:
+      typeof media?.banner_id === "string" ? media.banner_id : "banner-01",
+    bannerUrl,
     scoreStep: data?.score_step === 1 ? 1 : 0.5
   };
 }

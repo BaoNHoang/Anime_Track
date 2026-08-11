@@ -95,6 +95,17 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
     [run]
   );
 
+  const updateBanner = useCallback(
+    (bannerId: string) => run(() => accountApi.updateBanner(bannerId)),
+    [run]
+  );
+
+  const uploadProfileMedia = useCallback(
+    (kind: "avatar" | "banner", dataUrl: string) =>
+      run(() => accountApi.uploadProfileMedia(kind, dataUrl)),
+    [run]
+  );
+
   const updateScoreStep = useCallback(
     (scoreStep: 0.5 | 1) =>
       run(() => accountApi.updateScoreStep(scoreStep)),
@@ -133,6 +144,8 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       resetPassword,
       updateUsername,
       updateAvatar,
+      updateBanner,
+      uploadProfileMedia,
       updateScoreStep,
       deleteAccount,
       signInWithGoogle,
@@ -144,6 +157,8 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       resetPassword,
       updateUsername,
       updateAvatar,
+      updateBanner,
+      uploadProfileMedia,
       updateScoreStep,
       deleteAccount,
       signIn,

@@ -1,0 +1,88 @@
+import { LogOut, Moon, Settings2, Sun, UserRound } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useCloudAuth } from "../app/providers/useCloudAuth";
+import { useTheme } from "../app/providers/useTheme";
+import { profileAvatarSrc } from "../domain/account/avatars";
+import type { AccountUser } from "../services/account/accountApi";
+import type { LocalProfile } from "../services/storage/localProfileRepository";
+
+type UserMenuProps =
+  | { user: AccountUser; localProfile?: never }
+  | { user?: never; localProfile: LocalProfile };
+
+export function UserMenu({ user, localProfile }: UserMenuProps) {
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string>();
+  const menuRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const { signOut } = useCloudAuth();
+  const { theme, toggleTheme } = useTheme();
+  const profile = user ?? localProfile;
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  const handleSignOut = async () => {
+    setError(undefined);
+    const result = await signOut();
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setOpen(false);
+    navigate("/", { replace: true });
+  };
+
+  return (
+    <div className="user-menu" ref={menuRef}>
+      <button
+        className="user-menu__trigger"
+        type="button"
+        aria-label={`Open ${profile.username} menu`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <img src={profileAvatarSrc(profile)} alt="" />
+      </button>
+      {open && (
+        <div className="user-menu__popover" role="menu">
+          <div className="user-menu__identity">
+            <strong>{profile.username}</strong>
+            <span>{user ? user.email : "Stored on this device"}</span>
+          </div>
+          <Link to="/account" role="menuitem" onClick={() => setOpen(false)}>
+            <UserRound size={17} /> Account
+          </Link>
+          <Link to="/settings" role="menuitem" onClick={() => setOpen(false)}>
+            <Settings2 size={17} /> Settings
+          </Link>
+          <button type="button" role="menuitem" onClick={toggleTheme}>
+            {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+            {theme === "dark" ? "Light mode" : "Dark mode"}
+          </button>
+          {user && (
+            <button type="button" role="menuitem" onClick={() => void handleSignOut()}>
+              <LogOut size={17} /> Sign out
+            </button>
+          )}
+          {error && <p role="alert">{error}</p>}
+        </div>
+      )}
+    </div>
+  );
+}

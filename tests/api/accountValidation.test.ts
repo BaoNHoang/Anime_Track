@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   accountDeletionConfirmation,
+  accountBannerId,
   accountEmail,
   accountAvatarId,
   accountPassword,
@@ -39,6 +40,12 @@ describe("account validation", () => {
     expect(accountAvatarId("female-05")).toBe("female-05");
     expect(() => accountAvatarId("../../secret")).toThrow();
     expect(() => accountAvatarId("unknown-avatar")).toThrow();
+  });
+
+  it("accepts only bundled profile banners", () => {
+    expect(accountBannerId("banner-05")).toBe("banner-05");
+    expect(() => accountBannerId("../../secret")).toThrow();
+    expect(() => accountBannerId("banner-99")).toThrow();
   });
 
   it("accepts whole-number or half-step score preferences", () => {

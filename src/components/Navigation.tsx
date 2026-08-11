@@ -22,8 +22,8 @@ const personalLinks = [
 ];
 
 export function Navigation() {
-  const { initialized, user } = useCloudAuth();
-  const links = initialized && user
+  const { configured, initialized, user } = useCloudAuth();
+  const links = initialized && (!configured || user)
     ? [...publicLinks, ...personalLinks]
     : publicLinks;
 

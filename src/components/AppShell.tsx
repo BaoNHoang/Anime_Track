@@ -1,23 +1,18 @@
-import { LogIn, Moon, Sun, UserPlus } from "lucide-react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { LogIn, UserPlus } from "lucide-react";
+import { Link, Outlet } from "react-router-dom";
 import { AnimeDetailPanel } from "../features/anime/AnimeDetailPanel";
 import { AmbientBackdrop } from "./AmbientBackdrop";
 import { Brand } from "./Brand";
 import { Navigation } from "./Navigation";
-import { useTheme } from "../app/providers/useTheme";
 import { useCloudAuth } from "../app/providers/useCloudAuth";
 import { AuthPromptProvider } from "../app/providers/AuthPromptProvider";
 import { SiteFooter } from "./SiteFooter";
-import { profileAvatar } from "../domain/account/avatars";
+import { UserMenu } from "./UserMenu";
+import { useLocalProfile } from "../hooks/useLocalProfile";
 
 export function AppShell() {
-  const { theme, toggleTheme } = useTheme();
-  const { initialized, user } = useCloudAuth();
-  const { pathname } = useLocation();
-  const pageTitle =
-    pathname === "/"
-      ? "Overview"
-      : pathname.slice(1).replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const { configured, initialized, user } = useCloudAuth();
+  const { profile: localProfile } = useLocalProfile();
 
   return (
     <AuthPromptProvider>
@@ -34,22 +29,11 @@ export function AppShell() {
           <div className="topbar__mobile-brand">
             <Brand />
           </div>
-          <span className="topbar__title">{pageTitle}</span>
           <div className="topbar__spacer" />
           {initialized && user ? (
-            <div className="topbar-user">
-              <button
-                className="icon-button"
-                onClick={toggleTheme}
-                aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-              >
-                {theme === "dark" ? <Sun size={19} /> : <Moon size={19} />}
-              </button>
-              <Link className="topbar-profile" to="/account">
-                <span>{user.username}</span>
-                <img src={profileAvatar(user.avatarId).src} alt="" />
-              </Link>
-            </div>
+            <UserMenu user={user} />
+          ) : initialized && !configured ? (
+            <UserMenu localProfile={localProfile} />
           ) : initialized ? (
             <div className="topbar-auth" aria-label="Account access">
               <Link to="/account?mode=sign_in">

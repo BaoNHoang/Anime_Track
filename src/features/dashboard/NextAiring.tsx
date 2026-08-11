@@ -10,9 +10,11 @@ import { useAnimePanel } from "../../app/providers/useAnimePanel";
 
 export function AiringSchedule({
   items,
+  priorityByAnimeId,
   compact = false
 }: {
   items: Anime[];
+  priorityByAnimeId?: ReadonlyMap<number, { rank: number; label?: string }>;
   compact?: boolean;
 }) {
   const [now, setNow] = useState(() => new Date());
@@ -35,9 +37,14 @@ export function AiringSchedule({
             date: Date;
           } => Boolean(item.date)
         )
-        .sort((left, right) => left.date.getTime() - right.date.getTime())
+        .sort((left, right) => {
+          const priorityDifference =
+            (priorityByAnimeId?.get(left.anime.id)?.rank ?? 3) -
+            (priorityByAnimeId?.get(right.anime.id)?.rank ?? 3);
+          return priorityDifference || left.date.getTime() - right.date.getTime();
+        })
         .slice(0, compact ? 6 : 10),
-    [compact, items, now]
+    [compact, items, now, priorityByAnimeId]
   );
 
   if (!upcoming.length) {
@@ -66,7 +73,12 @@ export function AiringSchedule({
             </span>
             <span className="airing-list__content">
               <strong>{anime.titleEnglish || anime.title}</strong>
-              <small>{formatNextAiring(anime, now)?.split(" - ")[0]}</small>
+              <small>
+                {priorityByAnimeId?.get(anime.id)?.label && (
+                  <em>{priorityByAnimeId.get(anime.id)?.label}</em>
+                )}
+                {formatNextAiring(anime, now)?.split(" - ")[0]}
+              </small>
             </span>
             <span className="airing-list__time">
               {formatAiringRelative(anime, now) ?? "TBA"}
@@ -107,7 +119,14 @@ export function AiringSchedule({
 
 export function UpcomingSchedule({ items }: { items: Anime[] }) {
   const { openAnime } = useAnimePanel();
-  const upcoming = items.slice(0, 8);
+  const [now] = useState(() => Date.now());
+  const upcoming = items
+    .filter((anime) => {
+      const startTime = anime.startDate ? Date.parse(anime.startDate) : Number.NaN;
+      return !anime.status.toLowerCase().includes("airing") &&
+        (Number.isNaN(startTime) || startTime > now);
+    })
+    .slice(0, 8);
 
   if (!upcoming.length) {
     return (

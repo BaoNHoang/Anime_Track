@@ -15,6 +15,7 @@ import {
   USERNAME_PATTERN,
   accountDeletionConfirmation,
   accountAvatarId,
+  accountBannerId,
   accountEmail,
   accountPassword,
   accountRecord,
@@ -38,6 +39,10 @@ import {
   setPkceCookie,
   setSessionCookies
 } from "../_lib/supabase.js";
+import {
+  profileMediaKind,
+  sanitizeProfileMedia
+} from "../_lib/profileMedia.js";
 
 async function login(
   request: ApiRequest,
@@ -338,12 +343,91 @@ async function updateAvatar(
   });
   const { error } = await auth.client
     .from("profiles")
-    .update({ avatar_id: avatarId })
+    .update({ avatar_id: avatarId, avatar_path: null })
     .eq("user_id", auth.user.id);
   if (error) throw new ApiError(502, "Profile picture could not be updated.");
+  const { error: removeError } = await auth.client.storage
+    .from("profile-media")
+    .remove([`${auth.user.id}/avatar.webp`]);
+  if (removeError) {
+    throw new ApiError(502, "Previous profile picture could not be removed.");
+  }
   sendJson(response, 200, {
     user: await accountUser(auth.user, auth.client),
     message: "Profile picture updated."
+  });
+}
+
+async function updateBanner(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const body = accountRecord(await readJson(request));
+  const bannerId = accountBannerId(body.bannerId);
+  const auth = await authenticateRequest(request, response);
+  await enforceAuthRateLimit(request, "update-banner", {
+    limit: 20,
+    windowSeconds: 15 * 60,
+    subject: auth.user.id
+  });
+  const { error } = await auth.client
+    .from("profiles")
+    .update({ banner_id: bannerId, banner_path: null })
+    .eq("user_id", auth.user.id);
+  if (error) throw new ApiError(502, "Profile banner could not be updated.");
+  const { error: removeError } = await auth.client.storage
+    .from("profile-media")
+    .remove([`${auth.user.id}/banner.webp`]);
+  if (removeError) {
+    throw new ApiError(502, "Previous profile banner could not be removed.");
+  }
+  sendJson(response, 200, {
+    user: await accountUser(auth.user, auth.client),
+    message: "Profile banner updated."
+  });
+}
+
+async function uploadProfileMedia(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const auth = await authenticateRequest(request, response);
+  await enforceAuthRateLimit(request, "profile-media", {
+    limit: 10,
+    ipLimit: 30,
+    windowSeconds: 60 * 60,
+    subject: auth.user.id
+  });
+  const body = accountRecord(await readJson(request, 2_100_000));
+  const kind = profileMediaKind(body.kind);
+  const image = await sanitizeProfileMedia(body.dataUrl, kind);
+  const path = `${auth.user.id}/${kind}.webp`;
+  const { error: uploadError } = await auth.client.storage
+    .from("profile-media")
+    .upload(path, image, {
+      cacheControl: "3600",
+      contentType: "image/webp",
+      upsert: true
+    });
+  if (uploadError) throw new ApiError(502, "Profile image could not be stored.");
+
+  const updates = kind === "avatar"
+    ? { avatar_path: path }
+    : { banner_path: path };
+  const { error: profileError } = await auth.client
+    .from("profiles")
+    .update(updates)
+    .eq("user_id", auth.user.id);
+  if (profileError) {
+    throw new ApiError(502, "Profile image could not be attached to your account.");
+  }
+  sendJson(response, 200, {
+    user: await accountUser(auth.user, auth.client),
+    message: kind === "avatar" ? "Profile picture uploaded." : "Profile banner uploaded."
   });
 }
 
@@ -408,6 +492,15 @@ async function deleteAccount(
     subject: auth.user.id
   });
   const admin = createAdminClient();
+  const { error: mediaError } = await auth.client.storage
+    .from("profile-media")
+    .remove([
+      `${auth.user.id}/avatar.webp`,
+      `${auth.user.id}/banner.webp`
+    ]);
+  if (mediaError) {
+    throw new ApiError(502, "Your profile media could not be deleted.");
+  }
   const { error } = await admin.auth.admin.deleteUser(auth.user.id);
   if (error) {
     console.error("Account deletion failed.", {
@@ -512,6 +605,10 @@ export default async function handler(
         return await updateUsername(request, response);
       case "avatar":
         return await updateAvatar(request, response);
+      case "banner":
+        return await updateBanner(request, response);
+      case "profile-media":
+        return await uploadProfileMedia(request, response);
       case "preferences":
         return await updatePreferences(request, response);
       case "logout":

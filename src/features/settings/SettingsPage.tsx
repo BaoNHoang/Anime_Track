@@ -155,7 +155,6 @@ export function SettingsPage() {
     <div className="page-stack settings-page">
       <header className="page-heading">
         <h1>Settings</h1>
-        <p>Control how Banime looks, scores, stores, and opens your library.</p>
       </header>
 
       <section className="settings-grid">

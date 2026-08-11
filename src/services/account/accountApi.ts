@@ -5,6 +5,9 @@ export interface AccountUser {
   emailVerified: boolean;
   provider: string;
   avatarId: string;
+  avatarUrl?: string;
+  bannerId: string;
+  bannerUrl?: string;
   scoreStep: 0.5 | 1;
 }
 
@@ -82,6 +85,16 @@ export const accountApi = {
     request("/api/auth/avatar", {
       method: "POST",
       body: { avatarId }
+    }),
+  updateBanner: (bannerId: string) =>
+    request("/api/auth/banner", {
+      method: "POST",
+      body: { bannerId }
+    }),
+  uploadProfileMedia: (kind: "avatar" | "banner", dataUrl: string) =>
+    request("/api/auth/profile-media", {
+      method: "POST",
+      body: { kind, dataUrl }
     }),
   updateScoreStep: (scoreStep: 0.5 | 1) =>
     request("/api/auth/preferences", {
