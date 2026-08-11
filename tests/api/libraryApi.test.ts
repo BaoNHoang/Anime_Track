@@ -36,7 +36,11 @@ function response() {
 
 describe("private library API", () => {
   it("scopes a library read to the authenticated user", async () => {
-    const order = vi.fn().mockResolvedValue({ data: [{ item: { id: 1 } }], error: null });
+    const range = vi
+      .fn()
+      .mockResolvedValue({ data: [{ item: { id: 1 } }], error: null });
+    const animeOrder = vi.fn().mockReturnValue({ range });
+    const order = vi.fn().mockReturnValue({ order: animeOrder });
     const eq = vi.fn().mockReturnValue({ order });
     const select = vi.fn().mockReturnValue({ eq });
     mocks.authenticateRequest.mockResolvedValue({
@@ -48,8 +52,33 @@ describe("private library API", () => {
     await libraryHandler({ method: "GET", headers: {} } as ApiRequest, result as never);
 
     expect(eq).toHaveBeenCalledWith("user_id", "user-a");
+    expect(range).toHaveBeenCalledWith(0, 999);
     expect(result.statusCode).toBe(200);
     expect(result.body).toBe('{"items":[{"id":1}]}');
+  });
+
+  it("loads every Supabase page instead of stopping at 1,000 items", async () => {
+    const firstPage = Array.from({ length: 1000 }, (_, index) => ({
+      item: { id: index + 1 }
+    }));
+    const range = vi
+      .fn()
+      .mockResolvedValueOnce({ data: firstPage, error: null })
+      .mockResolvedValueOnce({ data: [{ item: { id: 1001 } }], error: null });
+    const animeOrder = vi.fn().mockReturnValue({ range });
+    const order = vi.fn().mockReturnValue({ order: animeOrder });
+    const eq = vi.fn().mockReturnValue({ order });
+    mocks.authenticateRequest.mockResolvedValue({
+      user: { id: "user-a" },
+      client: { from: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ eq }) }) }
+    });
+    const result = response();
+
+    await libraryHandler({ method: "GET", headers: {} } as ApiRequest, result as never);
+
+    expect(range).toHaveBeenNthCalledWith(1, 0, 999);
+    expect(range).toHaveBeenNthCalledWith(2, 1000, 1999);
+    expect(JSON.parse(result.body).items).toHaveLength(1001);
   });
 
   it("scopes a delete to the authenticated user and validated numeric ID", async () => {

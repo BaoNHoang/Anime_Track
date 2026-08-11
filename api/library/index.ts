@@ -14,6 +14,8 @@ import {
 } from "../_lib/http.js";
 import { authenticateRequest } from "../_lib/supabase.js";
 
+const LIBRARY_PAGE_SIZE = 1000;
+
 function toCloudRow(userId: string, item: TrackedAnime) {
   return {
     user_id: userId,
@@ -39,15 +41,23 @@ export default async function handler(
     const auth = await authenticateRequest(request, response);
 
     if (request.method === "GET") {
-      const { data, error } = await auth.client
-        .from("tracked_anime")
-        .select("item")
-        .eq("user_id", auth.user.id)
-        .order("updated_at", { ascending: false });
-      if (error) throw new ApiError(502, "Cloud library could not be loaded.");
-      sendJson(response, 200, {
-        items: (data ?? []).map((row) => row.item)
-      });
+      const items: unknown[] = [];
+      for (let offset = 0; ; offset += LIBRARY_PAGE_SIZE) {
+        const { data, error } = await auth.client
+          .from("tracked_anime")
+          .select("item")
+          .eq("user_id", auth.user.id)
+          .order("updated_at", { ascending: false })
+          .order("anime_id", { ascending: true })
+          .range(offset, offset + LIBRARY_PAGE_SIZE - 1);
+        if (error) {
+          throw new ApiError(502, "Cloud library could not be loaded.");
+        }
+        const page = data ?? [];
+        items.push(...page.map((row) => row.item));
+        if (page.length < LIBRARY_PAGE_SIZE) break;
+      }
+      sendJson(response, 200, { items });
       return;
     }
 
