@@ -1,4 +1,21 @@
-create extension if not exists pg_trgm;
+create schema if not exists extensions;
+
+create extension if not exists pg_trgm with schema extensions;
+
+do $$
+begin
+  if exists (
+    select 1
+    from pg_extension extension_record
+    join pg_namespace extension_schema
+      on extension_schema.oid = extension_record.extnamespace
+    where extension_record.extname = 'pg_trgm'
+      and extension_schema.nspname <> 'extensions'
+  ) then
+    execute 'alter extension pg_trgm set schema extensions';
+  end if;
+end
+$$;
 
 create table if not exists public.profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
@@ -469,11 +486,11 @@ create index if not exists tracked_anime_user_score_idx
 
 create index if not exists tracked_anime_title_search_idx
   on public.tracked_anime
-  using gin (lower(anime_title) gin_trgm_ops);
+  using gin (lower(anime_title) extensions.gin_trgm_ops);
 
 create index if not exists tracked_anime_title_ilike_idx
   on public.tracked_anime
-  using gin (anime_title gin_trgm_ops);
+  using gin (anime_title extensions.gin_trgm_ops);
 
 alter table public.tracked_anime enable row level security;
 
@@ -509,3 +526,53 @@ create policy "Users can delete their own tracked anime"
   for delete
   to authenticated
   using ((select auth.uid()) = user_id);
+
+create or replace function public.rls_auto_enable()
+returns event_trigger
+language plpgsql
+security definer
+set search_path = pg_catalog
+as $$
+declare
+  cmd record;
+begin
+  for cmd in
+    select *
+    from pg_event_trigger_ddl_commands()
+    where command_tag in ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
+      and object_type in ('table', 'partitioned table')
+  loop
+    if cmd.schema_name is not null
+      and cmd.schema_name in ('public')
+      and cmd.schema_name not in ('pg_catalog', 'information_schema')
+      and cmd.schema_name not like 'pg_toast%'
+      and cmd.schema_name not like 'pg_temp%'
+    then
+      begin
+        execute format(
+          'alter table if exists %s enable row level security',
+          cmd.object_identity
+        );
+        raise log 'rls_auto_enable: enabled RLS on %', cmd.object_identity;
+      exception
+        when others then
+          raise log 'rls_auto_enable: failed to enable RLS on %', cmd.object_identity;
+      end;
+    else
+      raise log
+        'rls_auto_enable: skip % (either system schema or not in enforced list: %.)',
+        cmd.object_identity,
+        cmd.schema_name;
+    end if;
+  end loop;
+end;
+$$;
+
+revoke all privileges
+  on function public.rls_auto_enable()
+  from public, anon, authenticated, service_role;
+
+drop event trigger if exists ensure_rls;
+create event trigger ensure_rls
+  on ddl_command_end
+  execute function public.rls_auto_enable();
