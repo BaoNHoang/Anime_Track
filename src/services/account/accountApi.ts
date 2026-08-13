@@ -4,7 +4,6 @@ export interface AccountUser {
   id: string;
   email: string;
   username: string;
-  emailVerified: boolean;
   provider: string;
   avatarId: string;
   avatarUrl?: string;

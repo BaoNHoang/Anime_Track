@@ -3410,12 +3410,6 @@ h3,
   color: var(--muted);
 }
 
-.account-profile__status {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 .account-profile__section {
   display: grid;
   gap: 16px;

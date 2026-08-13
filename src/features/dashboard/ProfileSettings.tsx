@@ -1,9 +1,7 @@
 import {
-  BadgeCheck,
   Check,
   ChevronLeft,
   ImageUp,
-  ShieldCheck,
   Trash2
 } from "../../components/OwnedIcons";
 import { useState, type FormEvent } from "react";
@@ -219,12 +217,6 @@ export function ProfileSettings() {
           <span className="account-avatar"><img src={profileAvatarSrc(activeProfile)} alt="" /></span>
           <div><h2>{activeProfile.username}</h2><p>{user?.email ?? "Stored only on this device"}</p></div>
         </div>
-        {user && (
-          <div className="account-profile__status">
-            <span className="status-pill status-pill--success"><BadgeCheck size={14} /> {user.emailVerified ? "Email verified" : "Verification pending"}</span>
-            <span className="status-pill"><ShieldCheck size={14} /> Private sync</span>
-          </div>
-        )}
         {message && <p className={`form-message form-message--${message.tone}`} role={message.tone === "error" ? "alert" : "status"}>{message.text}</p>}
         <ProfileMediaControls
           profile={activeProfile}
