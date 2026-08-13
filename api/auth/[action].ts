@@ -106,7 +106,11 @@ async function login(
     email: resolvedEmail,
     password: submittedPassword
   });
-  if (error || !data.session || !data.user) {
+  if (
+    error ||
+    !data.session ||
+    !data.user?.email_confirmed_at
+  ) {
     throw new ApiError(401, "Email, username, or password is incorrect.");
   }
   setSessionCookies(response, data.session);
@@ -152,14 +156,35 @@ async function signup(request: ApiRequest, response: ServerResponse) {
       emailRedirectTo: `${appUrl(request)}/account`
     }
   });
+  const pendingUser = data.user;
   if (error) {
-    throw new ApiError(400, "The account could not be created.");
+    if (pendingUser && !pendingUser.email_confirmed_at) {
+      const { error: rollbackError } = await admin.auth.admin.deleteUser(
+        pendingUser.id
+      );
+      if (rollbackError) {
+        console.error("Failed to roll back an unverified signup.", {
+          message: rollbackError.message,
+          status: rollbackError.status
+        });
+      }
+    }
+    throw new ApiError(
+      502,
+      "Verification email could not be sent. No account was created."
+    );
   }
   if (data.user?.identities?.length === 0) {
     sendJson(response, 200, { message: genericSignupMessage });
     return;
   }
-  if (data.session) setSessionCookies(response, data.session);
+  if (data.session || data.user?.email_confirmed_at) {
+    if (data.user) await admin.auth.admin.deleteUser(data.user.id);
+    throw new ApiError(
+      503,
+      "Email verification is required but is not configured correctly."
+    );
+  }
   sendJson(response, 200, {
     message: genericSignupMessage
   });
@@ -185,7 +210,11 @@ async function verifyEmail(
     token,
     type: "signup"
   });
-  if (error || !data.session || !data.user) {
+  if (
+    error ||
+    !data.session ||
+    !data.user?.email_confirmed_at
+  ) {
     throw new ApiError(400, "The verification code is invalid or expired.");
   }
   setSessionCookies(response, data.session);
@@ -238,9 +267,20 @@ async function forgotPassword(
     subject: recoveryEmail
   });
   const client = createPublicClient();
-  await client.auth.resetPasswordForEmail(recoveryEmail, {
+  const { error } = await client.auth.resetPasswordForEmail(recoveryEmail, {
     redirectTo: `${appUrl(request)}/account`
   });
+  if (error) {
+    console.error("Password reset email dispatch failed.", {
+      code: error.code,
+      message: error.message,
+      status: error.status
+    });
+    throw new ApiError(
+      502,
+      "Password reset email could not be sent. Try again later."
+    );
+  }
   sendJson(response, 200, {
     message:
       "If the account exists, a password reset code has been sent."

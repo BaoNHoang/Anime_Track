@@ -20,7 +20,6 @@ export interface AccountUser {
   id: string;
   email: string;
   username: string;
-  emailVerified: boolean;
   provider: string;
   avatarId: string;
   avatarUrl?: string;
@@ -207,7 +206,6 @@ export async function accountUser(
       typeof data?.username === "string"
         ? data.username
         : `user_${user.id.replaceAll("-", "").slice(0, 12)}`,
-    emailVerified: Boolean(user.email_confirmed_at),
     provider:
       typeof user.app_metadata.provider === "string"
         ? user.app_metadata.provider
@@ -234,7 +232,7 @@ export async function authenticateRequest(
 
   if (accessToken) {
     const { data, error } = await client.auth.getUser(accessToken);
-    if (!error && data.user) {
+    if (!error && data.user?.email_confirmed_at) {
       return {
         user: data.user,
         accessToken,
@@ -247,7 +245,7 @@ export async function authenticateRequest(
     const { data, error } = await client.auth.refreshSession({
       refresh_token: refreshToken
     });
-    if (!error && data.session && data.user) {
+    if (!error && data.session && data.user?.email_confirmed_at) {
       setSessionCookies(response, data.session);
       accessToken = data.session.access_token;
       return {

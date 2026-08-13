@@ -224,6 +224,10 @@ as $$
 declare
   requested_username text;
 begin
+  if new.email_confirmed_at is null then
+    return new;
+  end if;
+
   requested_username := trim(new.raw_user_meta_data ->> 'username');
   if requested_username is null
     or requested_username !~ '^[A-Za-z0-9_]{3,24}$'
@@ -232,24 +236,38 @@ begin
   end if;
 
   insert into public.profiles (user_id, username)
-  values (new.id, requested_username);
+  values (new.id, requested_username)
+  on conflict (user_id) do nothing;
   return new;
 end;
 $$;
 
-revoke all on function public.handle_new_auth_user() from public;
+revoke all on function public.handle_new_auth_user() from public, anon, authenticated;
 
 insert into public.profiles (user_id, username)
 select
   id,
   'user_' || left(replace(id::text, '-', ''), 12)
 from auth.users
+where email_confirmed_at is not null
 on conflict (user_id) do nothing;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
-  for each row execute procedure public.handle_new_auth_user();
+  for each row
+  when (new.email_confirmed_at is not null)
+  execute procedure public.handle_new_auth_user();
+
+drop trigger if exists on_auth_user_confirmed on auth.users;
+create trigger on_auth_user_confirmed
+  after update of email_confirmed_at on auth.users
+  for each row
+  when (
+    old.email_confirmed_at is null
+    and new.email_confirmed_at is not null
+  )
+  execute procedure public.handle_new_auth_user();
 
 create table if not exists public.tracked_anime (
   user_id uuid not null references auth.users(id) on delete cascade,
