@@ -44,7 +44,7 @@ export function AccountPage() {
   );
   const [submitting, setSubmitting] = useState(false);
 
-  if (!configured || user) return <Navigate to="/profile?edit=profile" replace />;
+  if (!configured || user) return <Navigate to="/profile" replace />;
 
   const switchMode = (next: AccountMode) => {
     setMode(next);

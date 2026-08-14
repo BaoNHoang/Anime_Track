@@ -642,7 +642,7 @@ async function callback(request: ApiRequest, response: ServerResponse) {
   setSessionCookies(response, data.session);
   response.statusCode = 302;
   response.setHeader("Cache-Control", "no-store");
-  response.setHeader("Location", `${appUrl(request)}/account`);
+  response.setHeader("Location", `${appUrl(request)}/profile`);
   response.end();
 }
 
