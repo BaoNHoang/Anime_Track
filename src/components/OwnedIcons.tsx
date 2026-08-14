@@ -28,6 +28,7 @@ type NamedIconProps = IconProps;
 
 export const Accessibility = (props: NamedIconProps) => <Icon {...props}><circle cx="12" cy="4" r="2"/><path d="M5 8h14M12 8v5m0 0-4 7m4-7 4 7M8 10l4 3 4-3"/></Icon>;
 export const BadgeCheck = (props: NamedIconProps) => <Icon {...props}><path d="m12 2 2.2 2 3-.1.8 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.8 2.9-3-.1-2.2 2-2.2-2-3 .1-.8-2.9-2.5-1.7 1-2.8-1-2.8L6 6.8l.8-2.9 3 .1L12 2Z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></Icon>;
+export const Bell = (props: NamedIconProps) => <Icon {...props}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></Icon>;
 export const Check = (props: NamedIconProps) => <Icon {...props}><path d="m5 12.5 4.2 4.2L19 7"/></Icon>;
 export const CheckCircle2 = (props: NamedIconProps) => <Icon {...props}><circle cx="12" cy="12" r="9"/><path d="m7.8 12.2 2.8 2.8 5.8-6"/></Icon>;
 export const ChevronLeft = (props: NamedIconProps) => <Icon {...props}><path d="m14.5 5-7 7 7 7"/></Icon>;
