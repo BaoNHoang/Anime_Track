@@ -34,12 +34,15 @@ export function TrackerProvider({ children }: PropsWithChildren) {
     "local" | "syncing" | "synced" | "error"
   >("local");
   const [syncError, setSyncError] = useState<string>();
+  const [hydratedUserId, setHydratedUserId] = useState<string>();
   const itemsRef = useRef(items);
   const syncQueueRef = useRef(Promise.resolve());
   const syncedUserRef = useRef<string | undefined>(undefined);
   const { configured, user, initialized } = useCloudAuth();
   const activeUserIdRef = useRef(user?.id);
   const canManage = !configured || Boolean(user);
+  const isReady =
+    !configured || Boolean(user && hydratedUserId === user.id);
 
   useEffect(() => {
     activeUserIdRef.current = user?.id;
@@ -86,6 +89,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       void Promise.resolve().then(() => {
         itemsRef.current = [];
         setItems([]);
+        setHydratedUserId(undefined);
         setSyncStatus("local");
         setSyncError(undefined);
       });
@@ -106,6 +110,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
         saveLocal(cloudItems);
         if (cancelled) return;
         syncedUserRef.current = user.id;
+        setHydratedUserId(user.id);
         setSyncStatus("synced");
       } catch (error: unknown) {
         if (cancelled) return;
@@ -238,6 +243,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
     () => ({
       items,
       canManage,
+      isReady,
       stats: calculateTrackerStats(items),
       syncStatus: user ? syncStatus : "local",
       syncError: user ? syncError : undefined,
@@ -252,6 +258,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       addAnime,
       canManage,
       importItems,
+      isReady,
       items,
       removeAnime,
       syncError,

@@ -1,4 +1,4 @@
-import { IdCard, LibraryBig, Map, Newspaper, Search, Settings2, UserRound } from "../../components/OwnedIcons";
+import { Bell, IdCard, LibraryBig, Map, Newspaper, Search, Settings2, UserRound } from "../../components/OwnedIcons";
 import { Link } from "react-router-dom";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
 
@@ -11,6 +11,7 @@ const publicLinks = [
 const personalLinks = [
   { to: "/profile", label: "Profile", icon: IdCard },
   { to: "/library", label: "Library", icon: LibraryBig },
+  { to: "/notifications", label: "Notifications", icon: Bell },
   { to: "/settings", label: "Settings", icon: Settings2 }
 ];
 

@@ -1,4 +1,4 @@
-import { IdCard, LogOut, Moon, Settings2, Sun } from "./OwnedIcons";
+import { Bell, IdCard, LogOut, Moon, Settings2, Sun } from "./OwnedIcons";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCloudAuth } from "../app/providers/useCloudAuth";
@@ -6,6 +6,7 @@ import { useTheme } from "../app/providers/useTheme";
 import { profileAvatarSrc } from "../domain/account/avatars";
 import type { AccountUser } from "../services/account/accountApi";
 import type { LocalProfile } from "../services/storage/localProfileRepository";
+import { useNotifications } from "../app/providers/useNotifications";
 
 type UserMenuProps =
   | { user: AccountUser; localProfile?: never }
@@ -19,6 +20,8 @@ export function UserMenu({ user, localProfile }: UserMenuProps) {
   const { signOut } = useCloudAuth();
   const { theme, toggleTheme } = useTheme();
   const profile = user ?? localProfile;
+  const { unreadCount } = useNotifications();
+  const badgeLabel = unreadCount > 99 ? "99+" : String(unreadCount);
 
   useEffect(() => {
     if (!open) return;
@@ -59,6 +62,14 @@ export function UserMenu({ user, localProfile }: UserMenuProps) {
       >
         <img src={profileAvatarSrc(profile)} alt="" />
       </button>
+      {unreadCount > 0 && (
+        <span
+          className="user-menu__badge"
+          aria-label={`${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}`}
+        >
+          {badgeLabel}
+        </span>
+      )}
       {open && (
         <div className="user-menu__popover" role="menu">
           <div className="user-menu__identity">
@@ -67,6 +78,13 @@ export function UserMenu({ user, localProfile }: UserMenuProps) {
           </div>
           <Link to="/profile" role="menuitem" onClick={() => setOpen(false)}>
             <IdCard size={17} /> Profile
+          </Link>
+          <Link to="/notifications" role="menuitem" onClick={() => setOpen(false)}>
+            <Bell size={17} />
+            <span className="user-menu__item-label">Notifications</span>
+            {unreadCount > 0 && (
+              <span className="user-menu__item-badge">{badgeLabel}</span>
+            )}
           </Link>
           <Link to="/settings" role="menuitem" onClick={() => setOpen(false)}>
             <Settings2 size={17} /> Settings

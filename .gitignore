@@ -11,3 +11,4 @@ mcp-dist
 __pycache__/
 *.py[cod]
 .vercel
+docs/learning/*

@@ -18,6 +18,8 @@ import { CloudAuthProvider } from "./providers/CloudAuthProvider";
 import { TrackerProvider } from "./providers/TrackerProvider";
 import { ThemeProvider } from "./providers/ThemeProvider";
 import { WatchProvider } from "./providers/WatchProvider";
+import { NotificationProvider } from "./providers/NotificationProvider";
+import { NotificationsPage } from "../features/notifications/NotificationsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,6 +49,10 @@ const router = createBrowserRouter([
         path: "/settings",
         element: <RequireAuth><SettingsPage /></RequireAuth>
       },
+      {
+        path: "/notifications",
+        element: <RequireAuth><NotificationsPage /></RequireAuth>
+      },
       { path: "/account", element: <AccountRoute /> },
       { path: "/privacy", element: <PrivacyPage /> },
       { path: "/accessibility", element: <AccessibilityPage /> },
@@ -62,11 +68,13 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <CloudAuthProvider>
           <TrackerProvider>
-            <WatchProvider>
-              <AnimePanelProvider>
-                <RouterProvider router={router} />
-              </AnimePanelProvider>
-            </WatchProvider>
+            <NotificationProvider>
+              <WatchProvider>
+                <AnimePanelProvider>
+                  <RouterProvider router={router} />
+                </AnimePanelProvider>
+              </WatchProvider>
+            </NotificationProvider>
           </TrackerProvider>
         </CloudAuthProvider>
       </QueryClientProvider>
