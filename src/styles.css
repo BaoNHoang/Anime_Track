@@ -3454,7 +3454,9 @@ h3,
 }
 
 .account-page {
+  width: 100%;
   max-width: 980px;
+  margin-inline: auto;
 }
 
 .account-auth {
@@ -3463,6 +3465,7 @@ h3,
   grid-template-columns: 220px minmax(0, 1fr);
   max-width: 820px;
   min-height: 560px;
+  margin-inline: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface-raised);
