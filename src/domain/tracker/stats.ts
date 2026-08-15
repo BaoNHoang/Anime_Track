@@ -1,6 +1,6 @@
-import type { TrackedAnime, TrackerStats } from "./types";
+import type { TrackedAnime, TrackerStats } from "./types.js";
 
-function durationMinutes(duration?: string): number {
+export function durationMinutes(duration?: string): number {
   if (!duration) return 24;
 
   const hours = Number(duration.match(/(\d+(?:\.\d+)?)\s*hr/i)?.[1] ?? 0);
@@ -10,21 +10,32 @@ function durationMinutes(duration?: string): number {
 }
 
 export function calculateTrackerStats(items: TrackedAnime[]): TrackerStats {
-  const scored = items.filter((item) => item.userScore !== undefined);
-  const minutesWatched = items.reduce(
-    (sum, item) => sum + item.progress * durationMinutes(item.anime.duration),
-    0
-  );
+  let watching = 0;
+  let completed = 0;
+  let episodesWatched = 0;
+  let minutesWatched = 0;
+  let scoredTotal = 0;
+  let scoredCount = 0;
+
+  for (const item of items) {
+    if (item.status === "watching") watching += 1;
+    if (item.status === "completed") completed += 1;
+    episodesWatched += item.progress;
+    minutesWatched += item.progress * durationMinutes(item.anime.duration);
+    if (item.userScore !== undefined) {
+      scoredTotal += item.userScore;
+      scoredCount += 1;
+    }
+  }
 
   return {
     total: items.length,
-    watching: items.filter((item) => item.status === "watching").length,
-    completed: items.filter((item) => item.status === "completed").length,
-    episodesWatched: items.reduce((sum, item) => sum + item.progress, 0),
+    watching,
+    completed,
+    episodesWatched,
     daysWatched: minutesWatched / (60 * 24),
-    averageScore: scored.length
-      ? scored.reduce((sum, item) => sum + (item.userScore ?? 0), 0) /
-        scored.length
+    averageScore: scoredCount
+      ? scoredTotal / scoredCount
       : undefined
   };
 }

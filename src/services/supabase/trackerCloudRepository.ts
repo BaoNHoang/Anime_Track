@@ -1,4 +1,13 @@
 import type { TrackedAnime } from "../../domain/tracker/types";
+import type { ProfileSummary } from "../../domain/tracker/profileSummary";
+
+const LIBRARY_PAGE_SIZE = 250;
+
+interface CloudLibraryPage {
+  items: TrackedAnime[];
+  total: number;
+  nextOffset?: number;
+}
 
 async function cloudRequest<T>(
   path: string,
@@ -42,11 +51,47 @@ async function cloudRequest<T>(
 }
 
 export const trackerCloudRepository = {
+  async getPage(
+    offset = 0,
+    limit = LIBRARY_PAGE_SIZE
+  ): Promise<CloudLibraryPage> {
+    const query = new URLSearchParams({
+      offset: String(offset),
+      limit: String(limit)
+    });
+    return cloudRequest<CloudLibraryPage>(`/api/library?${query}`);
+  },
+
   async getAll(): Promise<TrackedAnime[]> {
-    const result = await cloudRequest<{ items: TrackedAnime[] }>(
-      "/api/library"
+    const firstPage = await this.getPage(0, LIBRARY_PAGE_SIZE);
+    if (!firstPage.nextOffset) return firstPage.items;
+
+    const offsets: number[] = [];
+    for (
+      let offset = firstPage.nextOffset;
+      offset < firstPage.total;
+      offset += LIBRARY_PAGE_SIZE
+    ) {
+      offsets.push(offset);
+    }
+
+    const pages: CloudLibraryPage[] = [];
+    for (let index = 0; index < offsets.length; index += 4) {
+      const batch = offsets.slice(index, index + 4);
+      pages.push(
+        ...(await Promise.all(
+          batch.map((offset) => this.getPage(offset, LIBRARY_PAGE_SIZE))
+        ))
+      );
+    }
+    return [firstPage, ...pages].flatMap((page) => page.items);
+  },
+
+  async getProfileSummary(): Promise<ProfileSummary> {
+    const result = await cloudRequest<{ summary: ProfileSummary }>(
+      "/api/library/summary"
     );
-    return result.items;
+    return result.summary;
   },
 
   async upsert(item: TrackedAnime, expectedUserId: string): Promise<void> {

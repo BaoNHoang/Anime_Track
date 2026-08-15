@@ -1,5 +1,5 @@
 import { Check, Plus } from "../../components/OwnedIcons";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useTracker } from "../../app/providers/useTracker";
 import type { TrackedAnime } from "../../domain/tracker/types";
@@ -69,12 +69,17 @@ function ActivityItem({ item, now }: { item: TrackedAnime; now: number }) {
   );
 }
 
-export function RecentActivity() {
-  const { items } = useTracker();
+export function RecentActivity({ items }: { items?: TrackedAnime[] }) {
+  const { items: trackedItems } = useTracker();
   const [now] = useState(() => Date.now());
-  const recent = [...items]
-    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-    .slice(0, 12);
+  const recent = useMemo(
+    () =>
+      items ??
+      [...trackedItems]
+        .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+        .slice(0, 12),
+    [items, trackedItems]
+  );
 
   if (!recent.length) {
     return (

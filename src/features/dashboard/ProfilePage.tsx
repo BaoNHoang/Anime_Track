@@ -1,5 +1,5 @@
 import { ErrorState } from "../../components/ErrorState";
-import { CompactListSkeleton } from "../../components/LoadingState";
+import { CompactListSkeleton, RouteSkeleton } from "../../components/LoadingState";
 import { SectionHeader } from "../../components/SectionHeader";
 import { useTopAnime } from "../../hooks/useAnimeQueries";
 import { useTracker } from "../../app/providers/useTracker";
@@ -9,11 +9,12 @@ import { profileBannerSrc } from "../../domain/account/banners";
 import { RecentActivity } from "./RecentActivity";
 import { AiringSchedule } from "./NextAiring";
 import { useLocalProfile } from "../../hooks/useLocalProfile";
-import type { CSSProperties } from "react";
+import { useMemo, type CSSProperties } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { FavoriteEditor } from "./FavoriteEditor";
 import { ProfileSettings } from "./ProfileSettings";
 import type { FavoriteKind } from "../../domain/account/favorites";
+import type { TrackedAnime } from "../../domain/tracker/types";
 
 const GENRE_COLORS = [
   "var(--genre-1)",
@@ -22,16 +23,25 @@ const GENRE_COLORS = [
   "var(--genre-4)",
   "var(--genre-5)"
 ];
+const EMPTY_TRACKED_ITEMS: TrackedAnime[] = [];
 
 export function ProfilePage() {
   const [searchParams] = useSearchParams();
   const editMode = searchParams.get("edit");
-  const { items, stats } = useTracker();
+  const { profileSummary, syncError, syncStatus } = useTracker();
   const { configured, initialized, user } = useCloudAuth();
   const { profile: localProfile } = useLocalProfile();
   const airing = useTopAnime("airing");
   const showPersonalTracking = initialized && (!configured || Boolean(user));
   const displayProfile = user ?? (!configured ? localProfile : undefined);
+  const stats = profileSummary?.stats ?? {
+    total: 0,
+    watching: 0,
+    completed: 0,
+    episodesWatched: 0,
+    daysWatched: 0,
+    averageScore: undefined
+  };
   const completionPercent = stats.total
     ? Math.round((stats.completed / stats.total) * 100)
     : 0;
@@ -53,46 +63,38 @@ export function ProfilePage() {
       value: stats.averageScore?.toFixed(1) ?? "-"
     }
   ];
-  const genreCounts = items
-    .flatMap((item) => item.anime.genres)
-    .reduce<Map<string, number>>((counts, genre) => {
-      counts.set(genre, (counts.get(genre) ?? 0) + 1);
-      return counts;
-    }, new Map());
-  const favoriteGenres = [...genreCounts.entries()]
-    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
-    .slice(0, 5);
+  const favoriteGenres = profileSummary?.favoriteGenres ?? [];
   const favoriteGenreTotal = favoriteGenres.reduce(
-    (total, [, count]) => total + count,
+    (total, item) => total + item.count,
     0
   );
-  const airingPriority = new Map(
-    items.map((item) => [
-      item.anime.id,
-      {
-        rank: item.status === "watching" ? 0 : item.status === "plan_to_watch" ? 1 : 2,
-        label: item.status === "watching" ? "Watching" : item.status === "plan_to_watch" ? "Planning" : undefined
-      }
-    ])
+  const trackedAiringItems = profileSummary?.airingItems ?? EMPTY_TRACKED_ITEMS;
+  const airingPriority = useMemo(
+    () =>
+      new Map(
+        trackedAiringItems.map((item) => [
+          item.anime.id,
+          {
+            rank: item.status === "watching" ? 0 : 1,
+            label: item.status === "watching" ? "Watching" : "Planning"
+          }
+        ])
+      ),
+    [trackedAiringItems]
   );
-  const prioritizedAiringItems = airing.data
-    ? [
-        ...items
-          .filter(
-            (item) =>
-              (item.status === "watching" || item.status === "plan_to_watch") &&
-              item.anime.status.toLowerCase().includes("currently airing")
+  const prioritizedAiringItems = useMemo(
+    () =>
+      airing.data
+        ? [
+            ...trackedAiringItems.map((item) => item.anime),
+            ...airing.data.items
+          ].filter(
+            (anime, index, merged) =>
+              merged.findIndex((candidate) => candidate.id === anime.id) === index
           )
-          .map((item) => item.anime),
-        ...airing.data.items
-      ].filter(
-        (anime, index, merged) =>
-          merged.findIndex((candidate) => candidate.id === anime.id) === index
-      )
-    : [];
-
-  if (editMode === "favorites") return <FavoriteEditor />;
-  if (editMode === "profile") return <ProfileSettings />;
+        : [],
+    [airing.data, trackedAiringItems]
+  );
 
   const favorites = displayProfile?.favorites;
   const favoriteGroups: Array<{ kind: FavoriteKind; label: string }> = [
@@ -100,6 +102,21 @@ export function ProfilePage() {
     { kind: "directors", label: "Directors" },
     { kind: "characters", label: "Characters" }
   ];
+
+  if (editMode === "favorites") return <FavoriteEditor />;
+  if (editMode === "profile") return <ProfileSettings />;
+
+  if (showPersonalTracking && !profileSummary) {
+    if (syncStatus === "error") {
+      return (
+        <ErrorState
+          message={syncError ?? "Your profile data could not be loaded."}
+          onRetry={() => window.location.reload()}
+        />
+      );
+    }
+    return <RouteSkeleton label="Loading your profile" />;
+  }
 
   return (
     <div className="dashboard-page">
@@ -163,7 +180,7 @@ export function ProfilePage() {
               title="My activity"
               action={{ label: "Open library", to: "/library" }}
             />
-            <RecentActivity />
+            <RecentActivity items={profileSummary?.recentItems} />
           </section>
         )}
         <section className="dashboard-section dashboard-airing">
@@ -191,7 +208,7 @@ export function ProfilePage() {
             <div className="profile-genres">
               <h2>Genre overview</h2>
               <div className="profile-genres__legend">
-                {favoriteGenres.map(([genre, count], index) => (
+                {favoriteGenres.map(({ genre, count }, index) => (
                   <div key={genre}>
                     <span
                       style={{ "--genre-color": GENRE_COLORS[index] } as CSSProperties}
@@ -203,7 +220,7 @@ export function ProfilePage() {
                 ))}
               </div>
               <div className="profile-genres__bar" aria-label="Favorite genre distribution">
-                {favoriteGenres.map(([genre, count], index) => (
+                {favoriteGenres.map(({ genre, count }, index) => (
                   <span
                     key={genre}
                     title={`${genre}: ${count}`}
