@@ -10,6 +10,7 @@ export interface AuthActionResult {
 export interface CloudAuthContextValue {
   configured: boolean;
   initialized: boolean;
+  likelyAuthenticated: boolean;
   user?: AccountUser;
   signIn: (
     identifier: string,

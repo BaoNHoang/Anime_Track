@@ -10,13 +10,17 @@ import type { Anime } from "../../domain/anime/types";
 import { mergeTrackedAnime } from "../../domain/tracker/merge";
 import { resolveTrackingProgress } from "../../domain/tracker/progress";
 import { normalizeUserScore } from "../../domain/tracker/score";
-import { calculateTrackerStats } from "../../domain/tracker/stats";
+import {
+  createProfileSummary,
+  type ProfileSummary
+} from "../../domain/tracker/profileSummary";
 import type {
   TrackedAnime,
   TrackingStatus
 } from "../../domain/tracker/types";
 import { trackerRepository } from "../../services/storage/trackerRepository";
 import { trackerCloudRepository } from "../../services/supabase/trackerCloudRepository";
+import { cloudLibraryCache } from "../../services/storage/cloudLibraryCache";
 import { useCloudAuth } from "./useCloudAuth";
 import {
   TrackerContext,
@@ -35,6 +39,8 @@ export function TrackerProvider({ children }: PropsWithChildren) {
   >("local");
   const [syncError, setSyncError] = useState<string>();
   const [hydratedUserId, setHydratedUserId] = useState<string>();
+  const [remoteProfileSummary, setRemoteProfileSummary] =
+    useState<ProfileSummary>();
   const itemsRef = useRef(items);
   const syncQueueRef = useRef(Promise.resolve());
   const syncedUserRef = useRef<string | undefined>(undefined);
@@ -48,10 +54,16 @@ export function TrackerProvider({ children }: PropsWithChildren) {
     activeUserIdRef.current = user?.id;
   }, [user?.id]);
 
-  const saveLocal = useCallback((next: TrackedAnime[]) => {
+  const saveItems = useCallback((next: TrackedAnime[]) => {
     itemsRef.current = next;
     setItems(next);
-    trackerRepository.save(next);
+    setRemoteProfileSummary(undefined);
+    const activeUserId = activeUserIdRef.current;
+    if (activeUserId) {
+      void cloudLibraryCache.save(activeUserId, next);
+    } else {
+      trackerRepository.save(next);
+    }
   }, []);
 
   const enqueueCloud = useCallback(
@@ -84,11 +96,14 @@ export function TrackerProvider({ children }: PropsWithChildren) {
     if (!initialized) return;
     if (!configured) return;
     if (!user) {
+      const previousUserId = syncedUserRef.current;
       syncedUserRef.current = undefined;
+      if (previousUserId) void cloudLibraryCache.clear(previousUserId);
       trackerRepository.clear();
       void Promise.resolve().then(() => {
         itemsRef.current = [];
         setItems([]);
+        setRemoteProfileSummary(undefined);
         setHydratedUserId(undefined);
         setSyncStatus("local");
         setSyncError(undefined);
@@ -96,23 +111,49 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       return;
     }
     if (syncedUserRef.current === user.id) return;
+    syncedUserRef.current = user.id;
 
     let cancelled = false;
     const synchronize = async () => {
       await Promise.resolve();
       if (cancelled) return;
+      itemsRef.current = [];
+      setItems([]);
+      setRemoteProfileSummary(undefined);
+      setHydratedUserId(undefined);
       setSyncStatus("syncing");
       setSyncError(undefined);
 
+      const cachedLibrary = await cloudLibraryCache.get(user.id);
+      if (cancelled) return;
+      if (cachedLibrary) {
+        itemsRef.current = cachedLibrary;
+        setItems(cachedLibrary);
+        setHydratedUserId(user.id);
+      }
+
+      let libraryFinished = false;
+      if (!cachedLibrary) {
+        void trackerCloudRepository
+          .getProfileSummary()
+          .then((summary) => {
+            if (!cancelled && !libraryFinished) {
+              setRemoteProfileSummary(summary);
+            }
+          })
+          .catch(() => undefined);
+      }
+      const libraryPromise = trackerCloudRepository.getAll();
       try {
-        const cloudItems = await trackerCloudRepository.getAll();
+        const cloudItems = await libraryPromise;
+        libraryFinished = true;
         if (cancelled) return;
-        saveLocal(cloudItems);
-        if (cancelled) return;
-        syncedUserRef.current = user.id;
+        saveItems(cloudItems);
         setHydratedUserId(user.id);
         setSyncStatus("synced");
+        return;
       } catch (error: unknown) {
+        libraryFinished = true;
         if (cancelled) return;
         setSyncStatus("error");
         setSyncError(
@@ -126,21 +167,21 @@ export function TrackerProvider({ children }: PropsWithChildren) {
     return () => {
       cancelled = true;
     };
-  }, [configured, initialized, saveLocal, user]);
+  }, [configured, initialized, saveItems, user]);
 
   const addAnime = useCallback(
     (anime: Anime, status: TrackingStatus = "plan_to_watch") => {
       if (!canManage) return;
       if (itemsRef.current.some((item) => item.anime.id === anime.id)) return;
       const created = trackerRepository.create(anime, status);
-      saveLocal([created, ...itemsRef.current]);
+      saveItems([created, ...itemsRef.current]);
       if (user) {
         enqueueCloud((expectedUserId) =>
           trackerCloudRepository.upsert(created, expectedUserId)
         );
       }
     },
-    [canManage, enqueueCloud, saveLocal, user]
+    [canManage, enqueueCloud, saveItems, user]
   );
 
   const updateAnime = useCallback(
@@ -171,7 +212,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
         return updatedItem;
       });
       if (!updatedItem) return;
-      saveLocal(next);
+      saveItems(next);
       if (user) {
         const itemToSync = updatedItem;
         enqueueCloud((expectedUserId) =>
@@ -179,13 +220,13 @@ export function TrackerProvider({ children }: PropsWithChildren) {
         );
       }
     },
-    [canManage, enqueueCloud, saveLocal, user]
+    [canManage, enqueueCloud, saveItems, user]
   );
 
   const removeAnime = useCallback(
     (animeId: number) => {
       if (!canManage) return;
-      saveLocal(
+      saveItems(
         itemsRef.current.filter((item) => item.anime.id !== animeId)
       );
       if (user) {
@@ -194,7 +235,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
         );
       }
     },
-    [canManage, enqueueCloud, saveLocal, user]
+    [canManage, enqueueCloud, saveItems, user]
   );
 
   const importItems = useCallback(
@@ -227,7 +268,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       const merged = mergeTrackedAnime(itemsRef.current, importedItems, {
         replaceOnEqualUpdatedAt: options.replaceOnEqualUpdatedAt
       });
-      saveLocal(merged);
+      saveItems(merged);
       if (user) {
         enqueueCloud((expectedUserId) =>
           trackerCloudRepository.upsertMany(merged, expectedUserId)
@@ -236,7 +277,14 @@ export function TrackerProvider({ children }: PropsWithChildren) {
 
       return { added, updated, total: merged.length };
     },
-    [canManage, enqueueCloud, saveLocal, user]
+    [canManage, enqueueCloud, saveItems, user]
+  );
+
+  const profileSummary = useMemo(
+    () =>
+      remoteProfileSummary ??
+      (isReady ? createProfileSummary(items) : undefined),
+    [isReady, items, remoteProfileSummary]
   );
 
   const value = useMemo<TrackerContextValue>(
@@ -244,7 +292,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       items,
       canManage,
       isReady,
-      stats: calculateTrackerStats(items),
+      profileSummary,
       syncStatus: user ? syncStatus : "local",
       syncError: user ? syncError : undefined,
       getTracked: (animeId) =>
@@ -260,6 +308,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       importItems,
       isReady,
       items,
+      profileSummary,
       removeAnime,
       syncError,
       syncStatus,
