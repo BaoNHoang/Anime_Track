@@ -16,7 +16,7 @@ is incorrect, add a dated correction rather than silently changing the event.
 | Version | `0.1.0` development snapshot |
 | Document owner | Project maintainer |
 | Created | 2026-06-06 |
-| Last updated | 2026-06-20 |
+| Last updated | 2026-08-15 |
 | Time zone | America/New_York |
 | Workspace | `C:\Users\bao12\OneDrive\Desktop\Anime_Track` |
 | Status | Active development |
@@ -39,11 +39,20 @@ is incorrect, add a dated correction rather than silently changing the event.
 7. Do not claim a deployment, browser test, cloud sync test, or release unless
    direct evidence exists.
 
+## Documentation Scope
+
+This file does not duplicate the README's user-facing feature walkthrough or
+setup tutorial, `PRODUCT.md` product intent, or `DESIGN.md` visual rules. It
+owns current implementation facts, architecture and data flows, technical
+cache behavior, security decisions, verification evidence, risks, incidents,
+and append-only milestone history. Cross-document repetition should be limited
+to a short fact needed to make one of those engineering records understandable.
+
 ## Project Purpose
 
 Banime is a personal anime application with four primary responsibilities:
 
-1. Discover anime through the Jikan v4 API.
+1. Discover anime through the Tenrai v1 API.
 2. Track a private watch library, episode progress, status, and scores.
 3. Present anime-related news and promotional videos.
 4. Expose approved search, library, and recommendation actions to ChatGPT
@@ -63,19 +72,21 @@ The application is designed to work as:
 | ID | Goal | Status | Current evidence |
 | --- | --- | --- | --- |
 | GOAL-0001 | Track anime locally without requiring an account | Implemented | Local repository and tracker provider |
-| GOAL-0002 | Discover and search anime through Jikan | Implemented | Dashboard and Discover routes |
+| GOAL-0002 | Discover and search anime through Tenrai | Implemented | Home and paginated Discover routes |
 | GOAL-0003 | Show anime news and promotional videos | Implemented with limited scope | News route aggregates current-season title news and popular promos |
-| GOAL-0004 | Run as an installable phone application | Implemented as PWA, not yet deployed | Manifest, service worker, install UI, responsive navigation |
-| GOAL-0005 | Sync one personal library across desktop and phone | Implemented but not end-to-end verified | Optional Supabase Auth, Postgres repository, merge and write queue |
+| GOAL-0004 | Run as an installable phone application | Implemented and HTTPS-deployed; physical install not recorded | Manifest, service worker, install UI, responsive navigation, and Vercel deployment workflow |
+| GOAL-0005 | Sync one personal library across desktop and phone | Implemented but not end-to-end verified | Cookie-backed Supabase Auth, paged cloud repository, owner cache, and serialized write queue |
 | GOAL-0006 | Maintain modular boundaries for future native/mobile work | Implemented | Domain, service, context, hook, feature, and component layers |
-| GOAL-0007 | Maintain reproducible quality checks | Implemented at basic level | Build, lint, and 26 unit/protocol tests |
+| GOAL-0007 | Maintain reproducible quality checks | Implemented | Build, lint, API typecheck, GitHub `verify`, and 104 automated tests |
 | GOAL-0008 | Support accessible light and dark themes | Implemented | Persisted theme provider and device-level controls |
-| GOAL-0009 | Restore a library from MyAnimeList XML or Banime JSON | Implemented | MAL XML parsing, Jikan enrichment, and JSON backup import/export in Settings |
-| GOAL-0010 | Show the next scheduled broadcast | Implemented with source limitations | Jikan weekly broadcast metadata converted to local time |
+| GOAL-0009 | Restore a library from MyAnimeList XML or Banime JSON | Implemented | MAL XML parsing, Tenrai enrichment, and JSON backup import/export in Settings |
+| GOAL-0010 | Show the next scheduled broadcast | Implemented with source limitations | Tenrai weekly broadcast metadata converted to local time |
 | GOAL-0011 | Provide direct, efficient catalog and library filtering | Implemented | Memoized client filters and indexed Supabase query columns |
-| GOAL-0012 | Reduce repeated Jikan work and News wait time | Implemented | Memory, session, and persistent catalog caches plus progressive News queries |
-| GOAL-0013 | Let ChatGPT search anime and manage the approved private library | Implemented locally, not deployment-verified | Eight MCP tools, Supabase OAuth consent, RLS-bound repository, and protocol tests |
+| GOAL-0012 | Reduce repeated catalog and profile loading work | Implemented | Bounded Tenrai caches, React Query caching, IndexedDB library cache, paged cloud reads, and compact profile summaries |
+| GOAL-0013 | Let ChatGPT search anime and manage the approved private library | Implemented locally, not deployment-verified | Eight MCP tools, Supabase token validation, RLS-bound repository, and protocol tests |
 | GOAL-0014 | Open configurable watch-search links from tracked anime | Implemented with provider limits | Watch provider registry, Settings selector, and library/detail "Find on" links |
+| GOAL-0015 | Provide private user profiles and favorites | Implemented | Profile media, statistics, genre overview, ordered favorites, and account deletion |
+| GOAL-0016 | Notify users about scheduled tracked releases | Implemented with browser limitations | Owner-scoped in-app notification repository and one-minute visible-tab checks |
 
 ### Current Non-Goals
 
@@ -93,81 +104,56 @@ documentation:
 
 ## Current-State Summary
 
-As of 2026-06-20:
+As of 2026-08-15:
 
-- The project is a React 19 and TypeScript single-page application built with
-  Vite.
-- React Router provides Home, Discover, News, Library, Settings, and OAuth
-  consent routes.
-- TanStack React Query manages remote Jikan query state.
-- Jikan v4 provides catalog, seasonal, detail, news, and promotional data.
-- Jikan list responses are deduplicated by MAL ID before entering feature code.
-- Weekly broadcast metadata is normalized and converted to the user's local
-  time for the next scheduled airing display.
-- Tracking writes synchronously to browser `localStorage`.
-- Banime JSON backups and MyAnimeList XML exports are validated and merged by
-  anime ID and `updatedAt`; malformed files are rejected.
-- MyAnimeList XML imports save a validated base list locally before Jikan
-  enrichment starts. Jikan detail lookups then update the same rows with
-  posters and current catalog fields when the title is returned.
-- Existing data under the former `kitsu-log:library:v1` key is migrated to
-  `banime:library:v1` when read.
-- Supabase support is optional and activated only when environment variables
-  are present.
-- Supabase Auth uses email/password sessions stored by the Supabase browser
-  client.
-- Supabase Postgres stores one JSON tracker aggregate plus indexed query
-  columns per user and anime.
-- Row-level security restricts authenticated users to their own rows.
-- A separate Streamable HTTP MCP server exposes modular Jikan search, detail,
-  news, library, mutation, and recommendation tools.
-- Public MCP tools do not require an account. Library tools validate a
-  Supabase OAuth access token and execute through the caller's RLS session.
-- The PWA hosts `/oauth/consent`, where the signed-in user can approve or deny
-  ChatGPT's Supabase OAuth request.
-- The Supabase package is dynamically imported so local-only users do not load
-  it in the initial JavaScript bundle.
-- The application is configured as an auto-updating PWA using
-  `vite-plugin-pwa`.
-- App code update checks run at startup and every 60 minutes while open.
-- Active seasonal and airing queries refresh every 15 minutes, and News
-  headlines and trailers refresh every two hours.
-- Fresh Jikan responses are cached in memory and browser storage until each
-  endpoint's expiry. Slow-changing Top 100 data uses persistent
-  `localStorage`; most other API responses use `sessionStorage`.
-- Most Popular combines four rate-limited Jikan pages into a deduplicated list
-  of up to 100 titles and refreshes every 6 hours.
-- Theme preference is stored locally and applied before React mounts.
-- The visual system uses flat surfaces, one blue product accent, one system
-  font stack, and no gradients, glass effects, fake profile controls, or
-  decorative floating elements.
-- Discover filters results by media type, genre, minimum score, and sort order.
-- Library search covers titles, studios, genres, and notes, with status, type,
-  genre, score, and sort controls.
-- Library cards and anime details can open the selected title in the current
-  external watch-search provider. Banime does not host or embed episode
-  streams.
-- Vercel and Netlify SPA route rewrites are included.
-- MCP traffic is protected by host/origin checks, body/header/concurrency
-  limits, per-IP and per-token quotas, a separate tool quota, and a shared
-  60-per-minute Jikan budget.
-- Rate limits use bounded in-memory counters for one process and optional
-  Upstash Redis counters across multiple replicas.
-- MyAnimeList XML imports, JSON imports, local storage, upstream URLs, OAuth
-  inputs, and MCP schemas are bounded and validated before use.
-- The PWA deployment configuration includes CSP, HSTS, frame, MIME, referrer,
-  and permissions headers.
-- The MCP production image is multi-stage, runs as a non-root user, and
-  installs only runtime dependencies.
-- The current automated suite contains 37 tests across 16 files.
-- Production build, ESLint, tests, local route checks, PWA manifest checks, and
-  live Jikan endpoint checks passed.
-- A real Supabase project was not configured during development, so
-  authentication and database synchronization are not end-to-end verified.
-- Automated visual browser testing was blocked by a recurring Windows sandbox
-  `spawn setup refresh` failure.
-- The Git working tree currently contains uncommitted application changes.
-- No production deployment or formal release has been recorded.
+- Banime is a React 19 and TypeScript single-page PWA built with Vite and
+  deployed with same-origin Vercel Functions for account and library APIs.
+- Tenrai v1 is the read-only source for catalog, season, detail, schedule,
+  news, and trailer metadata. Tenrai responses are normalized into Banime
+  domain models and deduplicated by MyAnimeList ID.
+- Home, Discover, News, and legal routes are public. Profile, Library,
+  Notifications, and Settings use a local profile when account mode is off and
+  require an authenticated account when account mode is on.
+- Account mode is explicitly selected with `VITE_ACCOUNT_AUTH_ENABLED=true`.
+  Authentication then runs behind `/api/auth/*`; access and refresh tokens are
+  held in same-origin `HttpOnly` cookies rather than browser JavaScript storage.
+- Account flows include username or email sign-in, Google sign-in, verification
+  codes, resend, password recovery, profile editing, and permanent deletion.
+- Supabase Postgres stores one validated tracker JSON aggregate plus indexed
+  query columns per user and anime. Row-level security enforces ownership.
+- Profile uploads are decoded, resized, metadata-stripped, WebP-encoded,
+  size-bounded, stored in a private bucket, and returned through signed URLs.
+- Tracking is local-first in local mode. Authenticated mode renders an
+  owner-scoped IndexedDB cache when available, loads a compact profile summary
+  independently, and retrieves the full cloud library through bounded pages.
+- Cloud page requests are batched four at a time. The API defaults to 250 rows
+  per page and rejects requests above 500 rows.
+- Profile statistics are calculated in one pass. Library search uses a deferred
+  query and memoized index, filtering, and sorting; the UI displays 60 records
+  per page.
+- Tenrai data has three cache layers: React Query state, an in-memory response
+  cache, and bounded browser storage. Memory and persistent response caches are
+  capped at 120 entries each; stale or malformed entries are removed.
+- Current-season data polls every 15 minutes. Airing/upcoming data becomes
+  stale after 15 minutes and refreshes when requested again; search and detail
+  remain fresh for 30 minutes, popular and historical browse feeds remain fresh
+  for 6 hours, and news/trailers refresh every 2 hours.
+- Release notifications are schedule-based, owner-scoped browser records.
+  Checks run at app start, once per minute while open, and when the tab becomes
+  visible. They are not background operating-system push notifications.
+- MyAnimeList XML and Banime JSON imports are capped at 5 MB and 5,000 rows.
+  XML imports checkpoint validated tracker rows before Tenrai enrichment.
+- The generated service worker precaches the application shell and checks for
+  deployed updates at startup and every 60 minutes while the app is open.
+- The separate MCP process exposes eight catalog, news, library, mutation, and
+  recommendation tools with bearer-token validation, RLS-bound library access,
+  bounded schemas, host/origin controls, and optional Upstash quotas.
+- The active automated suite contains 104 tests across 34 files. Lint, API
+  typecheck, tests, production build, and GitHub `Verify` passed for PR #22.
+- A connected Supabase project exists and its schema/advisors have been
+  inspected. Full two-user isolation, deployed MCP OAuth, sustained load, and
+  physical-device PWA testing remain explicit verification gaps.
+- No formal versioned release has been recorded.
 
 ## Technology Stack
 
@@ -177,24 +163,24 @@ As of 2026-06-20:
 | --- | --- | --- |
 | React | `19.2.7` | Component rendering and state |
 | React DOM | `19.2.7` | Browser renderer |
-| React Router DOM | `7.17.0` | SPA routing |
+| React Router DOM | `7.18.2` | SPA routing |
 | TanStack React Query | `5.101.0` | Remote data fetching, stale state, cancellation, and cache coordination |
-| Supabase JS | `2.107.0` | Optional browser authentication and Postgres access |
-| Model Context Protocol SDK | `1.29.0` | Streamable HTTP MCP server and protocol types |
+| Supabase JS | `2.107.0` | Server-side Auth/Postgres access and MCP RLS clients |
+| Model Context Protocol SDK | `1.30.0` | Streamable HTTP MCP server and protocol types |
 | Zod | `4.4.3` | MCP tool input validation |
 | dotenv | `17.4.2` | MCP server environment loading |
-| Upstash Rate Limit | `2.0.8` | Optional distributed request, tool, and Jikan quotas |
+| Upstash Rate Limit | `2.0.8` | Optional distributed request, tool, auth, API, and Tenrai quotas |
 | Upstash Redis | `1.38.0` | HTTP-based shared rate-limit storage |
-| Lucide React | `1.17.0` | Interface icons |
+| Sharp | `0.35.3` | Server-side profile image decoding, resizing, and WebP encoding |
 
 ### Development Dependencies
 
 | Package | Current version | Responsibility |
 | --- | --- | --- |
-| Vite | `8.0.16` | Development server and production build |
+| Vite | `8.1.5` | Development server and production build |
 | TypeScript | `6.0.3` | Static type checking |
 | Vitest | `4.1.8` | Unit tests |
-| ESLint | `10.4.1` | Static analysis |
+| ESLint | `10.8.0` | Static analysis |
 | TypeScript ESLint | `8.60.1` | TypeScript lint rules |
 | Vite PWA | `1.3.0` | Manifest and generated service worker |
 | React plugin for Vite | `6.0.2` | React transform and refresh |
@@ -216,7 +202,7 @@ Browser / Installed PWA
         v
 App bootstrap and routing
   src/main.tsx
-  src/App.tsx
+  src/app/App.tsx
         |
         v
 Feature pages and shared components
@@ -226,7 +212,7 @@ Feature pages and shared components
         v
 Application hooks and context providers
   src/hooks/*
-  src/context/*
+  src/app/providers/*
         |
         +----------------------------+
         |                            |
@@ -237,7 +223,7 @@ Domain models and pure logic     Service adapters
                          +------------+-------------+
                          |                          |
                          v                          v
-                    Jikan API             localStorage / Supabase
+                    Tenrai API       localStorage / IndexedDB / API
 ```
 
 The ChatGPT integration is a separate deployable process:
@@ -249,15 +235,15 @@ ChatGPT
    v
 mcp/server.ts -> mcp/tools.ts
    |                 |
-   |                 +--> Jikan services (public read tools)
+   |                 +--> Tenrai services (public read tools)
    |
    +--> Supabase token validation
            |
            +--> tracked_anime through the caller's RLS session
 
-Supabase OAuth authorization
+Browser account requests
    |
-   +--> Banime PWA /oauth/consent
+   +--> Vercel Functions -> Supabase Auth/Postgres/Storage
 ```
 
 ### Architectural Boundaries
@@ -280,70 +266,83 @@ Owns framework-independent types and pure business logic.
   - Authorized external watch-provider registry.
   - Search URL construction for selected anime titles.
 
-Domain code should not import React, browser storage, Supabase, or Jikan DTOs.
+Domain code should not import React, browser storage, Supabase, or Tenrai DTOs.
 
-#### `src/services/jikan`
+#### `src/services/tenrai`
 
-Owns the external Jikan boundary.
+Owns the external Tenrai boundary.
 
 - `client.ts`
   - API base URL.
   - Request serialization.
-  - Minimum 350 ms interval between request starts.
-  - In-memory and session response caches with endpoint-specific expiry.
+  - Minimum 500 ms interval between request starts.
+  - Bounded in-memory, session, and persistent response caches with
+    endpoint-specific expiry.
+  - A 2 MB response-body limit and generic upstream error normalization.
   - HTTP error normalization.
 - `dto.ts` and `newsDto.ts`
   - External response shapes.
 - `mapper.ts`
-  - Converts nullable Jikan anime data into the internal `Anime` model.
+  - Converts nullable Tenrai/Jikan-compatible anime data into the internal
+    `Anime` model.
 - `animeService.ts`
   - Seasonal, paginated top, search, and detail operations.
 - `newsService.ts`
   - Maps per-title news and popular promo responses.
 
-Feature and domain code should not depend directly on Jikan response shapes.
+Feature and domain code should not depend directly on Tenrai response shapes.
 
 #### `src/services/storage`
 
 Owns local browser persistence.
 
 - Reads and writes the complete tracker array in `localStorage`.
+- Stores local profile preferences and owner-scoped release notifications in
+  `localStorage`.
+- Stores validated authenticated library snapshots in owner-scoped IndexedDB
+  records through `cloudLibraryCache.ts`.
 - Current key: `banime:library:v1`.
 - Legacy key: `kitsu-log:library:v1`.
 - Migration is copy-on-read and does not delete the legacy key.
 - Creates new tracker records with timestamps and initial progress.
 
-#### `src/services/supabase`
+#### `src/services/supabase` and `src/services/account`
 
 Owns optional cloud persistence.
 
-- `client.ts`
-  - Detects configuration through Vite environment variables.
-  - Dynamically imports `@supabase/supabase-js`.
-  - Persists and refreshes browser sessions.
+- `accountApi.ts`
+  - Calls same-origin `/api/auth/*` endpoints with credentials included.
+  - Keeps Supabase tokens outside browser JavaScript.
 - `trackerCloudRepository.ts`
-  - Reads a user's rows ordered by latest update.
+  - Reads bounded library pages and a compact profile summary through
+    same-origin `/api/library` endpoints.
   - Upserts one or many tracker items and their normalized query columns.
   - Deletes one tracker item.
 
 Supabase-specific objects should not leak into domain models. The authenticated
 `User` type is currently exposed only through the auth context.
 
-#### `src/context`
+#### `src/app/providers`
 
 Owns application-wide state coordination.
 
 - `CloudAuthProvider`
-  - Initializes the optional Supabase session.
-  - Subscribes to auth-state changes.
-  - Provides sign-in, sign-up, and sign-out actions.
+  - Initializes the optional cookie-backed account session.
+  - Keeps a non-authoritative local session hint to prevent navigation collapse
+    during refresh; authorization still occurs on the server.
+  - Provides sign-in, verification, recovery, profile, deletion, and sign-out
+    actions.
 - `TrackerProvider`
-  - Loads local tracking state.
+  - Loads local or owner-scoped cached tracking state.
   - Applies add, update, and remove operations.
-  - Writes local changes immediately.
+  - Writes local or cached changes immediately.
   - Queues cloud writes when authenticated.
-  - Merges local and cloud records on authenticated startup.
-  - Exposes sync state and tracker statistics.
+  - Loads compact profile summary data independently from the full library.
+  - Exposes sync state, readiness, items, and the profile summary.
+- `NotificationProvider`
+  - Detects newly elapsed weekly broadcast times for Watching and Plan to watch
+    titles while the app is open.
+  - Exposes owner-scoped notification state and clear actions.
 - `AnimePanelProvider`
   - Owns the currently selected anime detail panel.
 - `WatchProvider`
@@ -357,7 +356,7 @@ React Fast Refresh boundaries.
 
 Provides typed feature-facing APIs:
 
-- Jikan query hooks.
+- Tenrai query hooks.
 - News query hook.
 - Tracker context hook.
 - Cloud authentication hook.
@@ -372,13 +371,15 @@ Feature-owned pages and components:
 
 | Feature | Responsibility |
 | --- | --- |
-| `dashboard` | Summary statistics, continue watching, current season |
-| `discover` | Search and top anime feeds |
-| `news` | Featured news, article grid, popular promos |
+| `dashboard` | Home shelves plus personal profile, activity, genres, airing priority, media, and favorites |
+| `discover` | Paged search, catalog presets, filters, and sorting |
+| `news` | Equal-weight article and trailer feeds |
 | `library` | Filtering, status editing, progress, scores, deletion, watch-search links |
 | `anime` | Detail side panel, tracker controls, watch-search link |
-| `settings` | PWA installation, cloud auth, sync status, watch provider, MAL XML import, JSON import/export |
-| `oauth` | Supabase OAuth consent and ChatGPT connection approval |
+| `account` | Sign-in, sign-up, verification, and password recovery |
+| `notifications` | Scheduled release alerts and clear actions |
+| `settings` | Theme, score precision, PWA install, watch provider, MAL XML import, JSON import/export, and MCP status |
+| `legal` | Privacy, terms, accessibility, and sitemap routes |
 
 #### `src/components`
 
@@ -417,7 +418,7 @@ Owns the ChatGPT/MCP boundary and is independently deployable from the PWA.
     sanitized output, generic errors, and accurate annotations.
 - `rateLimiter.ts`
   - Provides bounded process-local counters or Upstash sliding windows for
-    request, tool, and global Jikan budgets.
+    request, tool, and global Tenrai budgets.
 - `server.ts`
   - Hosts stateless Streamable HTTP at `/mcp`, applies host/origin validation,
     quotas, concurrency, body/header limits, security headers, health output,
@@ -425,7 +426,7 @@ Owns the ChatGPT/MCP boundary and is independently deployable from the PWA.
 - `index.ts`
   - Starts and stops the Node HTTP process.
 
-The MCP service imports domain contracts and Jikan service functions but does
+The MCP service imports domain contracts and Tenrai service functions but does
 not import React, browser state, or local storage.
 
 ## Application Bootstrap and Provider Order
@@ -436,33 +437,42 @@ not import React, browser state, or local storage.
 2. Mounts React in `StrictMode`.
 3. Loads the global stylesheet.
 
-`src/App.tsx` wraps the router in this order:
+`src/app/App.tsx` wraps the router in this order:
 
 ```text
 QueryClientProvider
   CloudAuthProvider
     TrackerProvider
-      AnimePanelProvider
-        RouterProvider
+      NotificationProvider
+        WatchProvider
+          AnimePanelProvider
+            RouterProvider
 ```
 
 This order is intentional:
 
 - Tracker state depends on the authenticated cloud user.
 - Feature pages depend on tracker and panel state.
-- Jikan queries depend on React Query.
+- Notification state depends on the authenticated owner and tracker state.
+- Watch links and anime panels are presentation-facing providers.
+- Tenrai queries depend on React Query.
 
 ## Routes
 
 | Path | Component | Purpose |
 | --- | --- | --- |
 | `/` | `DashboardPage` | Current season, headlines, and airing rankings |
-| `/profile` | `ProfilePage` | Personal summary, activity, genres, and library highlights |
-| `/discover` | `DiscoverPage` | Search, filter, and sort catalog feeds |
-| `/news` | `NewsPage` | Current-title news and popular promotions |
-| `/library` | `LibraryPage` | Search, filter, sort, and manage saved records |
-| `/settings` | `SettingsPage` | Install, sync, account, and export |
-| `/oauth/consent` | `OAuthConsentPage` | Sign in and approve or deny an external OAuth client |
+| `/profile` | `ProfilePage` | Identity, statistics, activity, genres, favorites, airing next, and profile editing |
+| `/discover` | `DiscoverPage` | Paged catalog search, presets, filters, and sorting |
+| `/news` | `NewsPage` | Anime articles and trailers |
+| `/library` | `LibraryPage` | Search, filter, sort, paginate, and manage saved records |
+| `/notifications` | `NotificationsPage` | Owner-scoped scheduled release alerts |
+| `/settings` | `SettingsPage` | Theme, scoring, install, watch provider, import/export, and connection status |
+| `/account` | `AccountPage` | Sign-in, sign-up, email verification, and password recovery |
+| `/privacy` | `PrivacyPage` | Data, cookies, retention, and account-deletion disclosure |
+| `/terms` | `TermsPage` | Terms of use |
+| `/accessibility` | `AccessibilityPage` | Accessibility information |
+| `/sitemap` | `SiteMapPage` | Route index |
 
 There is currently no explicit 404 route or route-level error boundary.
 
@@ -472,7 +482,7 @@ There is currently no explicit 404 route or route-level error boundary.
 
 The normalized `Anime` model stores:
 
-- MyAnimeList/Jikan identifier.
+- Tenrai/MyAnimeList identifier.
 - Default and optional English titles.
 - Poster URLs.
 - Synopsis.
@@ -485,7 +495,8 @@ The normalized `Anime` model stores:
 - Trailer URL.
 - MyAnimeList URL.
 
-The model intentionally removes Jikan-specific nested response structures.
+The model intentionally removes Tenrai's Jikan-compatible nested response
+structures.
 
 ### Tracked Anime
 
@@ -508,7 +519,7 @@ Important behavior:
 - The `notes` field exists in the model but no editing UI is currently
   implemented.
 - The full anime snapshot is duplicated into each tracker record. This makes
-  local rendering independent from Jikan availability but can become stale.
+  local rendering independent from Tenrai availability but can become stale.
 
 ### News
 
@@ -524,12 +535,12 @@ Promos contain:
 - Promotion title.
 - Optional direct video URL and required embed URL.
 
-## Jikan Integration
+## Tenrai Integration
 
 Base URL:
 
 ```text
-https://api.jikan.moe/v4
+https://api.tenrai.org/v1
 ```
 
 ### Endpoints
@@ -537,32 +548,35 @@ https://api.jikan.moe/v4
 | Use | Endpoint pattern | Local cache |
 | --- | --- | --- |
 | Current season | `/seasons/now?limit=18&sfw=true` | 15 minutes |
-| Airing/upcoming top anime | `/top/anime?filter={filter}&limit=18&page=1&sfw=true` | 15 minutes |
-| Most popular | Four `/top/anime?filter=bypopularity&limit=25&page={1-4}&sfw=true` requests | 6 hours in persistent browser storage |
-| Search | `/anime?q={query}&limit=20&sfw=true&order_by=popularity&sort=asc` | 10 minutes |
+| Airing/upcoming/popular pages | `/top/anime?filter={filter}&limit=24&page={page}&sfw=true` | 15 minutes for airing/upcoming; 6 hours for popular |
+| Browse presets | `/anime?{preset filters}&limit=24&page={page}&sfw=true` | 6 hours in persistent browser storage |
+| Search | `/anime?q={query}&limit=20&page={page}&sfw=true&order_by=popularity&sort=asc` | 30 minutes in persistent browser storage |
 | Details | `/anime/{id}/full` | 30 minutes |
 | Anime news | `/anime/{id}/news` | 2 hours |
-| Popular promos | `/watch/promos/popular?limit=8` | 2 hours |
+| Trailers | Current-season records with trailer metadata | Reuses the 15-minute season response; React Query view remains fresh for 2 hours |
 
 ### Request Control
 
-The client enforces a minimum 350 ms delay between request starts. Requests are
-placed on a shared promise queue. This is intended to remain under Jikan's
-request-rate constraints.
+The client enforces a minimum 500 ms delay between request starts. Requests are
+placed on a shared promise queue. MCP can install an additional shared request
+gate so multiple tool calls also respect its configured Tenrai budget.
 
 There are three cache layers:
 
-1. The Jikan client stores successful responses in an in-memory `Map`.
+1. The Tenrai client stores successful responses in an in-memory `Map` capped
+   at 120 entries.
 2. The client stores the same expiring responses in browser storage:
-   `sessionStorage` by default and `localStorage` for slow-changing Top 100
-   popular data.
+   `sessionStorage` by default and `localStorage` for search, top, and browse
+   pages. Each target is capped at 120 Banime entries.
 3. React Query stores normalized query state and applies matching stale times.
 
 The browser cache survives route changes and page reloads until the
-endpoint-specific expiry. Top 100 data can also survive a closed browser
-session, while faster-changing feeds stay session scoped.
+endpoint-specific expiry. Persistent discovery/search pages can survive a
+closed browser session, while faster-changing season/detail/news responses are
+session scoped. Cache parsing failures fall back to a fresh request.
 
-Jikan list responses are deduplicated by `mal_id`. This was added after live
+Tenrai list responses are deduplicated by `mal_id`. This behavior was retained
+from the prior provider after live
 airing and seasonal responses returned Dr. Stone ID `62568` twice in the same
 payload.
 
@@ -571,13 +585,13 @@ payload.
 - React Query supplies an `AbortSignal`.
 - Services pass the signal to `fetch`.
 - React Query retries failed queries once.
-- Refetch on window focus is enabled for stale queries.
-- Current-season, airing, and upcoming feeds poll every 15 minutes while
-  mounted.
-- Most Popular polls every 6 hours while mounted.
+- Global refetch on window focus is disabled to avoid unnecessary repeat work.
+- Current-season data polls every 15 minutes while mounted. Other discovery
+  pages refresh when their query is requested after its stale time.
 - News title feeds and promos poll every two hours while mounted.
 - HTTP 429 receives a specific user-facing error.
-- Other non-success responses receive a generic Jikan error.
+- Other non-success responses receive a generic Tenrai error.
+- Response bodies are capped at 2 MB and invalid JSON is rejected.
 
 ### News Aggregation
 
@@ -590,10 +604,10 @@ The News feed currently:
 5. Tolerates individual title-news failures.
 6. Deduplicates articles by URL.
 7. Sorts articles newest first and returns at most 24.
-8. Loads eight popular promotional videos through an independent query.
+8. Builds up to eight trailer items from current-season trailer metadata.
 
 This is not a comprehensive global anime-news service. It is a current-season
-aggregation based on Jikan and MyAnimeList data.
+aggregation based on Tenrai and MyAnimeList data.
 
 ## Tracking and Persistence Flows
 
@@ -618,30 +632,35 @@ User selects MyAnimeList XML file
   -> validate every tracker and anime field
   -> save the parsed base list locally
   -> queue Supabase sync when authenticated
-  -> request Jikan details for each MAL ID at a conservative rate
-  -> replace placeholder MAL metadata with Jikan posters and details when found
+  -> request Tenrai details for each MAL ID at a conservative rate
+  -> replace placeholder MAL metadata with Tenrai posters and details when found
   -> save enriched rows locally using same-timestamp replacement
   -> queue Supabase sync for enriched rows when authenticated
 ```
 
 Accepted import formats are MyAnimeList XML exports and Banime JSON backups.
-Banime exports its own backups as JSON because Jikan and the app's internal
+Banime exports its own backups as JSON because Tenrai and the app's internal
 data contracts are JSON-based. Invalid files do not modify the library.
 
 ### Authenticated Startup Flow
 
 ```text
-Supabase session initializes
-  -> TrackerProvider detects user
-  -> load all cloud tracker rows
-  -> merge local and cloud arrays by anime ID
-  -> choose record with greatest updatedAt string
-  -> save merged array locally
-  -> upsert merged array to cloud
-  -> mark sync status as synced
+CloudAuthProvider calls GET /api/auth/session with browser credentials
+  -> browser automatically attaches HttpOnly cookies
+  -> server refreshes/verifies the Supabase session and returns safe profile data
+  -> TrackerProvider detects the authenticated owner
+  -> read that owner's validated IndexedDB library snapshot
+  -> render cached library immediately when present
+  -> when no cache exists, request /api/library/summary in parallel
+  -> request bounded /api/library pages in four-request batches
+  -> replace the browser snapshot with the fresh cloud result
+  -> mark that owner hydrated and sync status as synced
 ```
 
-ISO timestamps compare correctly as strings when all values use the same UTC
+The local-only `trackerRepository` is cleared when account mode is active so
+data from an anonymous local profile is not silently merged into an unrelated
+authenticated account. ISO timestamps still drive import and local merge
+conflict choices when those paths combine records.
 ISO format.
 
 ### Authenticated Mutation Flow
@@ -672,25 +691,45 @@ resurrected later because deletions have no versioned tombstone.
 ### Environment Variables
 
 ```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+VITE_ACCOUNT_AUTH_ENABLED=true
+APP_URL=https://your-banime-domain.example
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+SUPABASE_SECRET_KEY=your-server-only-secret-key
+UPSTASH_REDIS_REST_URL=https://your-database.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your-upstash-token
 VITE_MCP_URL=https://your-banime-mcp-host.example/mcp
 ```
 
-The client also accepts `VITE_SUPABASE_ANON_KEY` as a compatibility fallback.
+Only `VITE_ACCOUNT_AUTH_ENABLED` and the optional public `VITE_MCP_URL` belong
+in browser-prefixed variables. Supabase and Upstash values are read by Vercel
+Functions or the MCP process. `SUPABASE_SECRET_KEY` must never use a `VITE_`
+prefix because Vite variables are included in browser-accessible output.
 
-Only browser-safe publishable or anon keys belong in Vite variables. A
-service-role or secret key must never be added because all `VITE_` values are
-included in client-accessible build output.
+### Tables and Storage
 
-### Table
+`public.profiles`:
+
+| Column | Purpose |
+| --- | --- |
+| `user_id` | Primary key and cascading reference to `auth.users` |
+| `username` | Unique validated public display name |
+| `avatar_id`, `banner_id` | Allowlisted built-in media selections |
+| `avatar_path`, `banner_path` | Optional owner-derived private upload paths |
+| `score_step` | Personal score precision constrained to `0.5` or `1.0` |
+| `favorites` | Bounded ordered anime, studio, director, and character JSON |
+
+The private `profile-media` storage bucket accepts only owner-scoped
+`{user_id}/avatar.webp` and `{user_id}/banner.webp` paths. Authenticated users
+can operate only on their own path. Browser reads use short-lived signed URLs
+returned by the account API.
 
 `public.tracked_anime`:
 
 | Column | Type | Purpose |
 | --- | --- | --- |
 | `user_id` | `uuid` | References `auth.users`; deleted with the user |
-| `anime_id` | `integer` | Jikan/MyAnimeList anime ID |
+| `anime_id` | `integer` | Tenrai/MyAnimeList anime ID |
 | `item` | `jsonb` | Complete `TrackedAnime` aggregate |
 | `tracking_status` | `text` | Validated status used by status queries |
 | `anime_title` | `text` | Normalized title used by title search |
@@ -727,6 +766,9 @@ model.
 - Status, progress, and score constraints are added when absent.
 - Indexes are created only when absent.
 - Existing named RLS policies are dropped and recreated with the same rules.
+- Private account profiles, bounded favorites, score precision, default media,
+  private uploaded-media metadata, and the private profile-media bucket are
+  created or reconciled.
 
 The migration is additive and does not delete tracker data. Rolling it back
 would require dropping the added indexes, constraints, query columns, and
@@ -749,22 +791,21 @@ security boundary.
 
 Current supported operations:
 
-- Email/password sign-up.
-- Email/password sign-in.
-- Sign-out.
-- Persisted and refreshed sessions.
-- Email confirmation redirect to the current origin.
-- Supabase OAuth 2.1 consent handling for MCP clients.
-- OAuth approval and denial through `/oauth/consent`.
+- Email/password sign-up with a required verification code.
+- Email or username/password sign-in and Google sign-in.
+- Verification resend, password-reset code request, and password reset.
+- Cookie-backed session lookup, refresh, and sign-out.
+- Username, default avatar, default banner, uploaded profile media, score-step,
+  and ordered-favorites updates.
+- Permanent account, profile, library, and profile-media deletion.
 
 Not implemented:
 
-- Password reset.
 - Email change.
-- Account deletion.
-- Third-party login providers.
 - Multi-factor authentication.
 - Reauthentication for sensitive actions.
+- A current cookie-aware MCP OAuth consent route. The prior browser-token
+  consent route was removed because it crossed the account-cookie boundary.
 
 ### Cloud Sync Limitations
 
@@ -778,8 +819,9 @@ Not implemented:
 - No generated database TypeScript types.
 - No automated Supabase integration test.
 - No migration framework beyond the current SQL file.
-- Supabase OAuth server settings and token audience hardening still require
-  deployment-specific configuration.
+- Full two-user isolation and cross-device conflict testing remains open.
+- Supabase OAuth server settings, a cookie-aware consent flow, and token
+  audience hardening still require deployment-specific configuration.
 
 ## Progressive Web App and Mobile Design
 
@@ -805,8 +847,8 @@ Banime is currently a PWA, not a native application.
   the application remains open.
 - Applies an available worker update automatically.
 
-There is no service-worker runtime caching strategy for Jikan responses or
-remote images. The app shell can remain available offline. Fresh Jikan data
+There is no service-worker runtime caching strategy for Tenrai responses or
+remote images. The app shell can remain available offline. Fresh Tenrai data
 already present in browser storage can still be reused until expiry, but
 remote images and uncached or expired catalog/news requests are not guaranteed
 offline.
@@ -822,19 +864,20 @@ offline.
 
 ### Responsive UI
 
-- Desktop uses a fixed left sidebar.
-- Mobile uses a fixed five-item bottom navigation.
+- Desktop uses a full-width header with the Banime mark, primary routes,
+  catalog search, shuffle control, and profile menu.
+- Mobile keeps compact header actions and uses a five-item bottom navigation.
 - Main grids collapse from six/four/three columns to two or one.
 - Query controls collapse from four columns to two and then one.
-- The anime detail panel becomes a mobile sheet.
+- The anime detail panel overlays the page without changing background layout
+  width and becomes a mobile sheet at narrow widths.
 - Safe-area inset is used for the mobile navigation bottom padding.
-- All surfaces are flat colors with one blue product accent.
-- The light canvas is intentionally darker than content cards so white and
-  near-white surfaces remain distinguishable.
-- Dark mode uses a lighter, less saturated blue and dedicated dark active-chip
-  colors instead of using the near-white text token as a background.
-- The interface uses the system `Segoe UI` stack with consistent body line
-  height and no separate display font.
+- Light and dark themes use shared semantic tokens, compact controls, owned SVG
+  icons, poster-led layouts, bounded corner radii, and status colors only where
+  meaning requires them.
+- Layout-matched loading skeletons preserve navigation, grids, account forms,
+  profile summaries, news, and compact lists. Reduced-motion preferences stop
+  decorative transitions and skeleton pulsing.
 
 ### Future Native Option
 
@@ -847,43 +890,48 @@ Capacitor client possible, but browser-specific modules must be replaced:
 - Browser routing.
 - CSS-based presentation.
 
-The domain types, Jikan mapping, merge logic, and repository contracts are the
+The domain types, Tenrai mapping, merge logic, and repository contracts are the
 most portable parts.
 
 ## User Interface Behavior
 
-### Dashboard
+### Home and Profile
 
-- Displays watching, completed, episodes watched, and mean user score.
-- Shows up to three recently updated watching items.
-- Allows incrementing or decrementing episode progress.
-- Automatically marks a known-length anime completed when progress reaches the
-  episode count through the Continue Watching control.
-- Shows six current-season anime cards.
-- Shows up to four nearest weekly broadcasts converted to the device's local
-  timezone.
+- Home is public and presents 10 current-season titles, compact upcoming and
+  historical/decade shelves, six latest headlines, and eight top-airing rows.
+- Profile is personal and presents the banner/avatar identity, total anime,
+  days watched, episodes, mean score, completion bar, latest activity, airing
+  priorities, top-five genre distribution, and ordered favorites.
+- Airing next prioritizes tracked Watching titles, then Plan to watch titles,
+  before the wider airing catalog.
+- Profile editing supports username, built-in or uploaded avatar/banner,
+  whole/half score precision, ordered anime/studio/director/character
+  favorites, and permanent account deletion.
 
 ### Discover
 
 - Search starts only after two characters.
 - Input is debounced by 500 ms.
-- Browse filters: airing, popularity, and upcoming.
-- Most Popular combines four 25-item pages and displays up to 100 unique titles.
+- Browse presets: airing, upcoming, popular, classics, Studio Ghibli, family,
+  movies, and most favorited.
 - Results can be narrowed by media type, genre, and minimum community score.
 - Results can be sorted by score, popularity, title, or year.
 - Filter option lists and final results are memoized from the current feed.
-- Search results are ordered by popularity ascending as requested from Jikan.
-- Current implementation does not expose pagination.
+- Search results are ordered by popularity ascending as requested from Tenrai.
+- Previous/next pagination uses Tenrai page metadata and scrolls the results
+  heading into view while respecting reduced motion.
 
 ### Anime Detail Panel
 
-- Loads the full Jikan record after opening.
+- Loads the full Tenrai record after opening.
 - Falls back to card data while details load.
 - Closes through backdrop, close button, or Escape.
-- Locks body scrolling while open.
+- Overlays the page without changing the background layout width.
 - Displays facts, genres, synopsis, tracking controls, trailer, and MAL link.
-- Displays the next scheduled weekly broadcast when Jikan provides complete
+- Displays the next scheduled weekly broadcast when Tenrai provides complete
   day, time, and timezone data.
+- Prompts signed-out cloud-mode users to authenticate before a tracker or
+  favorite mutation.
 - Opens an external provider search for the selected title through the current
   watch provider.
 
@@ -895,34 +943,46 @@ most portable parts.
 - Filters by media type, genre, and minimum personal score.
 - Sorts by latest update, date added, title, personal score, or progress.
 - Memoizes the search index, available filter values, and final result list.
+- Defers search text and displays 60 titles per UI page.
 - Supports status, progress, score, and removal.
+- Marking Completed fills a known episode count; status/progress/score values
+  are normalized by domain logic before persistence.
+- Freezes the current Recently updated ordering during detail edits so a score
+  change does not move the title away from the user's current position.
 - Opens an external provider search for each tracked title.
 - Does not currently expose note editing.
 - Removal has no confirmation dialog or undo.
 
 ### News
 
-- Displays the newest aggregated article as a feature.
-- Shows remaining articles in a responsive grid as independent title queries
-  complete.
+- Displays equal-weight article cards rather than a resolution-sensitive
+  featured story.
+- Shows articles progressively as independent title queries complete.
 - Opens articles on MyAnimeList in a new tab.
-- Loads popular promotional video links independently from article requests.
+- Builds trailer links from current-season Tenrai metadata independently from
+  article requests.
 - Uses lazy image decoding and skips rendering work for offscreen cards where
   the browser supports `content-visibility`.
+
+### Notifications
+
+- Displays an unread badge on the profile control and notification menu item.
+- Shows schedule-based releases for Watching and Plan to watch titles.
+- Opens the related anime detail panel and supports clearing one or every alert.
+- Persists at most 100 alerts in an owner-scoped browser record.
 
 ### Settings
 
 - Shows PWA installation state and instructions.
-- Shows local-only or cloud configuration state.
-- Supports account creation, sign-in, and sign-out when configured.
-- Displays sync status and sync errors.
+- Selects whole-number or half-point personal score increments.
 - Imports validated MyAnimeList XML exports or Banime JSON backups and reports
   added or updated counts.
-- Saves MyAnimeList XML imports before Jikan enrichment, then updates posters
-  and current details when Jikan lookups finish.
+- Saves MyAnimeList XML imports before Tenrai enrichment, then updates posters
+  and current details when Tenrai lookups finish.
 - Exports the library as Banime JSON.
 - Selects and persists light or dark mode.
 - Selects and persists the external watch-search provider for this browser.
+- Displays MCP endpoint configuration without treating it as authorization.
 - Explains the app-code and content-data update cadence and shows the most
   recent service-worker check time.
 
@@ -955,6 +1015,8 @@ Do not disable TLS verification to work around certificate errors.
 
 ### Run
 
+Run the browser-only local profile mode with Vite:
+
 ```powershell
 npm.cmd run dev
 ```
@@ -963,6 +1025,15 @@ The development server was run with:
 
 ```powershell
 npm.cmd run dev -- --host 127.0.0.1
+```
+
+Vite does not execute files under `api/`. To test account cookies, profile
+uploads, cloud libraries, or rate-limited API routes, pull the Vercel
+environment and run:
+
+```powershell
+npx vercel env pull .env.local
+npx vercel dev
 ```
 
 Run the MCP service in a second terminal after creating
@@ -977,33 +1048,40 @@ npm.cmd run mcp:dev
 ```powershell
 npm.cmd run build
 npm.cmd run lint
+npm.cmd run api:check
 npm.cmd test
 npm.cmd run mcp:check
 ```
 
-`npm run build` checks both browser and MCP TypeScript projects before the
-Vite build.
+`npm run build` checks the browser TypeScript project and produces the Vite/PWA
+bundle. API and MCP projects have explicit checks because they use different
+Node module-resolution and runtime boundaries.
 
 ### Optional Cloud Setup
 
 1. Create a Supabase project.
 2. Run `supabase/schema.sql` in the Supabase SQL editor.
-3. Copy `.env.example` to `.env.local`.
-4. Add the project URL and publishable key.
+3. Require email confirmation and configure custom SMTP plus Banime's
+   confirmation and recovery templates.
+4. Copy `.env.example` to `.env.local` and add the server-side Supabase,
+   Upstash, app-origin, and account-mode values.
 5. Add local and deployed origins to the Supabase Auth redirect allow list.
-6. Restart Vite after changing environment variables.
+6. Run `npx vercel dev`; Vite alone cannot execute the same-origin functions.
 
 ### Optional MCP and ChatGPT Setup
 
 1. Copy `.env.mcp.example` to `.env.mcp.local`.
 2. Set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and the complete
    `MCP_PUBLIC_URL`.
-3. Enable the Supabase OAuth 2.1 server.
-4. Set its authorization path to the deployed PWA's `/oauth/consent` route.
-5. Enable dynamic client registration or register ChatGPT manually.
-6. Deploy the MCP service over public HTTPS.
-7. Add that endpoint to ChatGPT developer mode under Apps & Connectors.
-8. Connect and approve the request with the intended Banime account.
+3. Deploy the MCP service over public HTTPS and configure exact hosts, origins,
+   proxy trust, rate limits, and an optional expected audience.
+4. Add a cookie-aware Banime consent endpoint before enabling authenticated
+   Supabase OAuth library tools. The removed `/oauth/consent` implementation
+   must not be restored because it exposed browser tokens to application code.
+5. Enable the Supabase OAuth 2.1 server and dynamic registration, or register
+   ChatGPT manually.
+6. Add the MCP endpoint to ChatGPT developer mode under Apps & Connectors,
+   connect, and verify every permission with a disposable account.
 
 ### Environment and Secret Rules
 
@@ -1019,9 +1097,11 @@ Vite build.
 
 ## Deployment
 
-### Static Hosting
+### PWA and API Hosting
 
-The application builds to `dist/` and can be hosted on static HTTPS services.
+The application builds to `dist/`. Local-only mode can be hosted as static
+HTTPS files. Account mode also requires the checked-in `api/` functions and is
+currently designed for Vercel's same-origin runtime.
 
 Included SPA fallbacks:
 
@@ -1050,7 +1130,8 @@ deployed as static files.
 
 - Build command: `npm run build`.
 - Output directory: `dist`.
-- Add Supabase public environment variables if cloud sync is required.
+- Add server-side Supabase and Upstash variables plus
+  `VITE_ACCOUNT_AUTH_ENABLED=true` if cloud accounts are required.
 - Set `VITE_MCP_URL` on the PWA deployment after the MCP URL is known.
 - Set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `MCP_PUBLIC_URL` on the
   MCP service.
@@ -1062,18 +1143,18 @@ deployed as static files.
 
 ### Deployment Verification Checklist
 
-1. Open all six routes directly, not only through client navigation.
+1. Open every public and protected route directly, not only through client navigation.
 2. Confirm the service worker and manifest load without errors.
 3. Confirm install UI on Android and manual instructions on iOS.
 4. Create a test user.
 5. Add and update a library item on desktop.
 6. Sign into the same account on a phone.
-7. Verify merge and cloud writes.
+7. Verify owner-cache hydration and cloud writes.
 8. Test sign-out and local-only behavior.
-9. Test Jikan failure and rate-limit states.
+9. Test Tenrai failure and rate-limit states.
 10. Confirm RLS blocks access to another user's rows.
 11. Confirm the MCP protected-resource metadata is public and correct.
-12. Add the MCP URL to ChatGPT and complete OAuth consent.
+12. Add the MCP URL to ChatGPT and complete the future cookie-aware OAuth consent.
 13. Verify search, library read, add, update, remove, news, and recommendation
     tool calls against a non-production test account.
 
@@ -1083,20 +1164,18 @@ No production deployment has completed this checklist yet.
 
 ### Current Automated Tests
 
-| File | Coverage |
+As of 2026-08-15, Vitest runs 104 tests across 34 files. The table below
+groups representative coverage rather than duplicating every test filename.
+
+| Area | Representative coverage |
 | --- | --- |
-| `domain/tracker/stats.test.ts` | Tracker totals, progress sum, and average score |
-| `domain/tracker/merge.test.ts` | Newest record wins during local/cloud merge |
-| `services/jikan/mapper.test.ts` | Nullable Jikan fields normalize correctly |
-| `domain/anime/dedupe.test.ts` | Duplicate MAL IDs are removed |
-| `domain/anime/airing.test.ts` | Weekly Jikan broadcast time converts to UTC |
-| `domain/tracker/import.test.ts` | Banime exports import and malformed status is rejected |
-| `mcp/recommendations.test.ts` | Preference ranking, tracked-title exclusion, and explicit filters |
-| `mcp/libraryRepository.test.ts` | Partial updates, score clearing, and progress clamping |
-| `mcp/tools.test.ts` | MCP tool discovery and OAuth challenge metadata through an in-memory client |
-| `mcp/server.test.ts` | Security headers, origin rejection, body caps, and rotating-token rate-limit resistance |
-| `mcp/rateLimiter.test.ts` | Independent request, tool, and shared Jikan budgets |
-| `domain/security/validation.test.ts` | HTTPS URL, control-character, truncation, and wildcard escaping rules |
+| Tracker domain | Status/progress/score normalization, statistics, profile summaries, conflict merge, XML/JSON import, and bounds |
+| Anime and Tenrai | DTO normalization, deduplication, airing calculations, browse/search pagination, cache behavior, news, and import enrichment |
+| Accounts and profile media | Account client responses, validation, sessions, cookies, origin checks, image dimensions, upload processing, and delete flows |
+| Cloud library APIs | Owner scoping, bounded pagination, compact summaries, mutations, malformed input, and repository batching |
+| Notifications and favorites | Scheduled-release detection, deduplication, favorite bounds, ordering, and sanitization |
+| MCP | Protocol discovery, authorization challenges, repository mutations, recommendations, security headers, limits, and distributed quota behavior |
+| Security utilities | URL policy, wildcard escaping, control characters, truncation, and request-size handling |
 
 Current result:
 
@@ -1122,7 +1201,7 @@ Priority test gaps:
 3. Auth initialization and sign-in/sign-out behavior.
 4. Supabase repository integration against a test project.
 5. Deletion conflict and merge semantics.
-6. Jikan throttling and cache expiration.
+6. Tenrai throttling and cache expiration edge cases.
 7. Search debounce and disabled-query behavior.
 8. News partial-failure behavior.
 9. PWA install event handling.
@@ -1149,14 +1228,25 @@ Cloud mode additionally sends:
 
 - Email and authentication data to Supabase Auth.
 - Tracking records to the configured Supabase project.
+- Username, score precision, ordered favorites, and selected default profile
+  media to the private profile row.
+- Optional normalized avatar and banner WebP files to the private profile-media
+  bucket.
+- Session tokens between the browser and same-origin API only through
+  `HttpOnly` cookies.
 
-Banime does not send personal tracking data to Jikan or MyAnimeList.
+Banime does not send personal tracking data to Tenrai or MyAnimeList.
 
 ### Security Controls
 
 - Supabase RLS policies scope rows to `auth.uid()`.
 - No service-role key is used in the browser.
 - Password handling is delegated to Supabase Auth.
+- Same-origin API routes validate request origin, method, content type, body
+  size, object keys, and operation-specific value bounds.
+- Session cookies are `HttpOnly`, `SameSite=Lax`, and `Secure` in production.
+- Profile uploads are decoded and normalized by Sharp; original bytes,
+  filenames, metadata, and paths are not trusted.
 - External links use `target="_blank"` with `rel="noreferrer"`.
 - Search parameters are encoded with `URLSearchParams`.
 - React escapes rendered text by default.
@@ -1173,7 +1263,7 @@ Banime does not send personal tracking data to Jikan or MyAnimeList.
 - Browser CORS uses exact configured origins and rejects wildcard setup.
 - Every MCP request is charged to an IP quota; bearer-shaped requests also
   receive a token-hash quota so rotating fake tokens cannot bypass IP limits.
-- Tool calls and outbound Jikan requests have independent budgets.
+- Tool calls and outbound Tenrai requests have independent budgets.
 - Upstash can share all limits across stateless replicas.
 - Request bodies, headers, concurrent work, request reading, and upstream
   calls are bounded.
@@ -1210,7 +1300,7 @@ Banime does not send personal tracking data to Jikan or MyAnimeList.
 
 ### Security Risk Checklist Review
 
-Review date: 2026-06-20. This maps the requested risk checklist to the
+Review date: 2026-08-15. This maps the requested risk checklist to the
 current Banime implementation. Status meanings:
 
 - Mitigated: implemented in code, schema, or checked-in deployment config.
@@ -1224,51 +1314,51 @@ current Banime implementation. Status meanings:
 | --- | --- | --- | --- |
 | 1 | Exposed database credentials | Mitigated | Checked-in files use placeholders and publishable Supabase variables only; service-role keys must never be committed. |
 | 2 | Public `.env` files | Partially mitigated | Only `.env.example` and `.env.mcp.example` are intended for source control; verify real deployment secrets stay in provider secret stores. |
-| 3 | Hardcoded API keys | Mitigated | Jikan does not require a key; source scans found no hardcoded secret-like values outside documentation examples. |
-| 4 | Weak or missing authentication | Partially mitigated | Local mode is intentionally accountless; private cloud/MCP data uses Supabase Auth and bearer-token verification, but real production OAuth still needs end-to-end verification. |
-| 5 | Missing authorization checks | Partially mitigated | MCP derives the user from the verified token and Supabase policies scope library rows; verify with two separate real users. |
+| 3 | Hardcoded API keys | Mitigated | Tenrai does not require a key; checked-in environment files contain names and placeholders rather than credentials. |
+| 4 | Weak or missing authentication | Partially mitigated | Local mode is intentionally accountless. Cloud mode uses cookie-backed Supabase Auth behind same-origin functions; deployed MCP OAuth still needs end-to-end verification. |
+| 5 | Missing authorization checks | Partially mitigated | Web APIs derive the owner from the verified cookie session, MCP derives it from the verified token, and RLS scopes rows; a formal two-user isolation test remains required. |
 | 6 | Users able to access other users' data | Partially mitigated | Schema uses `auth.uid() = user_id` RLS policies; two-user cloud testing remains required. |
-| 7 | Open database read/write permissions | Partially mitigated | `supabase/schema.sql` enables RLS and authenticated owner policies; confirm those policies are applied in the live project. |
-| 8 | Misconfigured Firebase, Supabase, or S3 buckets | Partially mitigated | No Firebase or S3 is used; Supabase table policy must be verified in the provider dashboard after migration. |
+| 7 | Open database read/write permissions | Mitigated in schema | `supabase/schema.sql` enables RLS and authenticated owner policies for tracker and profile data; two-user behavioral verification remains separate. |
+| 8 | Misconfigured Firebase, Supabase, or S3 buckets | Partially mitigated | Profile media uses a private Supabase bucket, owner-scoped object paths, and signed reads; deployed storage-policy verification remains required. |
 | 9 | Admin routes left unprotected | Not applicable | Banime has no admin routes or multi-user administration UI. |
 | 10 | Debug pages exposed in production | Mitigated | No debug route is tracked in the app; production deployment should still be scanned before release. |
 | 11 | Build logs leaking secrets | Open | This is operational; CI/host logs must be reviewed once a deployment pipeline exists. |
-| 12 | Verbose error messages leaking stack traces | Mitigated | MCP returns generic client errors and logs backend errors without request bodies or credentials. |
-| 13 | Leaked GitHub repositories or commit history | Partially mitigated | Local current-tree and three-commit secret scans passed; remote repository visibility and branch history must be reviewed before release. |
-| 14 | Secrets included in frontend JavaScript | Mitigated | Frontend uses only Vite `VITE_` public Supabase variables; service-role or MCP secrets are server-side only. |
-| 15 | Client-side-only security checks | Mitigated | Persisted cloud data is protected by Supabase RLS and MCP server authorization, not only React UI checks. |
-| 16 | Missing input validation | Mitigated | MCP schemas are strict; MyAnimeList XML import, JSON import, local storage, URLs, IDs, ranges, and text lengths are validated. |
+| 12 | Verbose error messages leaking stack traces | Mitigated | Web APIs and MCP return generic client errors without stack traces, credentials, or provider response bodies. |
+| 13 | Leaked GitHub repositories or commit history | Partially mitigated | Source and history scans found no committed credential values; repository visibility and future commits remain operational responsibilities. |
+| 14 | Secrets included in frontend JavaScript | Mitigated | The browser receives only `VITE_ACCOUNT_AUTH_ENABLED`; Supabase keys, Redis credentials, and MCP secrets remain server-side. |
+| 15 | Client-side-only security checks | Mitigated | Same-origin functions verify sessions and origins, validate inputs, derive ownership, and rely on RLS; React visibility checks are only UX. |
+| 16 | Missing input validation | Mitigated | Auth, library, media, MCP, XML/JSON import, local cache, URL, ID, range, text, and object-shape inputs are bounded and validated. |
 | 17 | SQL injection | Mitigated | Supabase client requests are parameterized, and user search text escapes `ILIKE` wildcard characters. |
 | 18 | NoSQL injection | Not applicable | Banime does not use a NoSQL database. |
 | 19 | Cross-site scripting, or XSS | Mitigated | React escapes rendered text, raw HTML is not used, external URLs are validated, and CSP headers are configured. |
-| 20 | Cross-site request forgery, or CSRF | Mostly not applicable | Banime does not expose cookie-authenticated write endpoints; MCP uses bearer tokens and rejects unapproved origins. |
-| 21 | Insecure file uploads | Mitigated | There is no server file upload path; local MyAnimeList XML and Banime JSON import is parsed, bounded, and validated before merge. |
+| 20 | Cross-site request forgery, or CSRF | Mitigated | Cookie-authenticated write endpoints require an allowed same-origin request; cookies use `SameSite=Lax`. MCP uses bearer tokens and exact origins. |
+| 21 | Insecure file uploads | Mitigated | Profile uploads are size-limited data URLs decoded by Sharp, pixel-bounded, resized, metadata-stripped, re-encoded as WebP, and stored under owner-derived private paths. |
 | 22 | Path traversal bugs | Not applicable | Users do not control server filesystem paths. |
-| 23 | Server-side request forgery, or SSRF | Mitigated | Server calls are limited to configured Supabase Auth/JWKS endpoints and fixed Jikan service calls, not arbitrary user URLs. |
-| 24 | Broken password reset flows | Not applicable | Banime does not implement a custom password reset flow; Supabase Auth settings must be reviewed if password login is enabled. |
-| 25 | Weak session management | Partially mitigated | Supabase manages browser sessions; production session lifetime and token refresh behavior still need provider review. |
+| 23 | Server-side request forgery, or SSRF | Mitigated | Server calls are limited to configured Supabase endpoints and fixed Tenrai calls, not arbitrary user URLs. |
+| 24 | Broken password reset flows | Partially mitigated | Reset codes are issued and verified through Supabase Auth behind generic responses and rate limits; deployed email delivery and abuse behavior require periodic testing. |
+| 25 | Weak session management | Partially mitigated | Raw tokens are stored only in `HttpOnly` cookies, rotated through refresh, cleared on sign-out, and never trusted without Supabase verification; production lifetime policy remains provider-managed. |
 | 26 | JWT secrets that are weak, leaked, or reused | Partially mitigated | Banime does not define its own JWT secret; Supabase signing configuration and OAuth audience enforcement must be verified. |
 | 27 | Overly permissive CORS | Mitigated | MCP requires exact allowed origins and host validation; production `MCP_ALLOWED_ORIGINS` must be explicit. |
-| 28 | Missing rate limits on login, signup, APIs, and AI endpoints | Partially mitigated | MCP and outbound Jikan calls are rate-limited; Supabase Auth login/signup limits and provider WAF settings remain operational tasks. |
+| 28 | Missing rate limits on login, signup, APIs, and AI endpoints | Mitigated in application code | Auth, library mutations, media actions, MCP requests/tools, and outbound Tenrai work are rate-limited; production uses Upstash and still benefits from provider WAF limits. |
 | 29 | Public test or staging environments | Open | No staging environment is documented yet; any future staging URL needs the same auth and headers as production. |
 | 30 | Default credentials left unchanged | Mitigated | No default accounts or credentials are defined in the repo. |
 | 31 | Webhook endpoints without signature verification | Not applicable | Banime does not expose webhooks. |
 | 32 | Payment or subscription checks only done on the frontend | Not applicable | Banime has no payments or subscriptions. |
-| 33 | Insecure direct object references, or IDOR | Partially mitigated | Library rows are user-scoped by RLS and MCP user context; verify live with two users. |
-| 34 | API endpoints that trust user-controlled IDs or roles | Mitigated | MCP trusts user identity from verified token claims, not request-supplied user IDs or roles. |
+| 33 | Insecure direct object references, or IDOR | Partially mitigated | Web and MCP library operations derive the owner from authenticated context and RLS; anime IDs select records only within that owner. Formal two-user verification remains required. |
+| 34 | API endpoints that trust user-controlled IDs or roles | Mitigated | Web APIs and MCP trust verified session/token identity, not request-supplied user IDs or roles. |
 | 35 | Logs containing tokens, emails, passwords, or private user data | Partially mitigated | MCP avoids logging request bodies and tokens; central log retention and redaction must be configured at deployment. |
 | 36 | Source maps exposed in production | Partially mitigated | Vite source maps are not enabled in config; verify deployed artifacts do not expose `.map` files. |
-| 37 | Dependency vulnerabilities | Mitigated at last check | `npm audit` reported zero known vulnerabilities on 2026-06-10; automate this in CI. |
+| 37 | Dependency vulnerabilities | Mitigated at last check | `npm audit --audit-level=high` reported zero known vulnerabilities on 2026-08-15; continued automation is required. |
 | 38 | Outdated packages | Open | Package freshness needs scheduled review or Dependabot/Renovate. |
 | 39 | Prompt injection in AI features | Partially mitigated | MCP tools use strict schemas, bounded outputs, and do not execute returned text; model behavior still needs prompt and tool review when deployed. |
-| 40 | AI tools or actions allowed to access data without permission checks | Mitigated | Public search tools expose Jikan data only; private library tools require verified Supabase OAuth identity. |
-| 41 | Excessive database permissions for the app user | Partially mitigated | Frontend uses publishable Supabase access plus RLS; confirm no service-role key is present in deployed frontend or MCP environment. |
+| 40 | AI tools or actions allowed to access data without permission checks | Mitigated | Public search tools expose Tenrai data only; private library tools require verified Supabase identity and execute under RLS. |
+| 41 | Excessive database permissions for the app user | Partially mitigated | Browser code has no database key. User operations execute with user-scoped tokens and RLS; the server secret is restricted to necessary account-administration paths. |
 | 42 | Missing audit logs | Open | No structured production audit log exists for library mutations or MCP actions. |
 | 43 | Missing monitoring or alerting | Open | No production metrics, alerting, uptime checks, or abuse dashboards are configured. |
 | 44 | Missing backup or restore plan | Partially mitigated | JSON export/import helps personal recovery, but Supabase backup and restore procedures are not documented. |
 | 45 | Publicly exposed internal dashboards | Not applicable in repo | Banime has no internal dashboard; provider dashboards must stay private. |
 | 46 | Missing security headers | Mitigated | `vercel.json`, `public/_headers`, and MCP responses set CSP, HSTS, frame denial, MIME, referrer, and permissions headers. |
-| 47 | Cookies missing HttpOnly, Secure, or SameSite settings | Mostly not applicable | The app does not set its own cookies; review Supabase/Auth hosting settings if cookie-based auth is introduced. |
+| 47 | Cookies missing HttpOnly, Secure, or SameSite settings | Mitigated in code | Auth cookies are `HttpOnly`, `SameSite=Lax`, path-scoped to `/`, and `Secure` in production. |
 | 48 | Unencrypted sensitive data | Partially mitigated | HTTPS is expected in production and Supabase handles managed storage; local device storage and personal notes are not client-side encrypted. |
 | 49 | Poor tenant isolation in multi-user applications | Partially mitigated | Tenant isolation is based on per-user RLS policies; real multi-user verification remains required. |
 | 50 | Over-trusting generated code without review | Mitigated operationally | Changes are documented, tested, and reviewed against this history file; this remains an ongoing discipline. |
@@ -1280,29 +1370,51 @@ current Banime implementation. Status meanings:
 
 - Local-first writes keep tracking responsive during network failures.
 - Cloud writes are serialized to preserve mutation order within one tab.
-- Jikan requests are serialized and cached.
-- Jikan responses are reused from browser storage after page reloads until
-  their endpoint-specific expiry.
+- Tenrai request starts are serialized with at least 500 ms between starts.
+- Tenrai responses use endpoint-specific in-memory and browser caches. Both the
+  memory cache and each persistent cache target are capped at 120 Banime
+  entries; expired, malformed, and oldest-expiring surplus entries are removed.
+- `sessionStorage` holds ordinary catalog responses for the current browser
+  session. `localStorage` holds explicitly slow-changing feeds such as popular
+  and historical browse results so they survive a browser restart.
+- TanStack React Query adds query-key deduplication, retries, cancellation,
+  stale-time policy, and 30-minute inactive discovery-result retention above
+  the Tenrai response cache.
 - Query cancellation prevents unnecessary stale requests.
 - Individual title-news failures do not discard all other title articles.
 - News articles and trailers render independently instead of waiting for one
   combined response.
 - Large popular, article, and trailer grids use offscreen rendering
   containment.
-- Supabase is code-split into an on-demand chunk.
 - The PWA precaches static application assets.
-- Library search builds one normalized search value per item and memoizes
-  filter/sort work.
+- Authenticated library snapshots are stored in IndexedDB by `ownerId`. Cache
+  writes are serialized per owner, validated on read, refreshed after cloud
+  hydration and local mutations, and cleared for the prior owner on sign-out.
+- The local authentication hint stores only a boolean UI hint. It prevents the
+  navigation from collapsing during session checks but grants no access and is
+  replaced by the server session result.
+- `/api/library` returns bounded offset pages. The client requests 250 rows per
+  page and fetches up to four pages concurrently rather than waiting for every
+  page serially.
+- `/api/library/summary` returns statistics, recent activity, favorite genres,
+  and tracked airing titles without returning the entire library. On an
+  uncached refresh, Profile can render from this summary while full hydration
+  continues.
+- Profile statistics and favorite-genre counts use a single aggregation pass.
+- Library search builds one normalized search value per item, defers query text,
+  memoizes filter/sort work, and renders 60 records per UI page.
+- Profile activity sorting and airing-priority lists are memoized. Skeletons
+  preserve layout while uncached authenticated data is unresolved.
 - Postgres query columns and indexes support user, status, date, type, score,
   and partial-title retrieval.
 - MCP calls are stateless at the HTTP transport layer.
-- Jikan data requested by MCP reuses the same in-process throttling and cache
+- Tenrai data requested by MCP reuses the same in-process throttling and cache
   implementation as the PWA services.
 - Recommendation ranking is pure and deterministic for the same library and
   candidate set.
 - MCP library reads support bounded offset pagination.
 - The Supabase JWT verifier client is reused within each MCP process.
-- The shared Jikan budget preserves the official 60-per-minute ceiling across
+- The shared Tenrai budget preserves the configured per-minute ceiling across
   replicas when Upstash is configured.
 - The direct `ILIKE` title query has a matching trigram index.
 - Rate-limit memory is capped to prevent unbounded identity-map growth.
@@ -1310,11 +1422,9 @@ current Banime implementation. Status meanings:
 ### Last Recorded Production Build
 
 ```text
-Main CSS: 30.11 kB, 6.43 kB gzip
-Main JS: 398.22 kB, 123.20 kB gzip
-Supabase lazy chunk: 199.77 kB, 51.03 kB gzip
-MCP production bundle: 51.2 kB
-PWA precache: 8 entries, 619.91 KiB
+Main CSS: 67.95 kB, 12.63 kB gzip
+Main JS: 464.53 kB, 140.44 kB gzip
+PWA precache: 7 entries, 527.15 KiB
 ```
 
 These values are development evidence, not a permanent performance budget.
@@ -1328,7 +1438,7 @@ These values are development evidence, not a permanent performance budget.
 - No offline mutation tombstones exist.
 - A health endpoint and container health check exist, but no external alerting
   or uptime monitor is configured.
-- No Jikan fallback data source exists.
+- No Tenrai fallback data source exists.
 - Invalid local storage is rejected and currently falls back to an empty
   library without a user-facing recovery prompt.
 - There is no corruption recovery or import restore.
@@ -1398,6 +1508,11 @@ These values are development evidence, not a permanent performance budget.
 | ADR-0032 | 2026-06-20 | Persist slow-changing Top 100 Jikan responses in browser `localStorage` for 6 hours | Accepted | Popularity rankings change slowly enough to reduce repeat requests beyond one tab session without stale airing data |
 | ADR-0033 | 2026-06-20 | Keep Banime backups as JSON and use XML only for MyAnimeList import | Accepted | Jikan and Banime data contracts are JSON; XML is needed only to consume MAL's export format |
 | ADR-0034 | 2026-06-20 | Use a provider registry for external watch-search links | Accepted | Keeps watch-link destinations configurable without hardcoding one streaming site into library and detail UI |
+| ADR-0035 | 2026-07-29 | Replace Jikan with Tenrai v1 while retaining the normalized domain model | Accepted, supersedes `ADR-0004` | Preserves app boundaries while moving away from a discontinued upstream service |
+| ADR-0036 | 2026-07-30 | Put Supabase Auth behind same-origin functions and `HttpOnly` cookies | Accepted, supersedes browser-session portions of `ADR-0008` and `ADR-0011` | Prevents browser JavaScript from reading raw session tokens and centralizes origin, rate-limit, and validation controls |
+| ADR-0037 | 2026-08-11 | Store profile media privately after server-side normalization | Accepted | Uploaded images are untrusted and require decode, resize, metadata stripping, re-encoding, owner paths, and signed reads |
+| ADR-0038 | 2026-08-15 | Hydrate authenticated profiles from owner caches and a compact summary before the full library | Accepted | Large libraries should not flash zeros or block identity/navigation while thousands of rows load |
+| ADR-0039 | 2026-08-15 | Keep release notifications owner-scoped and in-app until a push service exists | Accepted with limitation | Schedule alerts work without another service, but cannot run while Banime is closed |
 
 ### Superseded Decision Note
 
@@ -1411,25 +1526,27 @@ resulting stack selection.
 | ID | Priority | Area | Description | Recommended action |
 | --- | --- | --- | --- | --- |
 | RISK-0001 | High | Cloud data | Offline deletions can be resurrected because there are no tombstones | Add versioned tombstones or an operation log |
-| RISK-0002 | High | Verification | Supabase auth, RLS, and sync have not been tested against a real project | Create a development project and run two-user integration tests |
-| RISK-0003 | High | Deployment | PWA is not yet deployed over HTTPS or installed on a physical phone | Deploy preview and complete device checklist |
+| RISK-0002 | High | Verification | A connected Supabase project exists, but formal two-user RLS and cross-device sync testing is incomplete | Run disposable two-user isolation and conflict tests |
+| RISK-0003 | Medium | Deployment | HTTPS deployment exists, but physical-phone installation and offline-shell behavior are not recorded | Complete Android and iPhone device checklist |
 | RISK-0004 | High | Sync | Device clocks control conflict resolution | Use server timestamps or monotonic row versions |
 | RISK-0005 | Medium | Sync | No realtime pull or refresh while another device edits | Add manual refresh or Supabase Realtime |
-| RISK-0006 | Medium | Offline | Service worker does not runtime-cache Jikan or images | Define explicit offline behavior and Workbox strategies |
+| RISK-0006 | Medium | Offline | Service worker does not runtime-cache Tenrai or remote images | Define explicit offline behavior and Workbox strategies |
 | RISK-0007 | Medium | News | Feed covers only the first four current-season titles | Add category sources, pagination, or server-side aggregation |
 | RISK-0008 | Medium | Quality | Unit tests do not cover providers, live APIs, or end-to-end flows | Add provider, API, integration, and end-to-end tests |
 | RISK-0009 | Medium | Accessibility | Dialog focus management and visual audit are incomplete | Add focus trap, focus return, and axe/browser testing |
 | RISK-0010 | Medium | Data | Full anime snapshots can become stale | Add catalog refresh or split tracker and catalog data |
-| RISK-0011 | Medium | Recovery | Import has no preview/rollback, and MyAnimeList XML imports can be slow or partially enriched when Jikan lookups fail | Add import preview, explicit restore modes, and resumable post-import catalog enrichment |
+| RISK-0011 | Medium | Recovery | Import has no preview/rollback, and MyAnimeList XML imports can be slow or partially enriched when Tenrai lookups fail | Add import preview, explicit restore modes, and resumable post-import catalog enrichment |
 | RISK-0012 | Medium | UX | Notes field is not editable | Add note editor or remove the unused field |
 | RISK-0014 | Low | Routing | No 404 page or route error boundary | Add route-level fallback and error handling |
 | RISK-0015 | Low | Mobile | Only SVG app icon is supplied | Add 192 px and 512 px PNG icons and Apple touch icon |
 | RISK-0016 | Low | CSS | One large global stylesheet increases collision risk | Introduce feature styles or CSS modules when growth justifies it |
-| RISK-0017 | Process | Git | Current changes are uncommitted | Review and create a baseline commit before further large changes |
+| RISK-0017 | Process | Documentation | README and engineering history can drift after rapid feature work | Require both files in the definition of done and review their distinct ownership before merge |
 | RISK-0018 | High | MCP auth | Supabase OAuth and authenticated tool calls are not verified against a real deployed project | Complete OAuth, RLS, and mutation tests with a disposable user |
 | RISK-0019 | High | Public service | MCP endpoint has no production rate limiting, audit sink, or abuse monitoring | Add proxy limits, structured logs, alerts, and a documented incident process |
 | RISK-0020 | Medium | OAuth tokens | Resource-specific audience enforcement is optional until a Supabase token hook is configured | Add the hook and set `MCP_EXPECTED_AUDIENCE` before production use |
-| RISK-0021 | Medium | Recommendations | Candidate pool is limited to current season and top-popularity feeds | Add Jikan recommendation or genre-specific candidate sources if results are too narrow |
+| RISK-0021 | Medium | Recommendations | Candidate pool is limited to current season and top-popularity feeds | Add Tenrai genre-specific candidate sources if results are too narrow |
+| RISK-0028 | Medium | Notifications | Release alerts depend on stored weekly schedules and an open/visible browser | Add server-side scheduling and Web Push only if background alerts become a product requirement |
+| RISK-0029 | Medium | Cache freshness | Cached cloud snapshots can be temporarily stale across devices because no realtime pull exists | Add manual refresh, focus revalidation, or Supabase Realtime with conflict-safe semantics |
 | RISK-0022 | High | Operations | Application limits do not replace edge DDoS protection or monitoring | Add provider WAF rules, metrics, logs, alerts, and incident response |
 | RISK-0023 | Medium | Scaling | In-memory quotas are per process when Upstash is not configured | Configure Upstash before running more than one replica |
 | RISK-0024 | Medium | Recovery | Invalid local data falls back to an empty library without an in-app recovery path | Quarantine corrupt data and offer export/reset recovery |
@@ -1441,8 +1558,9 @@ resulting stack selection.
 
 ### Phase 1: Make Current Capabilities Trustworthy
 
-1. Configure a development Supabase project.
-2. Verify sign-up, confirmation, sign-in, sign-out, RLS, and two-device sync.
+1. Maintain the connected development Supabase project and rerunnable schema.
+2. Verify sign-up, confirmation, sign-in, sign-out, deletion, RLS, and
+   two-device sync with disposable accounts.
 3. Add integration tests for cloud repositories and tracker provider behavior.
 4. Deploy an HTTPS preview.
 5. Install and test on one Android and one iPhone device.
@@ -1471,7 +1589,7 @@ resulting stack selection.
 1. Expand beyond four seasonal titles.
 2. Add news categories and filters.
 3. Define source attribution and freshness rules.
-4. Consider a backend aggregator only if Jikan scope becomes insufficient.
+4. Consider a backend aggregator only if Tenrai scope becomes insufficient.
 
 ### Phase 5: Production Quality
 
@@ -1581,6 +1699,16 @@ Log rather than treated as application incidents.
 | 2026-06-20 | Anikoto default provider build | `npm.cmd run build` | Browser and MCP TypeScript checks, Vite build, and PWA generation passed; main JS 398.22 kB gzip 123.20 kB |
 | 2026-06-20 | Anikoto default provider whitespace | `git diff --check` | Passed; Git reported only LF-to-CRLF working-copy warnings |
 | 2026-07-30 | Error message copy | `npm run lint && npm test && npm run build` | Blocked before execution because dependencies are incomplete and the package registry returned HTTP 403 |
+| 2026-08-15 | Profile/library optimization lint | `npm.cmd run lint` | Passed with no ESLint errors |
+| 2026-08-15 | Profile/library API typecheck | `npm.cmd run api:check` | Passed under the NodeNext server module boundary |
+| 2026-08-15 | Profile/library optimization tests | `npm.cmd test` | 34 test files and 104 tests passed |
+| 2026-08-15 | Profile/library production build | `npm.cmd run build` | Passed; main CSS 67.95 kB/12.63 kB gzip, main JS 464.53 kB/140.44 kB gzip, and PWA precache generated |
+| 2026-08-15 | Dependency audit | `npm audit --audit-level=high` | Zero known vulnerabilities reported |
+| 2026-08-15 | Supabase data-shape check | Read-only project query | 2,457 tracked rows existed; all queried rows included genre and duration fields needed by profile summaries |
+| 2026-08-15 | Supabase performance advisor | Read-only advisor query | Reported several currently unused tracker indexes; retained pending measured production-query evidence |
+| 2026-08-15 | Desktop/mobile local-mode UI | Browser verification against temporary Vite server | No error overlay, console error, warning, or horizontal overflow; production cookie-auth flow was not exercised locally |
+| 2026-08-15 | GitHub required check | Actions `Verify` run 63 on PR #22 | Completed successfully before merge |
+| 2026-08-15 | Documentation consistency | Source/history review and `git diff --check` | README and engineering history updated; whitespace check passed |
 
 ## Definition of Done
 
@@ -2495,6 +2623,113 @@ A future change is complete only when all applicable checks are satisfied:
   - `git diff --check` passed, and the Impeccable detector reported no
     findings across the changed UI files.
 
+### HIST-0031 - 2026-08-13 - Enforce verified account creation
+
+- Status: Merged into `main` in commit `777d903` through PR #18.
+- Changes:
+  - Rejected login sessions whose Supabase user is not email-confirmed.
+  - Required a successful verification-email dispatch and deleted a pending
+    user when sign-up failed before delivery.
+  - Rejected deployments that unexpectedly returned a session before required
+    email confirmation.
+  - Created profile rows only after `email_confirmed_at` becomes non-null and
+    added a confirmation-update trigger for pending users.
+  - Added branded Banime confirmation and recovery email templates.
+  - Reported password-reset delivery failures without revealing whether an
+    account exists.
+- Reason: An unverified identity must not gain a usable Banime profile or
+  session, and a mail-provider outage must not silently leave an account that
+  cannot complete registration.
+
+### HIST-0032 - 2026-08-13 - Resolve Supabase advisor warnings
+
+- Status: Merged into `main` in commit `082b661` through PR #19.
+- Changes:
+  - Moved `pg_trgm` from `public` to the dedicated `extensions` schema and
+    schema-qualified both trigram indexes.
+  - Added a restricted DDL event trigger that enables RLS automatically on new
+    tables created in `public`.
+  - Revoked callable privileges on the RLS helper from application roles.
+- Reason: Extensions should not unnecessarily occupy the exposed application
+  schema, and accidentally created public tables should default to protected.
+- Operational note: Supabase leaked-password protection is a provider Auth
+  setting and cannot be enabled by repository SQL; it must remain enabled in
+  the project dashboard.
+
+### HIST-0033 - 2026-08-14 - Add tracked release notifications
+
+- Status: Merged into `main` in commit `501c3b2` through PR #20.
+- Changes:
+  - Added an owner-scoped notification repository, domain detection and merge
+    logic, provider, page, profile-menu badge, and clear-one/clear-all actions.
+  - Checks Watching and Plan to watch titles against elapsed Tenrai weekly
+    broadcast schedules at startup, every minute while open, and on tab
+    visibility changes.
+  - Added unit coverage for release detection, invalid schedules, status
+    filtering, deduplication, ordering, and the 100-alert bound.
+- Limitation: This is an in-app schedule notification system, not Web Push. It
+  cannot check while every Banime tab is closed and does not prove streaming
+  availability.
+
+### HIST-0034 - 2026-08-14 - Correct account entry layout and redirect
+
+- Status: Merged into `main` in commit `7f87454` through PR #21.
+- Changes:
+  - Centered the sign-in/sign-up experience in the available viewport.
+  - Redirected successful login and authenticated account-route visits to
+    `/profile` instead of the general Home route.
+
+### HIST-0035 - 2026-08-15 - Accelerate profile and large-library hydration
+
+- Status: Merged into `main` through PR #22. Source commit `948c49c`; merge
+  commit `1314448`.
+- Problem:
+  - A refresh could temporarily show a collapsed signed-out navigation state,
+    zero profile statistics, and no activity while a library containing more
+    than 2,000 records loaded serially.
+- Changes:
+  - Added an owner-scoped, validated IndexedDB cloud-library cache with
+    serialized writes and sign-out cleanup.
+  - Added a non-authoritative local session hint so navigation preserves its
+    expected footprint while the server checks the `HttpOnly` session cookie.
+  - Added `/api/library/summary` for statistics, recent activity, favorite
+    genres, and tracked airing titles without full-row hydration.
+  - Changed `/api/library` to bounded offset pagination and fetched four
+    250-row pages concurrently in the browser repository.
+  - Calculated tracker statistics and favorite genres in one pass.
+  - Deferred library search, memoized repeated transforms, paged the UI at 60
+    records, and preserved visible ordering during score edits.
+  - Added uncached profile and library skeleton/error states instead of
+    rendering misleading zero values.
+- Verification:
+  - `npm.cmd run lint` passed.
+  - `npm.cmd run api:check` passed.
+  - `npm.cmd test` passed 104 tests across 34 files.
+  - `npm.cmd run build` passed and generated the PWA assets.
+  - `npm audit --audit-level=high` reported zero known vulnerabilities.
+  - `git diff --check` passed.
+  - GitHub Actions `Verify` run 63 passed before PR #22 merged.
+
+### HIST-0036 - 2026-08-15 - Reconcile feature and engineering documentation
+
+- Status: Working-tree documentation update pending review.
+- Changes:
+  - Expanded `README.md` into the user-facing feature, route, caching, setup,
+    and deployment reference.
+  - Corrected the notes capability: imported notes are preserved and
+    searchable, but no notes editor is currently implemented.
+  - Assigned non-overlapping ownership to README, Product, Design, and this
+    engineering history.
+  - Updated current architecture, Tenrai migration, cookie-backed auth,
+    profile media, route inventory, caching, performance, risks, dependency
+    versions, tests, and missing milestones through PR #22.
+- Verification:
+  - `npm.cmd run lint` passed.
+  - `npm.cmd run api:check` passed.
+  - `npm.cmd test` passed 104 tests across 34 files.
+  - `npm.cmd run build` passed and generated the PWA assets.
+  - `git diff --check` passed.
+
 ## Release History
 
 No formal production release has been recorded.
@@ -2502,8 +2737,9 @@ No formal production release has been recorded.
 The current code identifies itself as version `0.1.0`, but this should be
 treated as a development snapshot until:
 
-- The working tree is reviewed and committed.
-- A deployment target is selected.
-- Supabase is configured and verified.
+- Current documentation changes are reviewed and committed.
+- Supabase ownership is verified with two distinct disposable users.
+- Account, sync, deletion, email, and upload flows pass a deployed end-to-end
+  release checklist.
 - Physical phone installation is tested.
 - A release tag and rollback procedure are created.
