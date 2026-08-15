@@ -2,6 +2,11 @@
 
 <!-- impeccable:product-schema 1 -->
 
+This file defines Banime's audience, product purpose, scope, constraints, and
+principles. User-facing features and setup belong in `README.md`; visual rules
+belong in `DESIGN.md`; implemented architecture, caching, security evidence,
+risks, and chronology belong in `docs/engineering-history.md`.
+
 ## Platform
 
 web

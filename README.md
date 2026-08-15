@@ -8,37 +8,189 @@ Tenrai v1 follows the Jikan v4 response schema for the endpoints Banime uses.
 Tenrai does not provide Jikan's `/watch` endpoints, so Banime builds its
 trailer feed from trailer metadata on current-season anime records.
 
-## Features
+## Documentation map
 
-- Browse currently airing, upcoming, and the top 100 most popular anime
-- Search the Tenrai catalog and filter by type, genre, score, and sort order
-- Read news associated with current anime and browse popular trailers
-- See the next scheduled weekly broadcast in your local time
-- Track status, episode progress, notes, and personal scores
-- Search and filter your library by status, type, genre, score, and progress
-- Open configurable watch-search links from library and detail pages
-- Use a persisted light or dark theme with a blue accent palette
-- Keep tracking locally with no account or backend required
-- Optionally sync the same library between desktop and phone
-- Install as a Progressive Web App from a phone home screen
-- Import MyAnimeList XML exports, and import or export Banime JSON backups
-- Connect ChatGPT through MCP to search anime, read or update the synced
-  library, pull news, and request recommendations
+- `README.md` is the user-facing feature, setup, operation, and deployment
+  guide.
+- `PRODUCT.md` records product audience, purpose, scope, and principles; it
+  does not duplicate implementation history.
+- `DESIGN.md` records visual, interaction, responsive, and accessibility rules;
+  it does not act as a feature checklist.
+- `docs/engineering-history.md` records architecture, data flows, caching
+  internals, security decisions, verification evidence, risks, and append-only
+  chronological milestones.
+
+## Feature reference
+
+### Home and anime discovery
+
+- Home presents the current season, a compact coming-soon shelf, top airing
+  titles, recent headlines, a blast-from-the-past collection, and ranked
+  collections for the 2000s, 2010s, and 2020s.
+- Discover supports catalog search and paged browsing so users are not limited
+  to the first response page. Browse presets include airing, upcoming, popular,
+  classics, movies, family titles, Studio Ghibli, and most favorited titles.
+- Search and discovery results remain cached between page changes. Previously
+  visited pages can be revisited without immediately downloading the same data.
+- Anime details open in an overlay drawer without shifting the page behind it.
+  The drawer shows catalog metadata, synopsis, trailer availability, tracking
+  controls, favorites, and the configured external watch-search action.
+- The header provides catalog search and a shuffle action that opens a random
+  currently airing title.
+- News uses equal-weight article cards and links to the original publisher.
+  Banime also builds a trailer feed from current catalog trailer metadata.
+
+### Personal anime tracking
+
+- Every tracked title has one of five statuses: Watching, Completed, On hold,
+  Dropped, or Plan to watch.
+- Users can record episode progress and a personal score from 1 through 10.
+  Score controls can use whole-number or half-point increments. Notes imported
+  from MyAnimeList or Banime backups are preserved and searchable, but Banime
+  does not currently provide a notes editor.
+- Marking a title Completed automatically fills its known episode count.
+  Progress and scores are validated and cannot exceed their allowed ranges.
+- The library can be searched across titles, studios, genres, and notes. It can
+  be filtered by tracking status, anime type, genre, and minimum personal score,
+  then sorted by recent update, recent addition, title, score, or progress.
+- Large libraries are displayed 60 titles at a time. Changing a rating does not
+  immediately reorder the visible Recently updated list and move the title away
+  while the user is editing it.
+- Library and detail pages can open a configurable third-party search or
+  availability provider. Banime does not host, stream, or embed episodes.
+
+### Profile and activity
+
+- The profile shows a user banner, profile picture, total tracked anime, days
+  watched, episodes watched, mean score, completion progress, and recent
+  activity ordered by the latest update.
+- Airing next prioritizes currently airing titles marked Watching, followed by
+  Plan to watch titles and then the wider airing catalog. Broadcast times are
+  shown in the user's local time zone.
+- Genre overview calculates the five most represented genres in the user's
+  library and displays their proportional distribution using theme-aware colors.
+- Users can search for and maintain ordered favorites for anime, studios,
+  directors, and characters. Favorite anime can also be toggled from the anime
+  detail drawer.
+- Accounts include ten built-in anime profile pictures and five built-in anime
+  banners. Users may instead upload their own 512 x 512 profile picture or
+  1600 x 500 banner.
+- Uploaded profile media is decoded, resized, re-encoded as WebP, stripped of
+  original metadata, bounded by output size, stored in a private bucket, and
+  served through short-lived signed URLs.
+
+### Release notifications
+
+- Banime creates in-app alerts when a scheduled episode airs for a title marked
+  Watching or Plan to watch. The profile picture and Notifications menu show an
+  unread-count badge.
+- A notification opens the related anime detail drawer. Individual alerts can
+  be cleared with a check action, or all alerts can be cleared together.
+- Release checks run when Banime opens, once per minute while it remains open,
+  and when a background tab becomes visible again.
+- These are schedule-based in-app notifications stored in the browser. They are
+  not operating-system push notifications and do not run while the app is fully
+  closed. Broadcast schedules can also differ from streaming availability.
+
+### Accounts, privacy, and storage
+
+- Banime can run in local-only mode with no account service. In that mode the
+  library, profile, and settings remain usable and personal data stays in that
+  browser.
+- A production deployment can enable Banime accounts backed by Supabase. When
+  enabled, protected profile, library, settings, and notification routes require
+  sign-in, while Home, Discover, News, and legal pages remain public.
+- Account flows include email or username sign-in, Google sign-in, password
+  reset, email verification codes, verification-code resend, sign-out, and
+  permanent account deletion.
+- A sign-up is not considered usable until its email verification code is
+  accepted. Passwords, password hashes, and identity tokens are handled by
+  Supabase Auth rather than the browser application.
+- Browser sessions use same-origin `HttpOnly`, `SameSite=Lax` cookies, with the
+  `Secure` flag in production. API routes derive the owner from the verified
+  session instead of trusting a browser-supplied user ID.
+- Tracking writes are local-first for responsive interaction. Authenticated
+  libraries are also synchronized to Supabase and cached per account in
+  IndexedDB, while compact profile summaries load before the entire library.
+- Account-specific browser caches are separated by owner and cleared during
+  sign-out. Row-level security limits database records to their authenticated
+  owner.
+- The privacy and terms pages document cookies and account data. Users can
+  permanently delete their account and associated profile, library, and profile
+  media from the account controls.
+
+### Portability, installation, and integrations
+
+- MyAnimeList XML exports can be imported. Banime checkpoints the parsed list
+  before enriching it with current Tenrai posters and metadata, so a partial
+  catalog failure does not discard the base import.
+- Banime JSON backups can be imported or exported. Imports are limited to 5 MB
+  and 5,000 records, and all imported values are validated before storage.
+- Banime is an installable Progressive Web App. Its application shell remains
+  available offline, deployed updates are detected automatically, and loading
+  regions use layout-matched skeletons instead of temporary zero-value content.
+- Light and dark themes persist on the current device. Motion respects the
+  operating system's reduced-motion preference, and desktop/mobile navigation
+  adapt to the available screen size.
+- The separate MCP server can let an approved ChatGPT connection search anime,
+  load details and news, read or update the authenticated library, and produce
+  recommendation candidates. MCP library access uses the caller's Supabase
+  identity and the same row-level security rules as the app.
+
+### Route map
+
+| Route | Purpose | Access when cloud accounts are enabled |
+| --- | --- | --- |
+| `/` | Current season, coming soon, historical shelves, headlines, and top airing | Public |
+| `/discover` | Search, feed presets, filters, sorting, and catalog pagination | Public |
+| `/news` | Anime headlines and trailer feed | Public |
+| `/profile` | Identity, statistics, activity, airing next, genres, favorites, and profile editing | Signed-in user |
+| `/library` | Personal tracking grid, search, filters, sorting, and pagination | Signed-in user |
+| `/notifications` | Scheduled-release alerts and clear actions | Signed-in user |
+| `/settings` | Theme, score precision, install, watch provider, imports, exports, and connection status | Signed-in user |
+| `/account` | Sign-in, sign-up, verification, and password recovery | Public when signed out |
+| `/privacy`, `/terms`, `/accessibility`, `/sitemap` | Legal, privacy, accessibility, and navigation references | Public |
+
+When cloud accounts are disabled, Profile, Library, Notifications, and Settings
+remain available through the local profile instead of requiring sign-in.
 
 ## Update cadence
 
 - Deployed app code is checked at startup and every 60 minutes while Banime is
   open. The generated service worker installs updates automatically.
-- Current-season and airing feeds refresh every 15 minutes while visible.
-- Top 100 popular anime refreshes every 6 hours and uses persistent browser
-  caching because that list changes slowly.
+- Current-season data polls every 15 minutes while mounted. Airing and upcoming
+  pages become stale after 15 minutes and refresh the next time requested.
+- Popular, search, and historical browse pages use persistent browser caching;
+  slow-changing browse feeds remain fresh for 6 hours.
 - News headlines and trailers refresh every 2 hours while visible.
 - Fresh Tenrai responses are cached until their endpoint-specific expiry time.
-- Returning to a stale browser tab triggers a refresh.
-- Search results are cached for 10 minutes and anime details for 30 minutes.
+- Current-season and news queries refresh on their configured intervals while
+  mounted. Window-focus refetching is disabled to avoid unnecessary repeat
+  requests when switching tabs.
+- Search results and anime details are cached for 30 minutes.
 
 Tenrai broadcast times are weekly schedule estimates. They may differ from the
 time an episode becomes available on a streaming platform.
+
+## Caching at a glance
+
+Banime uses separate caches for separate kinds of data. A cache improves load
+time but never grants account access; authenticated API requests still verify
+the server session and database ownership.
+
+| Cached data | Storage | User-visible behavior |
+| --- | --- | --- |
+| Tenrai catalog responses | Memory plus bounded `sessionStorage` or `localStorage` | Reuses fresh search, detail, season, news, and browse responses instead of repeating identical upstream requests |
+| React Query results | Browser memory | Keeps previously visited discovery pages visible and coordinates retries, cancellation, and background refresh |
+| Authenticated library snapshot | Owner-scoped IndexedDB record | A refresh can show the last validated library while fresh cloud pages load |
+| Profile summary | Compact server response | Statistics, recent activity, genres, and airing priorities can render without waiting for thousands of complete library rows |
+| PWA application shell | Generated service worker cache | Installed/static UI can open without redownloading every application asset |
+
+Tenrai memory and persistent caches are capped at 120 entries each. Expired or
+malformed records are removed. Authenticated library caches are keyed by the
+account ID, validated when read, refreshed after tracker changes, and cleared
+for the previous owner during sign-out. Release notifications use a separate
+owner-scoped `localStorage` record and are not part of the library cache.
 
 ## Run locally
 
@@ -63,6 +215,8 @@ Production verification:
 ```bash
 npm run build
 npm run lint
+npm run api:check
+npm run mcp:check
 npm test
 ```
 
@@ -79,14 +233,22 @@ never exposes the profile directory to browsers. Every library endpoint
 derives the owner from the verified session; it does not accept a user ID from
 the URL or request body.
 
-Local storage remains the primary offline copy. When a user signs in, Banime
-merges local and cloud records and keeps the newest version of each title.
+Local mode writes its own browser library immediately. Account mode keeps that
+anonymous local library separate: after sign-in, Banime loads only the signed-in
+owner's cloud records and owner-scoped IndexedDB snapshot. This prevents one
+person's local data from being silently merged into another person's account.
+Authenticated writes update the owner cache immediately and queue the matching
+cloud mutation.
 
 The database stores the complete tracker record as JSON and also maintains
 query columns for status, title, type, score, progress, and added/updated time.
 The schema adds user-scoped B-tree indexes and a trigram title-search index.
-The current personal-library UI hydrates the user's rows once, then performs
-memoized filtering locally so it stays responsive and works offline.
+The cloud library API returns bounded pages and the client loads those pages in
+parallel batches. A smaller profile-summary endpoint independently returns
+statistics, recent activity, favorite genres, and tracked airing titles so the
+profile does not wait for a library containing thousands of rows. Once the
+library is hydrated, deferred search and memoized filtering keep repeated local
+interactions responsive.
 
 1. Create a Supabase project at <https://supabase.com>.
 2. Open the SQL editor and run [`supabase/schema.sql`](supabase/schema.sql).
@@ -125,9 +287,10 @@ The SQL file is designed to be rerun. It backfills query columns for existing
 rows, creates private user profiles, adds missing constraints and indexes, and
 recreates the same RLS policies.
 
-The publishable key may be used in browser or server code. The Supabase secret
-key is only for username resolution inside Vercel Functions. Never put a
-Supabase secret or service-role key in a `VITE_` environment variable.
+The publishable key is not a secret, but Banime keeps it server-side for the
+web account boundary. The Supabase secret key is used only by narrowly scoped
+Vercel account-administration paths. Never put a Supabase secret or service-role
+key in a `VITE_` environment variable.
 Row-level security limits each signed-in user to their own profile and tracker
 records even if an API handler is implemented incorrectly.
 
@@ -305,8 +468,11 @@ when deployed to Vercel or Netlify.
 - `src/domain/account`: Profile appearance and bounded favorites models
 - `src/domain/watch`: Watch-provider registry and search-link builder
 - `src/services/tenrai`: Tenrai DTOs, mapping, throttling, news, and API access
-- `src/services/storage`: Local browser repository and legacy data migration
-- `src/services/supabase`: Auth client loading and cloud tracker repository
+- `src/services/storage`: Local tracker/profile records, notification storage,
+  account session hint, owner-scoped IndexedDB cache, and legacy migration
+- `src/services/account`: Same-origin cookie-authenticated account client
+- `src/services/supabase`: Paged cloud tracker and profile-summary repository
+- `api`: Same-origin Vercel auth, profile-media, and owner-scoped library routes
 - `src/hooks`: Reusable query, install, and utility hooks
 - `src/features`: Dashboard, discovery, news, library, details, and settings
 - `src/components`: Shared presentation components
