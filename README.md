@@ -294,6 +294,56 @@ key in a `VITE_` environment variable.
 Row-level security limits each signed-in user to their own profile and tracker
 records even if an API handler is implemented incorrectly.
 
+### Recover a paused Supabase project
+
+Supabase may automatically pause a Free Plan project after a seven-day period
+with too little database activity. Banime's static Vercel frontend can remain
+online while this happens, so Discover and other public pages may still load
+even though login, signup, profile, and cloud-library operations fail. A
+cookie-free `/api/auth/session` request can also return `{ "user": null }`
+without proving that the database is active.
+
+To restore Banime without changing or redeploying application code:
+
+1. Open the [Supabase Dashboard](https://supabase.com/dashboard/organizations).
+2. Select the organization that owns the `banime` project.
+3. Open the paused project, click **Resume project**, and confirm.
+4. Wait until the project status changes from **Coming up** to **Active
+   healthy**. Restores can take several minutes.
+5. Open the SQL Editor and perform a read-only schema check:
+
+   ```sql
+   select
+     to_regclass('public.profiles') is not null as profiles_exists,
+     exists (
+       select 1
+       from information_schema.columns
+       where table_schema = 'public'
+         and table_name = 'profiles'
+         and column_name = 'username_normalized'
+     ) as username_login_ready;
+   ```
+
+   Both values should be `true`. Do not rerun `supabase/schema.sql` unless this
+   check or a more complete schema comparison shows an actual mismatch.
+6. Verify the deployed account page with one known email login and one known
+   username login. Then perform a signup with an accessible disposable email
+   to verify custom SMTP and the confirmation-code template.
+
+During the 2026-08-24 incident, the connected Supabase management integration
+reported the project as `INACTIVE`. The project was restored through the same
+management API used by the dashboard, then polled through `COMING_UP` until it
+reported `ACTIVE_HEALTHY`. Read-only checks confirmed that the profiles table,
+username lookup column, two Auth users and profiles, and both signup/profile
+triggers were preserved. No schema migration or Vercel environment change was
+required.
+
+Supabase sends a warning before automatically pausing a Free Plan project and
+allows it to be resumed for 90 days after a pause. Regular legitimate database
+activity can prevent an inactivity pause, but a paid plan is the appropriate
+choice when production availability must be guaranteed. See Supabase's
+[Project Pausing guide](https://supabase.com/docs/guides/platform/free-project-pausing).
+
 ## Connect ChatGPT with MCP
 
 Banime includes a separate Streamable HTTP MCP server under `mcp/`. Public

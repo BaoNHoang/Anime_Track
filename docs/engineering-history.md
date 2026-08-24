@@ -2730,6 +2730,41 @@ A future change is complete only when all applicable checks are satisfied:
   - `npm.cmd run build` passed and generated the PWA assets.
   - `git diff --check` passed.
 
+### HIST-0037 - 2026-08-24 - Recover paused account services
+
+- Status: Auth hardening merged into `main` through PR #24. Source commit
+  `88cd01f`; merge commit `7042ca5`. The Supabase production project was
+  restored before the code change merged.
+- Incident:
+  - The Free Plan Supabase project had been automatically paused for low
+    activity and reported `INACTIVE`.
+  - Vercel continued serving the static application and lightweight session
+    responses, which made the outage look limited to login and signup.
+  - Username login correctly surfaced the failed privileged profile lookup as
+    a 503, while email login incorrectly converted every Supabase Auth error,
+    including upstream service failures, into the generic credential message.
+  - Signup ignored an error from its initial profile lookup and continued into
+    a second failing Auth operation.
+- Recovery:
+  - Resumed the existing Supabase project and waited for the state transition
+    from `INACTIVE` through `COMING_UP` to `ACTIVE_HEALTHY`.
+  - Confirmed the profiles and tracked-anime tables, RLS configuration,
+    username lookup column, Auth/profile row counts, and account triggers were
+    intact. No migration or environment-variable change was necessary.
+  - Retested production email and username login boundaries after recovery.
+- Hardening:
+  - Preserved private 401 responses for known credential and account
+    rejections, returned 429 for Auth throttling, and now returns/logs a 503 for
+    upstream or network failures.
+  - Made signup fail closed when its privileged profile lookup fails.
+  - Added regression tests for credential rejection, upstream failure, and
+    network failure behavior.
+  - Added a paused-project recovery and verification runbook to `README.md`.
+- Verification:
+  - All 107 tests passed across 34 files.
+  - Lint, API type-checking, the production build, and GitHub Actions `Verify`
+    run 65 passed.
+
 ## Release History
 
 No formal production release has been recorded.
