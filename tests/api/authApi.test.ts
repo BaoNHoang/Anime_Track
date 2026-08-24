@@ -61,6 +61,91 @@ function signupRequest(ip: string) {
   } as unknown as ApiRequest;
 }
 
+function loginRequest(ip: string) {
+  return {
+    method: "POST",
+    headers: {
+      origin: "http://localhost:5173",
+      host: "localhost:5173",
+      "content-type": "application/json",
+      "x-forwarded-for": ip
+    },
+    query: { action: "login" },
+    body: {
+      identifier: "person@example.com",
+      password: "StrongPassword123"
+    }
+  } as unknown as ApiRequest;
+}
+
+describe("login error handling", () => {
+  beforeEach(() => {
+    mocks.createAdminClient.mockReset();
+    mocks.createPublicClient.mockReset();
+  });
+
+  it("keeps credential rejections private", async () => {
+    mocks.createPublicClient.mockReturnValueOnce({
+      auth: {
+        signInWithPassword: async () => ({
+          data: { session: null, user: null },
+          error: { code: "invalid_credentials", status: 400 }
+        })
+      }
+    });
+    const result = response();
+
+    await authHandler(loginRequest("203.0.113.31"), result as never);
+
+    expect(result.statusCode).toBe(401);
+    expect(JSON.parse(result.body).error).toBe(
+      "Email, username, or password is incorrect."
+    );
+  });
+
+  it("reports upstream auth failures as service outages", async () => {
+    mocks.createPublicClient.mockReturnValueOnce({
+      auth: {
+        signInWithPassword: async () => ({
+          data: { session: null, user: null },
+          error: {
+            code: "unexpected_failure",
+            message: "upstream unavailable",
+            name: "AuthApiError",
+            status: 500
+          }
+        })
+      }
+    });
+    const result = response();
+
+    await authHandler(loginRequest("203.0.113.32"), result as never);
+
+    expect(result.statusCode).toBe(503);
+    expect(JSON.parse(result.body).error).toBe(
+      "Account services are temporarily unavailable."
+    );
+  });
+
+  it("reports network failures as service outages", async () => {
+    mocks.createPublicClient.mockReturnValueOnce({
+      auth: {
+        signInWithPassword: async () => {
+          throw new TypeError("fetch failed");
+        }
+      }
+    });
+    const result = response();
+
+    await authHandler(loginRequest("203.0.113.33"), result as never);
+
+    expect(result.statusCode).toBe(503);
+    expect(JSON.parse(result.body).error).toBe(
+      "Account services are temporarily unavailable."
+    );
+  });
+});
+
 describe("signup privacy", () => {
   beforeEach(() => {
     mocks.createAdminClient.mockReset();
