@@ -35,6 +35,8 @@ queue on Home with the next unwatched episode identified.
 - React and TypeScript PWA using ordinary CSS and a Banime-owned SVG icon set.
 - Tenrai provides read-only catalog and news data.
 - Profile favorites are bounded local data with optional authenticated sync.
+- Cloud accounts support phishing-resistant passkey sign-in and controls to
+  remove enrolled passkeys or revoke every other device session.
 - Existing light and dark themes must remain available.
 - The user requested a modern, simple redesign with transitioning background
   images, without visual clutter or heavyweight runtime dependencies.

@@ -17,6 +17,8 @@ import {
 
 const accountAuthEnabled =
   import.meta.env.VITE_ACCOUNT_AUTH_ENABLED === "true";
+const passkeyAuthEnabled =
+  accountAuthEnabled && import.meta.env.VITE_PASSKEY_AUTH_ENABLED === "true";
 
 export function CloudAuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<AccountUser>();
@@ -85,6 +87,71 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
     [run]
   );
 
+  const signInWithPasskey = useCallback(async (): Promise<AuthActionResult> => {
+    try {
+      const start = await accountApi.startPasskeySignIn();
+      if (start.error || !start.challengeId || !start.options) {
+        return { error: start.error ?? "Passkey sign-in could not start." };
+      }
+      const { getPasskeyCredential } = await import(
+        "../../services/account/passkeys"
+      );
+      const challengeId = start.challengeId;
+      const credential = await getPasskeyCredential(start.options);
+      return run(() =>
+        accountApi.verifyPasskeySignIn(challengeId, credential)
+      );
+    } catch (error) {
+      return {
+        error: error instanceof Error
+          ? error.message
+          : "Passkey sign-in could not be completed."
+      };
+    }
+  }, [run]);
+
+  const addPasskey = useCallback(async (): Promise<AuthActionResult> => {
+    try {
+      const start = await accountApi.startPasskeyRegistration();
+      if (start.error || !start.challengeId || !start.options) {
+        return { error: start.error ?? "Passkey registration could not start." };
+      }
+      const { createPasskeyCredential } = await import(
+        "../../services/account/passkeys"
+      );
+      const credential = await createPasskeyCredential(start.options);
+      const result = await accountApi.verifyPasskeyRegistration(
+        start.challengeId,
+        credential
+      );
+      return { error: result.error, message: result.message };
+    } catch (error) {
+      return {
+        error: error instanceof Error
+          ? error.message
+          : "Passkey registration could not be completed."
+      };
+    }
+  }, []);
+
+  const listPasskeys = useCallback(async () => {
+    const result = await accountApi.listPasskeys();
+    return { error: result.error, passkeys: result.passkeys ?? [] };
+  }, []);
+
+  const removePasskey = useCallback(
+    async (passkeyId: string): Promise<AuthActionResult> => {
+      const result = await accountApi.deletePasskey(passkeyId);
+      return { error: result.error, message: result.message };
+    },
+    []
+  );
+
+  const signOutOtherSessions = useCallback(async (): Promise<AuthActionResult> => {
+    const result = await accountApi.signOutOtherSessions();
+    return { error: result.error, message: result.message };
+  }, []);
+
   const updateUsername = useCallback(
     (username: string) => run(() => accountApi.updateUsername(username)),
     [run]
@@ -140,6 +207,7 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
   const value = useMemo<CloudAuthContextValue>(
     () => ({
       configured: accountAuthEnabled,
+      passkeysEnabled: passkeyAuthEnabled,
       initialized,
       user,
       signIn,
@@ -148,6 +216,11 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       resendVerification,
       requestPasswordReset,
       resetPassword,
+      signInWithPasskey,
+      addPasskey,
+      listPasskeys,
+      removePasskey,
+      signOutOtherSessions,
       updateUsername,
       updateAvatar,
       updateBanner,
@@ -162,6 +235,11 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       initialized,
       requestPasswordReset,
       resetPassword,
+      signInWithPasskey,
+      addPasskey,
+      listPasskeys,
+      removePasskey,
+      signOutOtherSessions,
       updateUsername,
       updateAvatar,
       updateBanner,

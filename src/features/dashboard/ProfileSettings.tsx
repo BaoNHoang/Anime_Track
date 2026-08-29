@@ -2,9 +2,12 @@ import {
   Check,
   ChevronLeft,
   ImageUp,
+  KeyRound,
+  LogOut,
+  ShieldCheck,
   Trash2
 } from "../../components/OwnedIcons";
-import { useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { PROFILE_AVATARS, profileAvatarSrc } from "../../domain/account/avatars";
@@ -14,6 +17,7 @@ import {
   type ProfileMediaKind
 } from "../../domain/account/profileMedia";
 import { useLocalProfile } from "../../hooks/useLocalProfile";
+import type { PasskeyMetadata } from "../../services/account/accountApi";
 
 interface ProfileAppearance {
   avatarId: string;
@@ -23,6 +27,10 @@ interface ProfileAppearance {
   bannerUrl?: string;
   bannerDataUrl?: string;
 }
+
+const securityDateFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium"
+});
 
 function ProfileMediaControls({
   profile,
@@ -122,11 +130,16 @@ function ProfileMediaControls({
 export function ProfileSettings() {
   const {
     configured,
+    passkeysEnabled,
     user,
     updateUsername,
     updateAvatar,
     updateBanner,
     uploadProfileMedia,
+    addPasskey,
+    listPasskeys,
+    removePasskey,
+    signOutOtherSessions,
     deleteAccount
   } = useCloudAuth();
   const { profile, updateProfile } = useLocalProfile();
@@ -136,6 +149,40 @@ export function ProfileSettings() {
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string }>();
+  const [passkeys, setPasskeys] = useState<PasskeyMetadata[]>([]);
+  const [securityLoading, setSecurityLoading] = useState(
+    Boolean(user && passkeysEnabled)
+  );
+  const userId = user?.id;
+  const canRegisterPasskey = user?.provider === "email";
+
+  const refreshPasskeys = useCallback(async () => {
+    if (!userId || !passkeysEnabled) return;
+    const result = await listPasskeys();
+    setSecurityLoading(false);
+    if (result.error) {
+      setMessage({ tone: "error", text: result.error });
+      return;
+    }
+    setPasskeys(result.passkeys);
+  }, [listPasskeys, passkeysEnabled, userId]);
+
+  useEffect(() => {
+    if (!userId || !passkeysEnabled) return;
+    let active = true;
+    void listPasskeys().then((result) => {
+      if (!active) return;
+      setSecurityLoading(false);
+      if (result.error) {
+        setMessage({ tone: "error", text: result.error });
+      } else {
+        setPasskeys(result.passkeys);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [listPasskeys, passkeysEnabled, userId]);
 
   const saveUsername = async (event: FormEvent) => {
     event.preventDefault();
@@ -206,6 +253,37 @@ export function ProfileSettings() {
     navigate("/", { replace: true });
   };
 
+  const registerPasskey = async () => {
+    setSubmitting(true);
+    const result = await addPasskey();
+    setSubmitting(false);
+    setMessage(result.error
+      ? { tone: "error", text: result.error }
+      : { tone: "success", text: result.message ?? "Passkey added." });
+    if (!result.error) await refreshPasskeys();
+  };
+
+  const deletePasskey = async (passkeyId: string) => {
+    setSubmitting(true);
+    const result = await removePasskey(passkeyId);
+    setSubmitting(false);
+    setMessage(result.error
+      ? { tone: "error", text: result.error }
+      : { tone: "success", text: result.message ?? "Passkey removed." });
+    if (!result.error) {
+      setPasskeys((current) => current.filter((item) => item.id !== passkeyId));
+    }
+  };
+
+  const revokeOtherSessions = async () => {
+    setSubmitting(true);
+    const result = await signOutOtherSessions();
+    setSubmitting(false);
+    setMessage(result.error
+      ? { tone: "error", text: result.error }
+      : { tone: "success", text: result.message ?? "Other devices signed out." });
+  };
+
   return (
     <div className="page-stack account-page">
       <header className="profile-editor-heading">
@@ -225,6 +303,46 @@ export function ProfileSettings() {
           onBanner={(id) => void savePreset("banner", id)}
           onUpload={(kind, file) => void upload(kind, file)}
         />
+        {user && passkeysEnabled && (
+          <section className="account-profile__section security-controls">
+            <div className="account-profile__section-heading account-profile__section-heading--row">
+              <div><h3>Passkeys</h3><p>Use your device lock, fingerprint, face, or security key to sign in without typing a password.</p></div>
+              <button className="button button--ghost" type="button" disabled={submitting || securityLoading || !canRegisterPasskey} onClick={() => void registerPasskey()}><KeyRound size={16} /> Add passkey</button>
+            </div>
+            {securityLoading ? (
+              <p className="security-controls__empty">Loading passkeys...</p>
+            ) : passkeys.length ? (
+              <div className="passkey-list">
+                {passkeys.map((passkey) => (
+                  <article key={passkey.id}>
+                    <span><ShieldCheck size={18} /></span>
+                    <div>
+                      <strong>{passkey.friendly_name || "Passkey"}</strong>
+                      <small>
+                        Added {securityDateFormatter.format(new Date(passkey.created_at))}
+                        {passkey.last_used_at ? ` · Last used ${securityDateFormatter.format(new Date(passkey.last_used_at))}` : ""}
+                      </small>
+                    </div>
+                    <button type="button" aria-label={`Remove ${passkey.friendly_name || "passkey"}`} disabled={submitting} onClick={() => void deletePasskey(passkey.id)}><Trash2 size={15} /></button>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="security-controls__empty">{canRegisterPasskey ? "No passkeys yet. Add one from a device you trust." : "Supabase does not currently support adding passkeys to social sign-in accounts."}</p>
+            )}
+          </section>
+        )}
+        {user && (
+          <section className="account-profile__section security-controls">
+            <div className="account-profile__section-heading"><h3>Sessions</h3><p>Your current browser is signed in. Revoke refresh access for every other browser and device if you do not recognize recent account activity. A previously issued access token can remain valid until its short expiry.</p></div>
+            <div className="session-row">
+              <span><ShieldCheck size={18} /></span>
+              <div><strong>This browser</strong><small>Current session · {user.provider} sign-in</small></div>
+              <span className="status-pill status-pill--success">Active</span>
+            </div>
+            <button className="button button--ghost security-controls__revoke" type="button" disabled={submitting} onClick={() => void revokeOtherSessions()}><LogOut size={16} /> Sign out other devices</button>
+          </section>
+        )}
         <section className="account-profile__section">
           <div className="account-profile__section-heading"><h3>Profile name</h3><p>Shown on your Banime profile.</p></div>
           <form className="auth-form account-username-form" onSubmit={saveUsername}>

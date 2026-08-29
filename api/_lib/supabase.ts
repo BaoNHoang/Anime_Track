@@ -57,7 +57,8 @@ export function createPublicClient(options: {
       detectSessionInUrl: false,
       persistSession: Boolean(options.storage),
       flowType: options.flowType ?? "implicit",
-      storage: options.storage
+      storage: options.storage,
+      experimental: { passkey: true }
     }
   });
 }
@@ -76,7 +77,8 @@ export function createAdminClient() {
     auth: {
       autoRefreshToken: false,
       detectSessionInUrl: false,
-      persistSession: false
+      persistSession: false,
+      experimental: { passkey: true }
     }
   });
 }
@@ -236,6 +238,7 @@ export async function authenticateRequest(
       return {
         user: data.user,
         accessToken,
+        refreshToken,
         client: createUserClient(accessToken)
       };
     }
@@ -251,6 +254,7 @@ export async function authenticateRequest(
       return {
         user: data.user,
         accessToken,
+        refreshToken: data.session.refresh_token,
         client: createUserClient(accessToken)
       };
     }

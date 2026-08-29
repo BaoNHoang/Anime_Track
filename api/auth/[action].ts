@@ -24,6 +24,8 @@ import {
   accountUsername,
   loginIdentifier,
   loginPassword,
+  passkeyCredential,
+  passkeyUuid,
   verificationCode
 } from "../_lib/accountValidation.js";
 import {
@@ -44,6 +46,183 @@ import {
   profileMediaKind,
   sanitizeProfileMedia
 } from "../_lib/profileMedia.js";
+
+async function passkeySessionClient(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  const auth = await authenticateRequest(request, response);
+  const storage = new Map<string, string>();
+  const client = createPublicClient({
+    storage: {
+      getItem: (key) => storage.get(key) ?? null,
+      setItem: (key, value) => {
+        storage.set(key, value);
+      },
+      removeItem: (key) => {
+        storage.delete(key);
+      }
+    }
+  });
+  if (!auth.refreshToken) throw new ApiError(401, "Authentication required.");
+  const { data, error } = await client.auth.setSession({
+    access_token: auth.accessToken,
+    refresh_token: auth.refreshToken
+  });
+  if (error || !data.session) {
+    throw new ApiError(401, "Authentication required.");
+  }
+  if (data.session.access_token !== auth.accessToken) {
+    setSessionCookies(response, data.session);
+  }
+  return { auth, client };
+}
+
+async function startPasskeyAuthentication(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  await enforceAuthRateLimit(request, "passkey-login-start", {
+    limit: 20,
+    windowSeconds: 15 * 60
+  });
+  const client = createPublicClient();
+  const { data, error } = await client.auth.passkey.startAuthentication();
+  if (error || !data) {
+    throw new ApiError(503, "Passkey sign-in is unavailable.");
+  }
+  sendJson(response, 200, {
+    challengeId: data.challenge_id,
+    options: data.options
+  });
+}
+
+async function verifyPasskeyAuthentication(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const body = accountRecord(await readJson(request, 32_000));
+  const challengeId = passkeyUuid(body.challengeId, "Passkey challenge");
+  const credential = passkeyCredential(body.credential);
+  await enforceAuthRateLimit(request, "passkey-login-verify", {
+    limit: 10,
+    windowSeconds: 15 * 60
+  });
+  const client = createPublicClient();
+  const { data, error } = await client.auth.passkey.verifyAuthentication({
+    challengeId,
+    credential: credential as unknown as Parameters<
+      typeof client.auth.passkey.verifyAuthentication
+    >[0]["credential"]
+  });
+  if (error || !data.session || !data.user?.email_confirmed_at) {
+    throw new ApiError(401, "Passkey sign-in could not be completed.");
+  }
+  setSessionCookies(response, data.session);
+  sendJson(response, 200, {
+    user: await accountUser(
+      data.user,
+      createUserClient(data.session.access_token)
+    )
+  });
+}
+
+async function startPasskeyRegistration(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const { auth, client } = await passkeySessionClient(request, response);
+  await enforceAuthRateLimit(request, "passkey-register-start", {
+    limit: 10,
+    windowSeconds: 15 * 60,
+    subject: auth.user.id
+  });
+  const { data, error } = await client.auth.passkey.startRegistration();
+  if (error || !data) {
+    throw new ApiError(503, "Passkey registration is unavailable.");
+  }
+  sendJson(response, 200, {
+    challengeId: data.challenge_id,
+    options: data.options
+  });
+}
+
+async function verifyPasskeyRegistration(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const body = accountRecord(await readJson(request, 32_000));
+  const challengeId = passkeyUuid(body.challengeId, "Passkey challenge");
+  const credential = passkeyCredential(body.credential);
+  const { auth, client } = await passkeySessionClient(request, response);
+  await enforceAuthRateLimit(request, "passkey-register-verify", {
+    limit: 10,
+    windowSeconds: 15 * 60,
+    subject: auth.user.id
+  });
+  const { data, error } = await client.auth.passkey.verifyRegistration({
+    challengeId,
+    credential: credential as unknown as Parameters<
+      typeof client.auth.passkey.verifyRegistration
+    >[0]["credential"]
+  });
+  if (error || !data) {
+    throw new ApiError(400, "Passkey registration could not be completed.");
+  }
+  sendJson(response, 200, {
+    message: "Passkey added.",
+    passkey: data
+  });
+}
+
+async function listPasskeys(request: ApiRequest, response: ServerResponse) {
+  requireMethod(request, "GET");
+  const { client } = await passkeySessionClient(request, response);
+  const { data, error } = await client.auth.passkey.list();
+  if (error) throw new ApiError(502, "Passkeys could not be loaded.");
+  sendJson(response, 200, { passkeys: data ?? [] });
+}
+
+async function deletePasskey(request: ApiRequest, response: ServerResponse) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const body = accountRecord(await readJson(request));
+  const passkeyId = passkeyUuid(body.passkeyId, "Passkey");
+  const { auth, client } = await passkeySessionClient(request, response);
+  await enforceAuthRateLimit(request, "passkey-delete", {
+    limit: 10,
+    windowSeconds: 15 * 60,
+    subject: auth.user.id
+  });
+  const { error } = await client.auth.passkey.delete({ passkeyId });
+  if (error) throw new ApiError(400, "Passkey could not be removed.");
+  sendJson(response, 200, { message: "Passkey removed." });
+}
+
+async function revokeOtherSessions(
+  request: ApiRequest,
+  response: ServerResponse
+) {
+  requireMethod(request, "POST");
+  requireSameOrigin(request);
+  const { auth, client } = await passkeySessionClient(request, response);
+  await enforceAuthRateLimit(request, "session-revoke-others", {
+    limit: 5,
+    windowSeconds: 15 * 60,
+    subject: auth.user.id
+  });
+  const { error } = await client.auth.signOut({ scope: "others" });
+  if (error) throw new ApiError(502, "Other sessions could not be signed out.");
+  sendJson(response, 200, { message: "Other devices signed out." });
+}
 
 async function login(
   request: ApiRequest,
@@ -534,7 +713,7 @@ async function logout(request: ApiRequest, response: ServerResponse) {
         access_token: auth.accessToken,
         refresh_token: refreshToken
       });
-      await client.auth.signOut({ scope: "global" });
+      await client.auth.signOut({ scope: "local" });
     }
   } catch {
     // Cookie cleanup is still required for an expired or revoked session.
@@ -652,6 +831,12 @@ export default async function handler(
 ) {
   try {
     const action = routeParameter(request, "action");
+    if (
+      action?.startsWith("passkey") &&
+      process.env.VITE_PASSKEY_AUTH_ENABLED !== "true"
+    ) {
+      throw new ApiError(503, "Passkey authentication is not configured.");
+    }
     switch (action) {
       case "login":
         return await login(request, response);
@@ -667,6 +852,20 @@ export default async function handler(
         return await resetPassword(request, response);
       case "session":
         return await session(request, response);
+      case "passkey-auth-start":
+        return await startPasskeyAuthentication(request, response);
+      case "passkey-auth-verify":
+        return await verifyPasskeyAuthentication(request, response);
+      case "passkey-register-start":
+        return await startPasskeyRegistration(request, response);
+      case "passkey-register-verify":
+        return await verifyPasskeyRegistration(request, response);
+      case "passkeys":
+        return await listPasskeys(request, response);
+      case "passkey-delete":
+        return await deletePasskey(request, response);
+      case "sessions-others":
+        return await revokeOtherSessions(request, response);
       case "username":
         return await updateUsername(request, response);
       case "avatar":

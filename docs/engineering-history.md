@@ -1225,7 +1225,7 @@ current Banime implementation. Status meanings:
 | 1 | Exposed database credentials | Mitigated | Checked-in files use placeholders and publishable Supabase variables only; service-role keys must never be committed. |
 | 2 | Public `.env` files | Partially mitigated | Only `.env.example` and `.env.mcp.example` are intended for source control; verify real deployment secrets stay in provider secret stores. |
 | 3 | Hardcoded API keys | Mitigated | Jikan does not require a key; source scans found no hardcoded secret-like values outside documentation examples. |
-| 4 | Weak or missing authentication | Partially mitigated | Local mode is intentionally accountless; private cloud/MCP data uses Supabase Auth and bearer-token verification, but real production OAuth still needs end-to-end verification. |
+| 4 | Weak or missing authentication | Partially mitigated | Local mode is intentionally accountless; private cloud/MCP data uses Supabase Auth, passkeys are available for cloud accounts, and real production OAuth still needs end-to-end verification. |
 | 5 | Missing authorization checks | Partially mitigated | MCP derives the user from the verified token and Supabase policies scope library rows; verify with two separate real users. |
 | 6 | Users able to access other users' data | Partially mitigated | Schema uses `auth.uid() = user_id` RLS policies; two-user cloud testing remains required. |
 | 7 | Open database read/write permissions | Partially mitigated | `supabase/schema.sql` enables RLS and authenticated owner policies; confirm those policies are applied in the live project. |
@@ -1241,12 +1241,12 @@ current Banime implementation. Status meanings:
 | 17 | SQL injection | Mitigated | Supabase client requests are parameterized, and user search text escapes `ILIKE` wildcard characters. |
 | 18 | NoSQL injection | Not applicable | Banime does not use a NoSQL database. |
 | 19 | Cross-site scripting, or XSS | Mitigated | React escapes rendered text, raw HTML is not used, external URLs are validated, and CSP headers are configured. |
-| 20 | Cross-site request forgery, or CSRF | Mostly not applicable | Banime does not expose cookie-authenticated write endpoints; MCP uses bearer tokens and rejects unapproved origins. |
+| 20 | Cross-site request forgery, or CSRF | Mitigated | Cookie-authenticated writes, passkey ceremonies, and session controls require the configured same origin; cookies use SameSite=Lax. MCP separately uses bearer tokens and rejects unapproved origins. |
 | 21 | Insecure file uploads | Mitigated | There is no server file upload path; local MyAnimeList XML and Banime JSON import is parsed, bounded, and validated before merge. |
 | 22 | Path traversal bugs | Not applicable | Users do not control server filesystem paths. |
 | 23 | Server-side request forgery, or SSRF | Mitigated | Server calls are limited to configured Supabase Auth/JWKS endpoints and fixed Jikan service calls, not arbitrary user URLs. |
-| 24 | Broken password reset flows | Not applicable | Banime does not implement a custom password reset flow; Supabase Auth settings must be reviewed if password login is enabled. |
-| 25 | Weak session management | Partially mitigated | Supabase manages browser sessions; production session lifetime and token refresh behavior still need provider review. |
+| 24 | Broken password reset flows | Partially mitigated | Recovery codes and password changes are handled through bounded, rate-limited same-origin endpoints backed by Supabase Auth; production email delivery still needs end-to-end verification. |
+| 25 | Weak session management | Mostly mitigated | Tokens stay in HttpOnly cookies; current-device sign-out and revoke-other-device controls use Supabase session scopes. Production lifetime settings still need provider review. |
 | 26 | JWT secrets that are weak, leaked, or reused | Partially mitigated | Banime does not define its own JWT secret; Supabase signing configuration and OAuth audience enforcement must be verified. |
 | 27 | Overly permissive CORS | Mitigated | MCP requires exact allowed origins and host validation; production `MCP_ALLOWED_ORIGINS` must be explicit. |
 | 28 | Missing rate limits on login, signup, APIs, and AI endpoints | Partially mitigated | MCP and outbound Jikan calls are rate-limited; Supabase Auth login/signup limits and provider WAF settings remain operational tasks. |
@@ -2510,6 +2510,29 @@ A future change is complete only when all applicable checks are satisfied:
     new table or a destructive data migration.
 - Verification: Domain, import, API, UI, production-build, and lint checks run
   before the feature commit.
+
+### HIST-0032 - 2026-08-28 - Add passkeys and session controls
+
+- Status: Implemented on `develop` as a security update.
+- Changes:
+  - Added Supabase WebAuthn passkey registration, sign-in, inventory, and
+    removal through bounded same-origin server endpoints.
+  - Kept access and refresh tokens in HttpOnly cookies by running only the
+    browser credential ceremony in client code and verifying its serialized
+    response on the server.
+  - Changed ordinary sign-out to the current session and added a Profile
+    control that revokes all other device sessions while preserving the
+    current browser.
+  - Added passkey UUID/credential validation, separate auth rate-limit buckets,
+    secure-context checks, and regression coverage for WebAuthn option decoding
+    and account API routing.
+- Operations:
+  - Passkeys must be enabled in the Supabase dashboard with a stable RP ID and
+    an exact production origin before enrollment works.
+  - Supabase passkey support is experimental; retest ceremonies after SDK or
+    Auth-service upgrades.
+- Verification: Lint, API and MCP typechecks, full tests, production build,
+  dependency audit, and diff checks run before the security commit.
 
 ## Release History
 

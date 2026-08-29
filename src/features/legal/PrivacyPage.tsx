@@ -80,9 +80,11 @@ export function PrivacyPage() {
           <p>
             When account features are enabled, Banime uses essential,
             HttpOnly session cookies to keep you signed in and protect account
-            requests. It also caches public catalog content to reduce repeated
-            requests. Banime does not currently use advertising or analytics
-            cookies.
+            requests. If you register a passkey, Supabase stores its public
+            credential and device label; Banime never receives your fingerprint,
+            face scan, device PIN, or private key. Banime also caches public
+            catalog content to reduce repeated requests. Banime does not
+            currently use advertising or analytics cookies.
           </p>
           <dl className="cookie-list">
             <div>
@@ -180,7 +182,8 @@ export function PrivacyPage() {
             We keep account and synchronized library data while your account is
             active or as needed for the purposes described here. You can change
             account details in Banime, export your library from Settings, sign
-            out, or delete your account from the Profile page. Self-service
+            out the current browser, revoke other device sessions, remove
+            passkeys, or delete your account from the Profile page. Self-service
             deletion removes the Supabase authentication user, profile, and
             synchronized library, then clears Banime&apos;s session cookies and
             local library on that browser. You can also ask us to access,
@@ -211,8 +214,9 @@ export function PrivacyPage() {
             We use reasonable technical measures designed to protect account and
             cloud-library information, including encrypted HTTPS connections,
             server-managed authentication, restricted session cookies, request
-            validation, rate limiting, and database access controls. No online
-            service can guarantee absolute security.
+            validation, rate limiting, phishing-resistant passkeys, session
+            revocation controls, and database access controls. No online service
+            can guarantee absolute security.
           </p>
         </section>
 

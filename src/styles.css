@@ -3691,6 +3691,23 @@ h3,
   background: var(--surface-muted);
 }
 
+.account-fast-auth {
+  display: grid;
+  gap: 9px;
+}
+
+.account-passkey {
+  width: 100%;
+  color: #ffffff;
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.account-passkey:hover {
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
+}
+
 .auth-divider {
   display: flex;
   align-items: center;
@@ -4333,6 +4350,93 @@ h3,
 .episode-checklist__row label > input:checked + .episode-checklist__check {
   border-color: var(--accent);
   background: var(--accent);
+}
+
+.security-controls__empty {
+  margin: 0;
+  padding: 13px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.passkey-list {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+.passkey-list article,
+.session-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  min-height: 58px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  background: var(--canvas);
+}
+
+.passkey-list article + article {
+  border-top: 1px solid var(--border);
+}
+
+.passkey-list article > span,
+.session-row > span:first-child {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.passkey-list strong,
+.passkey-list small,
+.session-row strong,
+.session-row small {
+  display: block;
+}
+
+.passkey-list strong,
+.session-row strong {
+  font-size: 11px;
+}
+
+.passkey-list small,
+.session-row small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.passkey-list article > button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  background: var(--surface);
+}
+
+.passkey-list article > button:hover:not(:disabled) {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.session-row {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+.security-controls__revoke {
+  justify-self: start;
 }
 
 .episode-checklist__row label > input:focus-visible + .episode-checklist__check {

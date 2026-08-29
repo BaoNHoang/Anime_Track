@@ -55,6 +55,10 @@ catalog feel alive, while the controls stay compact and fast to scan.
   and stop pulsing when reduced motion is requested.
 - Favorite anime, studios, directors, and characters use one profile editor.
   Drag ordering always has equivalent move-up and move-down controls.
+- Account security lives in the profile editor: passkeys use a compact device
+  inventory, and session controls identify the current browser before offering
+  the broader sign-out action. Destructive credential actions use explicit
+  labels and never rely on icon meaning alone.
 
 ## Themes
 

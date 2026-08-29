@@ -80,11 +80,19 @@ refresh tokens are stored in `HttpOnly`, `SameSite=Lax`, secure production
 cookies instead of browser storage. Password hashing, JWT issuance, email
 verification, and identity-provider tokens are handled by Supabase Auth.
 
-Users can sign in with email or username and password, or continue with
-Google. Username-to-email resolution uses the server-only Supabase secret and
-never exposes the profile directory to browsers. Every library endpoint
-derives the owner from the verified session; it does not accept a user ID from
-the URL or request body.
+Users can sign in with email or username and password, continue with Google,
+or use a registered passkey. Passkey ceremonies use bounded same-origin API
+requests; access and refresh tokens remain in HttpOnly cookies and are never
+returned to browser JavaScript. Username-to-email resolution uses the
+server-only Supabase secret and never exposes the profile directory to
+browsers. Every library endpoint derives the owner from the verified session;
+it does not accept a user ID from the URL or request body.
+
+Signed-in users can add and remove passkeys from Profile settings and revoke
+all sessions except the current browser. An ordinary sign-out revokes only the
+current browser session. Passkeys are currently an experimental Supabase Auth
+feature and cannot currently be registered by social/SSO-only users, so verify
+the flow after every Supabase SDK upgrade.
 
 Local storage remains the primary offline copy. When a user signs in, Banime
 merges local and cloud records and keeps the newest version of each title.
@@ -107,11 +115,17 @@ memoized filtering locally so it stays responsive and works offline.
 6. In Google Cloud, create a Web OAuth client. Add the Supabase callback URL
    shown on the Supabase Google provider page, then enable Google in Supabase
    with that client ID and secret.
-7. Copy `.env.example` to `.env.local` for local Vercel development, or add
+7. In **Authentication > Passkeys**, enable passkey authentication. Set the RP
+   display name to `Banime`, choose the production site's bare hostname as the
+   RP ID, and allow the production origin plus the loopback origin used for
+   local Vercel development. Keep the RP ID stable: changing it invalidates
+   every enrolled passkey.
+8. Copy `.env.example` to `.env.local` for local Vercel development, or add
    the variables in the Vercel project:
 
 ```env
 VITE_ACCOUNT_AUTH_ENABLED=true
+VITE_PASSKEY_AUTH_ENABLED=true
 APP_URL=https://your-banime-domain.example
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_PUBLISHABLE_KEY=your-publishable-key
@@ -120,13 +134,17 @@ UPSTASH_REDIS_REST_URL=https://your-database.upstash.io
 UPSTASH_REDIS_REST_TOKEN=your-upstash-token
 ```
 
-8. Add `http://localhost:3000` and the production account page to the Supabase
+Set `VITE_PASSKEY_AUTH_ENABLED=true` only after the Supabase Passkeys settings
+and relying-party values are configured. Leaving it false hides the passkey UI
+and makes its server endpoints fail closed.
+
+9. Add `http://localhost:3000` and the production account page to the Supabase
    redirect allow list. Set the production Site URL to the deployed origin.
-9. Configure Upstash in production with
+10. Configure Upstash in production with
    `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` so account rate
    limits are shared by every serverless instance. Production account and
    library mutations fail closed when these variables are absent.
-10. Run locally with `npx vercel dev`, then open `/account`.
+11. Run locally with `npx vercel dev`, then open `/account`.
 
 The SQL file is designed to be rerun. It backfills query columns for existing
 rows, creates private user profiles, adds missing constraints and indexes, and

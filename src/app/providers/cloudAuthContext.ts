@@ -1,5 +1,8 @@
 import { createContext } from "react";
-import type { AccountUser } from "../../services/account/accountApi";
+import type {
+  AccountUser,
+  PasskeyMetadata
+} from "../../services/account/accountApi";
 import type { ProfileFavorites } from "../../domain/account/favorites";
 
 export interface AuthActionResult {
@@ -9,6 +12,7 @@ export interface AuthActionResult {
 
 export interface CloudAuthContextValue {
   configured: boolean;
+  passkeysEnabled: boolean;
   initialized: boolean;
   user?: AccountUser;
   signIn: (
@@ -28,6 +32,14 @@ export interface CloudAuthContextValue {
     code: string,
     password: string
   ) => Promise<AuthActionResult>;
+  signInWithPasskey: () => Promise<AuthActionResult>;
+  addPasskey: () => Promise<AuthActionResult>;
+  listPasskeys: () => Promise<{
+    error?: string;
+    passkeys: PasskeyMetadata[];
+  }>;
+  removePasskey: (passkeyId: string) => Promise<AuthActionResult>;
+  signOutOtherSessions: () => Promise<AuthActionResult>;
   updateUsername: (username: string) => Promise<AuthActionResult>;
   updateAvatar: (avatarId: string) => Promise<AuthActionResult>;
   updateBanner: (bannerId: string) => Promise<AuthActionResult>;
