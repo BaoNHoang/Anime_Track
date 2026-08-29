@@ -14,7 +14,8 @@ trailer feed from trailer metadata on current-season anime records.
 - Search the Tenrai catalog and filter by type, genre, score, and sort order
 - Read news associated with current anime and browse popular trailers
 - See the next scheduled weekly broadcast in your local time
-- Track status, episode progress, notes, and personal scores
+- Track individual episodes, optional watch dates, status, notes, and personal scores
+- Resume active titles from the Continue watching queue on Home
 - Search and filter your library by status, type, genre, score, and progress
 - Open configurable watch-search links from library and detail pages
 - Use a persisted light or dark theme with a blue accent palette
@@ -24,6 +25,12 @@ trailer feed from trailer metadata on current-season anime records.
 - Import MyAnimeList XML exports, and import or export Banime JSON backups
 - Connect ChatGPT through MCP to search anime, read or update the synced
   library, pull news, and request recommendations
+
+Episode history is stored inside each library record, so it follows the same
+local-first persistence, validated backup format, and optional owner-scoped
+Supabase sync as the rest of a tracked title. Existing libraries remain
+compatible: their numeric progress is treated as episodes 1 through the saved
+progress until the checklist is edited.
 
 ## Update cadence
 

@@ -60,4 +60,28 @@ describe("parseLibraryImport", () => {
       })
     ).toThrow("cannot contain more than 5000 items");
   });
+
+  it("validates and preserves episode history", () => {
+    const [parsed] = parseLibraryImport({
+      items: [{
+        ...item,
+        progress: 2,
+        episodeHistory: [
+          { episode: 1, watchedAt: "2026-08-27" },
+          { episode: 3 }
+        ]
+      }]
+    });
+    expect(parsed.progress).toBe(2);
+    expect(parsed.episodeHistory).toEqual([
+      { episode: 1, watchedAt: "2026-08-27" },
+      { episode: 3 }
+    ]);
+
+    expect(() =>
+      parseLibraryImport({
+        items: [{ ...item, episodeHistory: [{ episode: 1, watchedAt: "soon" }] }]
+      })
+    ).toThrow("invalid episode history");
+  });
 });

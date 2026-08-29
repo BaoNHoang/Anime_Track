@@ -26,7 +26,9 @@ public anime catalog and optional Supabase sync.
 
 Users browse seasonal, upcoming, historical, studio, and family collections;
 search the catalog; maintain an ordered set of profile favorites; update
-episode progress; and occasionally import a MyAnimeList XML export.
+individual episode progress and optional watch dates; and occasionally import
+a MyAnimeList XML export. Active titles return to a compact Continue watching
+queue on Home with the next unwatched episode identified.
 
 ## Capabilities and Constraints
 
@@ -51,6 +53,7 @@ available.
 ## Product Principles
 
 - Make repeated tracking actions fast and easy to scan.
+- Put the next useful action for an actively watched title within one click.
 - Let anime artwork create atmosphere without obscuring controls or content.
 - Keep the interface useful with unreliable catalog data and offline shell
   access.

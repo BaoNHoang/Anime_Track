@@ -10,10 +10,16 @@ export const TRACKING_STATUSES = [
 
 export type TrackingStatus = (typeof TRACKING_STATUSES)[number];
 
+export interface EpisodeWatch {
+  episode: number;
+  watchedAt?: string;
+}
+
 export interface TrackedAnime {
   anime: Anime;
   status: TrackingStatus;
   progress: number;
+  episodeHistory?: EpisodeWatch[];
   userScore?: number;
   notes: string;
   addedAt: string;

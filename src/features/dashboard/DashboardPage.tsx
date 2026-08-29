@@ -11,6 +11,7 @@ import {
 } from "../../hooks/useAnimeQueries";
 import type { Anime } from "../../domain/anime/types";
 import type { AnimePage } from "../../domain/anime/types";
+import { ContinueWatching } from "./ContinueWatching";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -83,6 +84,8 @@ export function DashboardPage() {
   return (
     <div className="home-page">
       <h1 className="visually-hidden">Home</h1>
+
+      <ContinueWatching />
 
       <div className="home-layout">
         <div className="home-main">

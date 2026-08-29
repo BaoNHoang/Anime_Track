@@ -9,6 +9,10 @@ import {
 import type { Anime } from "../../domain/anime/types";
 import { mergeTrackedAnime } from "../../domain/tracker/merge";
 import { resolveTrackingProgress } from "../../domain/tracker/progress";
+import {
+  historyForProgress,
+  updateEpisodeHistory
+} from "../../domain/tracker/episodes";
 import { normalizeUserScore } from "../../domain/tracker/score";
 import { calculateTrackerStats } from "../../domain/tracker/stats";
 import type {
@@ -147,7 +151,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
     (
       animeId: number,
       updates: Partial<
-        Pick<TrackedAnime, "status" | "progress" | "userScore" | "notes">
+        Pick<TrackedAnime, "status" | "progress" | "episodeHistory" | "userScore" | "notes">
       >
     ) => {
       if (!canManage) return;
@@ -162,10 +166,16 @@ export function TrackerProvider({ children }: PropsWithChildren) {
                 userScore: normalizeUserScore(updates.userScore)
               }
             : updates;
+        const episodeHistory = "episodeHistory" in normalizedUpdates
+          ? normalizedUpdates.episodeHistory
+          : "progress" in normalizedUpdates
+            ? historyForProgress(item, progress)
+            : item.episodeHistory;
         updatedItem = {
           ...item,
           ...normalizedUpdates,
           progress,
+          episodeHistory,
           updatedAt: new Date().toISOString()
         };
         return updatedItem;
@@ -180,6 +190,18 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       }
     },
     [canManage, enqueueCloud, saveLocal, user]
+  );
+
+  const setEpisodeWatched = useCallback(
+    (animeId: number, episode: number, watched: boolean, watchedAt?: string) => {
+      const item = itemsRef.current.find((entry) => entry.anime.id === animeId);
+      if (!item) return;
+      updateAnime(
+        animeId,
+        updateEpisodeHistory(item, episode, watched, watchedAt)
+      );
+    },
+    [updateAnime]
   );
 
   const removeAnime = useCallback(
@@ -251,6 +273,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
         items.find((item) => item.anime.id === animeId),
       addAnime,
       updateAnime,
+      setEpisodeWatched,
       removeAnime,
       importItems
     }),
@@ -264,6 +287,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       syncError,
       syncStatus,
       updateAnime,
+      setEpisodeWatched,
       user
     ]
   );

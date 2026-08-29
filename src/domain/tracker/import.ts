@@ -11,6 +11,7 @@ import {
   type TrackedAnime,
   type TrackingStatus
 } from "./types.js";
+import { MAX_EPISODE_HISTORY } from "./episodes.js";
 
 type JsonRecord = Record<string, unknown>;
 export const MAX_LIBRARY_ITEMS = 5000;
@@ -308,13 +309,17 @@ function parseTrackedAnime(value: unknown, index: number): TrackedAnime {
   }
 
   const anime = parseAnime(value.anime, index);
+  const episodeHistory = value.episodeHistory === undefined
+    ? undefined
+    : parseEpisodeHistory(value.episodeHistory, index, anime.episodes);
   return {
     anime,
     status: value.status as TrackingStatus,
     progress: Math.min(
-      value.progress,
+      episodeHistory?.length ?? value.progress,
       anime.episodes ?? Number.MAX_SAFE_INTEGER
     ),
+    ...(episodeHistory ? { episodeHistory } : {}),
     userScore,
     notes: requiredString(
       value.notes,
@@ -325,6 +330,51 @@ function parseTrackedAnime(value: unknown, index: number): TrackedAnime {
     addedAt,
     updatedAt
   };
+}
+
+function parseEpisodeHistory(
+  value: unknown,
+  itemIndex: number,
+  totalEpisodes?: number
+) {
+  if (!Array.isArray(value) || value.length > MAX_EPISODE_HISTORY) {
+    throw new LibraryImportError(
+      `Item ${itemIndex + 1} has invalid episode history.`
+    );
+  }
+  const seen = new Set<number>();
+  return value.map((entry) => {
+    if (!isRecord(entry) || !Number.isInteger(entry.episode)) {
+      throw new LibraryImportError(
+        `Item ${itemIndex + 1} has invalid episode history.`
+      );
+    }
+    const episode = Number(entry.episode);
+    if (
+      episode < 1 ||
+      episode > (totalEpisodes ?? MAX_EPISODE_HISTORY) ||
+      seen.has(episode)
+    ) {
+      throw new LibraryImportError(
+        `Item ${itemIndex + 1} has invalid episode history.`
+      );
+    }
+    seen.add(episode);
+    const watchedAt = entry.watchedAt === undefined
+      ? undefined
+      : requiredString(
+          entry.watchedAt,
+          `Item ${itemIndex + 1} episode watch date`,
+          false,
+          10
+        );
+    if (watchedAt && !/^\d{4}-\d{2}-\d{2}$/.test(watchedAt)) {
+      throw new LibraryImportError(
+        `Item ${itemIndex + 1} has invalid episode history.`
+      );
+    }
+    return { episode, ...(watchedAt ? { watchedAt } : {}) };
+  }).sort((left, right) => left.episode - right.episode);
 }
 
 export function parseLibraryImport(value: unknown): TrackedAnime[] {

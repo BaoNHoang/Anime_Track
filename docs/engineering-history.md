@@ -2493,7 +2493,23 @@ A future change is complete only when all applicable checks are satisfied:
   - `npm test` passed all 96 tests across 31 files.
   - `npm run build` completed the production and PWA builds.
   - `git diff --check` passed, and the Impeccable detector reported no
-    findings across the changed UI files.
+  findings across the changed UI files.
+
+### HIST-0031 - 2026-08-28 - Add episode history and Continue watching
+
+- Status: Implemented on `develop` as a feature update.
+- Changes:
+  - Added a backward-compatible, bounded episode-history model with optional
+    ISO watch dates and individual watched-state controls.
+  - Added a paged episode checklist to the anime detail drawer.
+  - Added a Home Continue watching rail that identifies each active title's
+    next unwatched episode and records a one-click completion with today's date.
+  - Kept legacy numeric progress valid and lazily materialized episode history
+    only after an episode-level edit.
+  - Extended Banime backup validation and cloud-synced tracker JSON without a
+    new table or a destructive data migration.
+- Verification: Domain, import, API, UI, production-build, and lint checks run
+  before the feature commit.
 
 ## Release History
 
