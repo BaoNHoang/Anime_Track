@@ -224,6 +224,34 @@ async function revokeOtherSessions(
   sendJson(response, 200, { message: "Other devices signed out." });
 }
 
+function accountServiceUnavailable(context: string, error: unknown) {
+  const serviceError = error as {
+    code?: unknown;
+    message?: unknown;
+    name?: unknown;
+    status?: unknown;
+  } | null;
+  console.error(context, {
+    code: typeof serviceError?.code === "string" ? serviceError.code : undefined,
+    message:
+      typeof serviceError?.message === "string"
+        ? serviceError.message
+        : undefined,
+    name: typeof serviceError?.name === "string" ? serviceError.name : undefined,
+    status:
+      typeof serviceError?.status === "number"
+        ? serviceError.status
+        : undefined
+  });
+  return new ApiError(503, "Account services are temporarily unavailable.");
+}
+
+function isRejectedLogin(error: { code?: string } | null) {
+  return error?.code === "invalid_credentials" ||
+    error?.code === "email_not_confirmed" ||
+    error?.code === "user_banned";
+}
+
 async function login(
   request: ApiRequest,
   response: ServerResponse
@@ -281,15 +309,29 @@ async function login(
   }
 
   const client = createPublicClient();
-  const { data, error } = await client.auth.signInWithPassword({
-    email: resolvedEmail,
-    password: submittedPassword
-  });
-  if (
-    error ||
-    !data.session ||
-    !data.user?.email_confirmed_at
-  ) {
+  const { data, error } = await (async () => {
+    try {
+      return await client.auth.signInWithPassword({
+        email: resolvedEmail,
+        password: submittedPassword
+      });
+    } catch (serviceError) {
+      throw accountServiceUnavailable(
+        "Supabase password sign-in request failed.",
+        serviceError
+      );
+    }
+  })();
+  if (error) {
+    if (isRejectedLogin(error)) {
+      throw new ApiError(401, "Email, username, or password is incorrect.");
+    }
+    if (error.status === 429) {
+      throw new ApiError(429, "Too many attempts. Try again later.");
+    }
+    throw accountServiceUnavailable("Supabase password sign-in failed.", error);
+  }
+  if (!data.session || !data.user?.email_confirmed_at) {
     throw new ApiError(401, "Email, username, or password is incorrect.");
   }
   setSessionCookies(response, data.session);
@@ -314,11 +356,17 @@ async function signup(request: ApiRequest, response: ServerResponse) {
   });
 
   const admin = createAdminClient();
-  const { data: existing } = await admin
+  const { data: existing, error: existingError } = await admin
     .from("profiles")
     .select("user_id")
     .eq("username_normalized", signupUsername.toLowerCase())
     .maybeSingle();
+  if (existingError) {
+    throw accountServiceUnavailable(
+      "Supabase signup profile lookup failed.",
+      existingError
+    );
+  }
   const genericSignupMessage =
     "If these details can be used, check your email for a verification code.";
   if (existing) {

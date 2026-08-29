@@ -14,7 +14,15 @@ import {
 } from "../_lib/http.js";
 import { authenticateRequest } from "../_lib/supabase.js";
 
-const LIBRARY_PAGE_SIZE = 1000;
+const DEFAULT_LIBRARY_PAGE_SIZE = 250;
+const MAX_LIBRARY_PAGE_SIZE = 500;
+
+function boundedInteger(value: string | null, fallback: number, maximum: number) {
+  if (value === null) return fallback;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) return fallback;
+  return Math.min(parsed, maximum);
+}
 
 function toCloudRow(userId: string, item: TrackedAnime) {
   return {
@@ -41,23 +49,40 @@ export default async function handler(
     const auth = await authenticateRequest(request, response);
 
     if (request.method === "GET") {
-      const items: unknown[] = [];
-      for (let offset = 0; ; offset += LIBRARY_PAGE_SIZE) {
-        const { data, error } = await auth.client
-          .from("tracked_anime")
-          .select("item")
-          .eq("user_id", auth.user.id)
-          .order("updated_at", { ascending: false })
-          .order("anime_id", { ascending: true })
-          .range(offset, offset + LIBRARY_PAGE_SIZE - 1);
-        if (error) {
-          throw new ApiError(502, "Cloud library could not be loaded.");
-        }
-        const page = data ?? [];
-        items.push(...page.map((row) => row.item));
-        if (page.length < LIBRARY_PAGE_SIZE) break;
+      const url = new URL(request.url ?? "/api/library", "http://localhost");
+      const offset = boundedInteger(
+        url.searchParams.get("offset"),
+        0,
+        Number.MAX_SAFE_INTEGER
+      );
+      const limit = Math.max(
+        1,
+        boundedInteger(
+          url.searchParams.get("limit"),
+          DEFAULT_LIBRARY_PAGE_SIZE,
+          MAX_LIBRARY_PAGE_SIZE
+        )
+      );
+      const { data, error, count } = await auth.client
+        .from("tracked_anime")
+        .select("item", offset === 0 ? { count: "exact" } : undefined)
+        .eq("user_id", auth.user.id)
+        .order("updated_at", { ascending: false })
+        .order("anime_id", { ascending: true })
+        .range(offset, offset + limit - 1);
+      if (error) {
+        throw new ApiError(502, "Cloud library could not be loaded.");
       }
-      sendJson(response, 200, { items });
+      const items = (data ?? []).map((row) => row.item);
+      const total =
+        count ??
+        (items.length < limit
+          ? offset + items.length
+          : offset + items.length + 1);
+      const nextOffset =
+        offset + items.length < total ? offset + items.length : undefined;
+      response.setHeader("Cache-Control", "private, no-store");
+      sendJson(response, 200, { items, total, nextOffset });
       return;
     }
 

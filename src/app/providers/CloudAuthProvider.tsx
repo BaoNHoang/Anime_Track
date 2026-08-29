@@ -14,6 +14,7 @@ import {
   type AuthActionResult,
   type CloudAuthContextValue
 } from "./cloudAuthContext";
+import { accountSessionHint } from "../../services/storage/accountSessionHint";
 
 const accountAuthEnabled =
   import.meta.env.VITE_ACCOUNT_AUTH_ENABLED === "true";
@@ -23,13 +24,22 @@ const passkeyAuthEnabled =
 export function CloudAuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<AccountUser>();
   const [initialized, setInitialized] = useState(!accountAuthEnabled);
+  const [likelyAuthenticated, setLikelyAuthenticated] = useState(() =>
+    accountAuthEnabled ? accountSessionHint.get() : true
+  );
 
   useEffect(() => {
     if (!accountAuthEnabled) return;
     let active = true;
     void accountApi.session().then((result) => {
       if (!active) return;
-      setUser(result.user ?? undefined);
+      const nextUser = result.user ?? undefined;
+      setUser(nextUser);
+      if (!result.error) {
+        const authenticated = Boolean(nextUser);
+        accountSessionHint.save(authenticated);
+        setLikelyAuthenticated(authenticated);
+      }
       setInitialized(true);
     });
     return () => {
@@ -46,7 +56,13 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       }>
     ): Promise<AuthActionResult> => {
       const result = await operation();
-      if (result.user !== undefined) setUser(result.user ?? undefined);
+      if (result.user !== undefined) {
+        const nextUser = result.user ?? undefined;
+        setUser(nextUser);
+        const authenticated = Boolean(nextUser);
+        accountSessionHint.save(authenticated);
+        setLikelyAuthenticated(authenticated);
+      }
       return { error: result.error, message: result.message };
     },
     []
@@ -188,7 +204,11 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
   const deleteAccount = useCallback(
     async (confirmation: string): Promise<AuthActionResult> => {
       const result = await accountApi.deleteAccount(confirmation);
-      if (!result.error) setUser(undefined);
+      if (!result.error) {
+        setUser(undefined);
+        accountSessionHint.save(false);
+        setLikelyAuthenticated(false);
+      }
       return { error: result.error, message: result.message };
     },
     []
@@ -196,7 +216,11 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
 
   const signOut = useCallback(async (): Promise<AuthActionResult> => {
     const result = await accountApi.signOut();
-    if (!result.error) setUser(undefined);
+    if (!result.error) {
+      setUser(undefined);
+      accountSessionHint.save(false);
+      setLikelyAuthenticated(false);
+    }
     return { error: result.error, message: result.message };
   }, []);
 
@@ -209,6 +233,7 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       configured: accountAuthEnabled,
       passkeysEnabled: passkeyAuthEnabled,
       initialized,
+      likelyAuthenticated,
       user,
       signIn,
       signUp,
@@ -233,6 +258,7 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
     }),
     [
       initialized,
+      likelyAuthenticated,
       requestPasswordReset,
       resetPassword,
       signInWithPasskey,

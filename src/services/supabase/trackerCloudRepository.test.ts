@@ -22,6 +22,62 @@ describe("trackerCloudRepository", () => {
     );
   });
 
+  it("loads large cloud libraries in bounded pages", async () => {
+    const firstItems = Array.from({ length: 250 }, (_, index) => ({
+      anime: { id: index + 1 }
+    }));
+    const fetchMock = vi.fn().mockImplementation((input: string) => {
+      const offset = new URL(input, "https://banime.test").searchParams.get(
+        "offset"
+      );
+      const body =
+        offset === "0"
+          ? { items: firstItems, total: 251, nextOffset: 250 }
+          : { items: [{ anime: { id: 251 } }], total: 251 };
+      return Promise.resolve(
+        new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        })
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const items = await trackerCloudRepository.getAll();
+
+    expect(items).toHaveLength(251);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1][0]).toContain("offset=250");
+  });
+
+  it("loads the compact profile summary separately", async () => {
+    const summary = {
+      stats: {
+        total: 2000,
+        watching: 10,
+        completed: 1900,
+        episodesWatched: 24000,
+        daysWatched: 400
+      },
+      recentItems: [],
+      favoriteGenres: [],
+      airingItems: []
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ summary }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        })
+      )
+    );
+
+    await expect(trackerCloudRepository.getProfileSummary()).resolves.toEqual(
+      summary
+    );
+  });
+
   it("binds writes to the expected user and chunks bulk imports", async () => {
     const fetchMock = vi.fn().mockImplementation(() =>
       Promise.resolve(

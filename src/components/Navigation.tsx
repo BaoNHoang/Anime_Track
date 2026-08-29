@@ -18,17 +18,23 @@ const libraryLink = { to: "/library", label: "Library", icon: LibraryBig };
 const profileLink = { to: "/profile", label: "Profile", icon: IdCard };
 
 export function Navigation({ variant = "header" }: { variant?: "header" | "mobile" }) {
-  const { configured, initialized, user } = useCloudAuth();
-  const hasPersonalAccess = initialized && (!configured || user);
+  const { configured, initialized, likelyAuthenticated, user } = useCloudAuth();
+  const hasPersonalAccess =
+    !configured || Boolean(user) || (!initialized && likelyAuthenticated);
+  const showPersonalPlaceholders =
+    configured && !initialized && !likelyAuthenticated;
   const links = hasPersonalAccess
     ? [...publicLinks, libraryLink, profileLink]
     : publicLinks;
+  const pendingLinks = showPersonalPlaceholders
+    ? [libraryLink, profileLink]
+    : [];
 
   return (
     <nav
       className={`navigation navigation--${variant}`}
       aria-label="Main navigation"
-      data-count={links.length}
+      data-count={links.length + pendingLinks.length}
     >
       {links.map(({ to, label, icon: Icon }) => (
         <NavLink
@@ -42,6 +48,16 @@ export function Navigation({ variant = "header" }: { variant?: "header" | "mobil
           <Icon size={20} strokeWidth={1.8} />
           <span>{label}</span>
         </NavLink>
+      ))}
+      {pendingLinks.map(({ to, label, icon: Icon }) => (
+        <span
+          className="navigation__link navigation__link--pending"
+          aria-hidden="true"
+          key={`pending:${to}`}
+        >
+          <Icon size={20} strokeWidth={1.8} />
+          <span>{label}</span>
+        </span>
       ))}
     </nav>
   );

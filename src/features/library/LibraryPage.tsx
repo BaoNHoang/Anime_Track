@@ -1,5 +1,11 @@
-import { LibraryBig, Search, X } from "../../components/OwnedIcons";
-import { useMemo, useState } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  LibraryBig,
+  Search,
+  X
+} from "../../components/OwnedIcons";
+import { useDeferredValue, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   STATUS_LABELS,
@@ -10,12 +16,14 @@ import { useTracker } from "../../app/providers/useTracker";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { LibraryCard } from "./LibraryCard";
 import { RouteSkeleton } from "../../components/LoadingState";
+import { ErrorState } from "../../components/ErrorState";
 
 type Filter = "all" | TrackingStatus;
 type Sort = "updated" | "title" | "score" | "progress" | "added";
+const LIBRARY_PAGE_SIZE = 60;
 
 export function LibraryPage() {
-  const { items } = useTracker();
+  const { isReady, items, syncError, syncStatus } = useTracker();
   const { configured, initialized, user } = useCloudAuth();
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -23,7 +31,9 @@ export function LibraryPage() {
   const [genre, setGenre] = useState("all");
   const [minimumScore, setMinimumScore] = useState("0");
   const [sort, setSort] = useState<Sort>("updated");
+  const [page, setPage] = useState(1);
   const [frozenRecentOrder, setFrozenRecentOrder] = useState<number[]>();
+  const deferredQuery = useDeferredValue(query);
   const frozenRecentPositions = useMemo(
     () =>
       frozenRecentOrder
@@ -73,7 +83,7 @@ export function LibraryPage() {
   }, [items]);
 
   const filteredItems = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+    const normalizedQuery = deferredQuery.trim().toLowerCase();
     return indexedItems
       .filter(({ item, searchText }) => {
         const matchesStatus = filter === "all" || item.status === filter;
@@ -121,7 +131,7 @@ export function LibraryPage() {
     genre,
     indexedItems,
     minimumScore,
-    query,
+    deferredQuery,
     sort,
     type
   ]);
@@ -141,6 +151,27 @@ export function LibraryPage() {
     setMinimumScore("0");
     setSort("updated");
     setFrozenRecentOrder(undefined);
+    setPage(1);
+  };
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredItems.length / LIBRARY_PAGE_SIZE)
+  );
+  const activePage = Math.min(page, totalPages);
+  const visibleItems = filteredItems.slice(
+    (activePage - 1) * LIBRARY_PAGE_SIZE,
+    activePage * LIBRARY_PAGE_SIZE
+  );
+  const changePage = (nextPage: number) => {
+    setPage(Math.min(Math.max(1, nextPage), totalPages));
+    window.requestAnimationFrame(() => {
+      document.getElementById("library-results")?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+        block: "start"
+      });
+    });
   };
 
   if (configured && (!initialized || !user)) {
@@ -162,21 +193,42 @@ export function LibraryPage() {
     );
   }
 
+  if (configured && user && !isReady) {
+    if (syncStatus === "error") {
+      return (
+        <ErrorState
+          message={syncError ?? "Your library could not be loaded."}
+          onRetry={() => window.location.reload()}
+        />
+      );
+    }
+    return <RouteSkeleton label="Loading your library" />;
+  }
+
   return (
     <div className="page-stack">
       <h1 className="visually-hidden">Library</h1>
 
-      <section className="query-panel">
+      <section className="query-panel" id="library-results">
         <div className="search-box">
           <Search size={18} />
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+            }}
             placeholder="Search titles, studios, genres, or notes"
             aria-label="Search library"
           />
           {query && (
-            <button onClick={() => setQuery("")} aria-label="Clear library search">
+            <button
+              onClick={() => {
+                setQuery("");
+                setPage(1);
+              }}
+              aria-label="Clear library search"
+            >
               <X size={18} />
             </button>
           )}
@@ -185,7 +237,10 @@ export function LibraryPage() {
         <div className="filter-chips filter-chips--library">
           <button
             className={filter === "all" ? "is-active" : ""}
-            onClick={() => setFilter("all")}
+            onClick={() => {
+              setFilter("all");
+              setPage(1);
+            }}
           >
             All <span>{items.length}</span>
           </button>
@@ -193,7 +248,10 @@ export function LibraryPage() {
             <button
               key={status}
               className={filter === status ? "is-active" : ""}
-              onClick={() => setFilter(status)}
+              onClick={() => {
+                setFilter(status);
+                setPage(1);
+              }}
             >
               {STATUS_LABELS[status]}
               <span>{statusCounts[status]}</span>
@@ -204,7 +262,13 @@ export function LibraryPage() {
         <div className="query-controls">
           <label>
             <span>Type</span>
-            <select value={type} onChange={(event) => setType(event.target.value)}>
+            <select
+              value={type}
+              onChange={(event) => {
+                setType(event.target.value);
+                setPage(1);
+              }}
+            >
               <option value="all">All types</option>
               {types.map((item) => (
                 <option value={item} key={item}>{item}</option>
@@ -213,7 +277,13 @@ export function LibraryPage() {
           </label>
           <label>
             <span>Genre</span>
-            <select value={genre} onChange={(event) => setGenre(event.target.value)}>
+            <select
+              value={genre}
+              onChange={(event) => {
+                setGenre(event.target.value);
+                setPage(1);
+              }}
+            >
               <option value="all">All genres</option>
               {genres.map((item) => (
                 <option value={item} key={item}>{item}</option>
@@ -224,7 +294,10 @@ export function LibraryPage() {
             <span>Your score</span>
             <select
               value={minimumScore}
-              onChange={(event) => setMinimumScore(event.target.value)}
+              onChange={(event) => {
+                setMinimumScore(event.target.value);
+                setPage(1);
+              }}
             >
               <option value="0">Any score</option>
               <option value="6">6+</option>
@@ -240,6 +313,7 @@ export function LibraryPage() {
               onChange={(event) => {
                 setSort(event.target.value as Sort);
                 setFrozenRecentOrder(undefined);
+                setPage(1);
               }}
             >
               <option value="updated">Recently updated</option>
@@ -264,7 +338,7 @@ export function LibraryPage() {
 
       {filteredItems.length ? (
         <section className="library-grid">
-          {filteredItems.map((item) => (
+          {visibleItems.map((item) => (
             <LibraryCard
               item={item}
               key={item.anime.id}
@@ -296,6 +370,29 @@ export function LibraryPage() {
             </Link>
           )}
         </section>
+      )}
+      {filteredItems.length > LIBRARY_PAGE_SIZE && (
+        <nav className="pagination" aria-label="Library pages">
+          <button
+            className="pagination__button"
+            type="button"
+            onClick={() => changePage(activePage - 1)}
+            disabled={activePage === 1}
+          >
+            <ChevronLeft size={17} /> Previous
+          </button>
+          <span className="pagination__status" aria-live="polite">
+            Page {activePage} of {totalPages}
+          </span>
+          <button
+            className="pagination__button"
+            type="button"
+            onClick={() => changePage(activePage + 1)}
+            disabled={activePage === totalPages}
+          >
+            Next <ChevronRight size={17} />
+          </button>
+        </nav>
       )}
     </div>
   );

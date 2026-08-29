@@ -3,6 +3,10 @@
 Banime is designed as an anime broadcast room: artwork and motion make the
 catalog feel alive, while the controls stay compact and fast to scan.
 
+This file defines the visual and interaction system only. It does not duplicate
+the feature/setup guide in `README.md`, product scope in `PRODUCT.md`, or
+implementation decisions and history in `docs/engineering-history.md`.
+
 ## Foundation
 
 - Use ink navigation, cool neutral surfaces, candy-coral actions, broadcast

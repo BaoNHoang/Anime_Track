@@ -14,6 +14,7 @@ export interface CloudAuthContextValue {
   configured: boolean;
   passkeysEnabled: boolean;
   initialized: boolean;
+  likelyAuthenticated: boolean;
   user?: AccountUser;
   signIn: (
     identifier: string,

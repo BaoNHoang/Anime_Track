@@ -1,6 +1,6 @@
 import { createContext } from "react";
 import type { Anime } from "../../domain/anime/types";
-import { calculateTrackerStats } from "../../domain/tracker/stats";
+import type { ProfileSummary } from "../../domain/tracker/profileSummary";
 import type {
   TrackedAnime,
   TrackingStatus
@@ -10,7 +10,7 @@ export interface TrackerContextValue {
   items: TrackedAnime[];
   canManage: boolean;
   isReady: boolean;
-  stats: ReturnType<typeof calculateTrackerStats>;
+  profileSummary?: ProfileSummary;
   syncStatus: "local" | "syncing" | "synced" | "error";
   syncError?: string;
   getTracked: (animeId: number) => TrackedAnime | undefined;

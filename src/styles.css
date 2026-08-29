@@ -255,6 +255,12 @@ h3,
   flex: 0 0 auto;
 }
 
+.navigation__link--pending {
+  opacity: 0.32;
+  pointer-events: none;
+  animation: pulse 1s ease-in-out infinite alternate;
+}
+
 .navigation__link:hover {
   color: var(--ink);
   background: var(--surface-muted);
@@ -2738,7 +2744,8 @@ h3,
   font-size: 11px;
 }
 
-#discover-results {
+#discover-results,
+#library-results {
   scroll-margin-top: 88px;
 }
 
