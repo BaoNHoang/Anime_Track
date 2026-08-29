@@ -335,11 +335,6 @@ export function ProfileSettings() {
         {user && (
           <section className="account-profile__section security-controls">
             <div className="account-profile__section-heading"><h3>Sessions</h3><p>Your current browser is signed in. Revoke refresh access for every other browser and device if you do not recognize recent account activity. A previously issued access token can remain valid until its short expiry.</p></div>
-            <div className="session-row">
-              <span><ShieldCheck size={18} /></span>
-              <div><strong>This browser</strong><small>Current session · {user.provider} sign-in</small></div>
-              <span className="status-pill status-pill--success">Active</span>
-            </div>
             <button className="button button--ghost security-controls__revoke" type="button" disabled={submitting} onClick={() => void revokeOtherSessions()}><LogOut size={16} /> Sign out other devices</button>
           </section>
         )}
