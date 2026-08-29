@@ -31,13 +31,17 @@ public anime catalog and optional Supabase sync.
 
 Users browse seasonal, upcoming, historical, studio, and family collections;
 search the catalog; maintain an ordered set of profile favorites; update
-episode progress; and occasionally import a MyAnimeList XML export.
+individual episode progress and optional watch dates; and occasionally import
+a MyAnimeList XML export. Active titles return to a compact Continue watching
+queue on Home with the next unwatched episode identified.
 
 ## Capabilities and Constraints
 
 - React and TypeScript PWA using ordinary CSS and a Banime-owned SVG icon set.
 - Tenrai provides read-only catalog and news data.
 - Profile favorites are bounded local data with optional authenticated sync.
+- Cloud accounts support phishing-resistant passkey sign-in and controls to
+  remove enrolled passkeys or revoke every other device session.
 - Existing light and dark themes must remain available.
 - The user requested a modern, simple redesign with transitioning background
   images, without visual clutter or heavyweight runtime dependencies.
@@ -56,6 +60,7 @@ available.
 ## Product Principles
 
 - Make repeated tracking actions fast and easy to scan.
+- Put the next useful action for an actively watched title within one click.
 - Let anime artwork create atmosphere without obscuring controls or content.
 - Keep the interface useful with unreliable catalog data and offline shell
   access.

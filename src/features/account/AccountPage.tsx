@@ -18,6 +18,7 @@ function readAccountMode(value: string | null): AccountMode {
 export function AccountPage() {
   const {
     configured,
+    passkeysEnabled,
     initialized,
     user,
     signIn,
@@ -26,6 +27,7 @@ export function AccountPage() {
     resendVerification,
     requestPasswordReset,
     resetPassword,
+    signInWithPasskey,
     signInWithGoogle
   } = useCloudAuth();
   const [searchParams] = useSearchParams();
@@ -96,6 +98,21 @@ export function AccountPage() {
       : { tone: "success", text: result.message ?? "A new code was sent." });
   };
 
+  const handlePasskeySignIn = async () => {
+    setMessage(undefined);
+    setSubmitting(true);
+    const result = await signInWithPasskey();
+    setSubmitting(false);
+    if (result.error) {
+      setMessage({ tone: "error", text: result.error });
+      return;
+    }
+    const next = searchParams.get("next");
+    navigate(next?.startsWith("/") && !next.startsWith("//") ? next : "/profile", {
+      replace: true
+    });
+  };
+
   if (!initialized) {
     return <AccountSkeleton />;
   }
@@ -121,7 +138,12 @@ export function AccountPage() {
             <h2>{mode === "sign_in" ? "Welcome back" : mode === "sign_up" ? "Create your account" : mode === "verify" ? "Verify your email" : mode === "forgot" ? "Find your account" : "Set a new password"}</h2>
             {(mode === "verify" || mode === "reset") && <p>Enter the code sent to your email.</p>}
           </div>
-          {mode === "sign_in" && <button type="button" className="button account-google" onClick={signInWithGoogle}><LogIn size={17} /> Continue with Google</button>}
+          {mode === "sign_in" && (
+            <div className="account-fast-auth">
+              {passkeysEnabled && <button type="button" className="button account-passkey" onClick={() => void handlePasskeySignIn()} disabled={submitting}><KeyRound size={17} /> Sign in with a passkey</button>}
+              <button type="button" className="button account-google" onClick={signInWithGoogle} disabled={submitting}><LogIn size={17} /> Continue with Google</button>
+            </div>
+          )}
           {mode === "sign_in" && <div className="auth-divider">or</div>}
           <form className="auth-form account-form" onSubmit={handleSubmit}>
             {mode === "sign_in" ? (

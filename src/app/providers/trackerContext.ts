@@ -18,8 +18,14 @@ export interface TrackerContextValue {
   updateAnime: (
     animeId: number,
     updates: Partial<
-      Pick<TrackedAnime, "status" | "progress" | "userScore" | "notes">
+      Pick<TrackedAnime, "status" | "progress" | "episodeHistory" | "userScore" | "notes">
     >
+  ) => void;
+  setEpisodeWatched: (
+    animeId: number,
+    episode: number,
+    watched: boolean,
+    watchedAt?: string
   ) => void;
   removeAnime: (animeId: number) => void;
   importItems: (

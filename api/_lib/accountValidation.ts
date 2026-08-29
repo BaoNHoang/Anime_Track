@@ -182,3 +182,36 @@ export function verificationCode(value: unknown, field: string) {
   }
   return result;
 }
+
+export function passkeyUuid(value: unknown, field: string) {
+  if (
+    typeof value !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+  ) {
+    throw new ApiError(400, `${field} is invalid.`);
+  }
+  return value;
+}
+
+export function passkeyCredential(value: unknown) {
+  const credential = accountRecord(value);
+  if (
+    credential.type !== "public-key" ||
+    typeof credential.id !== "string" ||
+    credential.id.length < 1 ||
+    credential.id.length > 2048 ||
+    typeof credential.rawId !== "string" ||
+    credential.rawId.length < 1 ||
+    credential.rawId.length > 2048 ||
+    !credential.response ||
+    typeof credential.response !== "object" ||
+    Array.isArray(credential.response)
+  ) {
+    throw new ApiError(400, "Passkey response is invalid.");
+  }
+  const serialized = JSON.stringify(credential);
+  if (serialized.length > 24_000 || /[\u0000-\u001f\u007f]/.test(serialized)) {
+    throw new ApiError(400, "Passkey response is invalid.");
+  }
+  return credential;
+}

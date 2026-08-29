@@ -13,10 +13,21 @@ export interface AccountUser {
   favorites: ProfileFavorites;
 }
 
+export interface PasskeyMetadata {
+  id: string;
+  friendly_name?: string;
+  created_at: string;
+  last_used_at?: string;
+}
+
 interface ApiResult {
   error?: string;
   message?: string;
   user?: AccountUser | null;
+  challengeId?: string;
+  options?: Record<string, unknown>;
+  passkey?: PasskeyMetadata;
+  passkeys?: PasskeyMetadata[];
 }
 
 async function request(
@@ -90,6 +101,28 @@ export const accountApi = {
       method: "POST",
       body: { email, code, password }
     }),
+  startPasskeySignIn: () =>
+    request("/api/auth/passkey-auth-start", { method: "POST" }),
+  verifyPasskeySignIn: (challengeId: string, credential: unknown) =>
+    request("/api/auth/passkey-auth-verify", {
+      method: "POST",
+      body: { challengeId, credential }
+    }),
+  startPasskeyRegistration: () =>
+    request("/api/auth/passkey-register-start", { method: "POST" }),
+  verifyPasskeyRegistration: (challengeId: string, credential: unknown) =>
+    request("/api/auth/passkey-register-verify", {
+      method: "POST",
+      body: { challengeId, credential }
+    }),
+  listPasskeys: () => request("/api/auth/passkeys"),
+  deletePasskey: (passkeyId: string) =>
+    request("/api/auth/passkey-delete", {
+      method: "POST",
+      body: { passkeyId }
+    }),
+  signOutOtherSessions: () =>
+    request("/api/auth/sessions-others", { method: "POST" }),
   updateUsername: (username: string) =>
     request("/api/auth/username", {
       method: "POST",

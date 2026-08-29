@@ -25,8 +25,10 @@ implementation decisions and history in `docs/engineering-history.md`.
 - Mobile reduces the header to the mark, search, and profile access, with a
   five-item bottom navigation for the primary destinations.
 - Home starts directly with current-season anime, then uses compact shelves for
-  upcoming titles and top anime from earlier decades. Profile owns the tracking
-  summary, activity, airing schedule, genre distribution, and ordered favorites.
+  upcoming titles and top anime from earlier decades. When active titles exist,
+  a compact Continue watching rail precedes discovery content and exposes each
+  title's next unwatched episode. Profile owns the tracking summary, activity,
+  airing schedule, genre distribution, and ordered favorites.
 - Catalog pages use poster grids. The library uses dense poster-only tiles;
   clicking a cover opens the detail drawer for status, progress, and score
   editing.
@@ -48,12 +50,19 @@ implementation decisions and history in `docs/engineering-history.md`.
 - Metadata is small but never used as decorative uppercase copy.
 - The anime detail drawer overlays the page without changing the background
   layout width or interrupting its scroll position.
+- The episode checklist stays inside the tracking section of the detail drawer.
+  It uses native checkboxes and date inputs, shows 24 episodes at first, and
+  expands in bounded groups so long-running titles do not overwhelm the drawer.
 - Loading regions use layout-matched skeletons for poster grids, compact lists,
   search results, news, account forms, and route gates. Skeletons preserve the
   final content footprint, expose a concise status to assistive technology,
   and stop pulsing when reduced motion is requested.
 - Favorite anime, studios, directors, and characters use one profile editor.
   Drag ordering always has equivalent move-up and move-down controls.
+- Account security lives in the profile editor: passkeys use a compact device
+  inventory, and session controls identify the current browser before offering
+  the broader sign-out action. Destructive credential actions use explicit
+  labels and never rely on icon meaning alone.
 
 ## Themes
 

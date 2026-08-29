@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useTracker } from "../../app/providers/useTracker";
 import type { TrackedAnime } from "../../domain/tracker/types";
+import { nextEpisodeNumber } from "../../domain/tracker/episodes";
 
 function relativeTime(value: string, now: number) {
   const elapsedSeconds = Math.max(0, (now - Date.parse(value)) / 1000);
@@ -35,9 +36,10 @@ function activityText(item: TrackedAnime) {
 
 function ActivityItem({ item, now }: { item: TrackedAnime; now: number }) {
   const { openAnime } = useAnimePanel();
-  const { updateAnime } = useTracker();
+  const { setEpisodeWatched } = useTracker();
   const total = item.anime.episodes;
   const isComplete = Boolean(total && item.progress >= total);
+  const nextEpisode = nextEpisodeNumber(item);
 
   return (
     <article className="activity-item">
@@ -52,14 +54,16 @@ function ActivityItem({ item, now }: { item: TrackedAnime; now: number }) {
         <button
           className="activity-item__update"
           type="button"
-          aria-label={isComplete ? "Completed" : `Mark episode ${item.progress + 1} watched`}
+          aria-label={isComplete ? "Completed" : `Mark episode ${nextEpisode} watched`}
           title={isComplete ? "Completed" : "Add one episode"}
           disabled={isComplete}
           onClick={() =>
-            updateAnime(item.anime.id, {
-              progress: item.progress + 1,
-              status: total && item.progress + 1 >= total ? "completed" : "watching"
-            })
+            setEpisodeWatched(
+              item.anime.id,
+              nextEpisode ?? item.progress + 1,
+              true,
+              new Date().toISOString().slice(0, 10)
+            )
           }
         >
           {isComplete ? <Check size={16} /> : <Plus size={16} />}
