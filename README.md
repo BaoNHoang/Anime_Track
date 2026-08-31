@@ -231,18 +231,40 @@ npm test
 
 ## Accounts and cross-device sync
 
-Banime uses Supabase Auth behind same-origin Vercel Functions. Access and
-refresh tokens are stored in `HttpOnly`, `SameSite=Lax`, secure production
-cookies instead of browser storage. Password hashing, JWT issuance, email
-verification, and identity-provider tokens are handled by Supabase Auth.
+Banime uses Supabase Auth behind same-origin Vercel Functions. Users sign in
+with email/password, Google, or a registered passkey. Supabase creates the
+authenticated session and returns an access token and refresh token; Banime
+stores them in `HttpOnly`, `SameSite=Lax` cookies, with `Secure` on the
+production HTTPS site. Browser JavaScript cannot read either cookie.
 
-Users can sign in with email or username and password, continue with Google,
-or use a registered passkey. Passkey ceremonies use bounded same-origin API
-requests; access and refresh tokens remain in HttpOnly cookies and are never
-returned to browser JavaScript. Username-to-email resolution uses the
-server-only Supabase secret and never exposes the profile directory to
-browsers. Every library endpoint derives the owner from the verified session;
-it does not accept a user ID from the URL or request body.
+### Authentication and session flow
+
+1. A password sign-in reaches Banime's same-origin account API, which calls
+   Supabase Auth. Username sign-in resolves the username to its email address
+   only on the server before that call.
+2. A new email/password account must complete the Supabase email verification
+   code flow. Banime rejects unverified users at sign-in and on protected API
+   requests.
+3. Supabase issues a short-lived JWT access token and a refresh token for the
+   session. Banime writes both to its session cookies and does not return them
+   to browser JavaScript.
+4. On a protected request, the browser includes those same-origin cookies.
+   Banime sends the access token to Supabase to resolve the authenticated user,
+   then performs application and database operations as that user.
+5. If the access token cannot authenticate the request, Banime sends the
+   refresh token to Supabase. A successful refresh returns a replacement access
+   token and refresh token, which Banime writes back to the cookies.
+6. A normal sign-out ends the current session. The session-controls action
+   revokes other Supabase sessions while retaining the current browser.
+
+Supabase signs the JWT access token. Banime relies on Supabase validation and
+the authenticated token's user identity; library and profile data remain
+owner-scoped by the authenticated user.
+
+Passkey ceremonies use bounded same-origin API requests. The browser completes
+the WebAuthn ceremony with the user's device, and Supabase verifies its
+credential before returning the same access-token and refresh-token session
+pair. The passkey private key stays on the user's device.
 
 Signed-in users can add and remove passkeys from Profile settings and revoke
 all sessions except the current browser. An ordinary sign-out revokes only the

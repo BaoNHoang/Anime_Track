@@ -2804,6 +2804,19 @@ A future change is complete only when all applicable checks are satisfied:
   - Lint, API type-checking, the production build, and GitHub Actions `Verify`
     run 65 passed.
 
+### HIST-0038 - 2026-08-30 - Document implemented Supabase authentication flow
+
+- Status: Documented on `develop`.
+- Changes:
+  - Added the actual password, email-verification, JWT access-token, refresh-
+    token, cookie, request-validation, refresh, passkey, and session-revocation
+    flow to the README.
+  - Documented that Banime uses Supabase to create and validate sessions; it
+    stores the returned access and refresh tokens only in same-origin HttpOnly
+    cookies and operates protected requests as the Supabase-authenticated user.
+  - Kept the description scoped to the implemented system and Supabase-managed
+    behavior.
+
 ## Release History
 
 No formal production release has been recorded.
