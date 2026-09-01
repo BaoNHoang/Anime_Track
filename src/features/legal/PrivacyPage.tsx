@@ -35,6 +35,11 @@ export function PrivacyPage() {
               progress, scores, notes, and the dates you add or update entries.
             </li>
             <li>
+              Notification information: scheduled-release alerts, their
+              release times, and the last time your account checked for new
+              releases.
+            </li>
+            <li>
               Device storage: your locally stored library, theme choice, watch
               provider preference, and cached catalog results.
             </li>
@@ -73,9 +78,10 @@ export function PrivacyPage() {
           <p>
             Banime is local-first. Your library is stored in your browser so it
             can remain available on your device. If you sign in, Banime can also
-            synchronize that library to your account. You can clear local data
-            through your browser settings; doing so does not delete a cloud copy
-            associated with a signed-in account.
+            synchronize that library and release-notification inbox to your
+            account. You can clear local data through your browser settings;
+            doing so does not delete cloud copies associated with a signed-in
+            account.
           </p>
           <p>
             When account features are enabled, Banime uses essential,

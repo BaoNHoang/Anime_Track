@@ -15,6 +15,40 @@ export interface ReleaseNotificationState {
   notifications: ReleaseNotification[];
 }
 
+export function isReleaseNotification(
+  value: unknown
+): value is ReleaseNotification {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Partial<ReleaseNotification>;
+  return (
+    typeof candidate.id === "string" &&
+    Number.isInteger(candidate.animeId) &&
+    typeof candidate.title === "string" &&
+    typeof candidate.imageUrl === "string" &&
+    typeof candidate.releasedAt === "string" &&
+    (candidate.trackingStatus === "watching" ||
+      candidate.trackingStatus === "plan_to_watch")
+  );
+}
+
+export function normalizeReleaseNotificationState(
+  value: unknown
+): ReleaseNotificationState {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { notifications: [] };
+  }
+  const candidate = value as Partial<ReleaseNotificationState>;
+  return {
+    lastCheckedAt:
+      typeof candidate.lastCheckedAt === "string"
+        ? candidate.lastCheckedAt
+        : undefined,
+    notifications: Array.isArray(candidate.notifications)
+      ? candidate.notifications.filter(isReleaseNotification).slice(0, 100)
+      : []
+  };
+}
+
 export function findReleasedAnime(
   items: TrackedAnime[],
   lastCheckedAt: string | undefined,

@@ -527,6 +527,113 @@ create policy "Users can delete their own tracked anime"
   to authenticated
   using ((select auth.uid()) = user_id);
 
+create table if not exists public.release_notifications (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  anime_id integer not null,
+  notification_id text not null,
+  title text not null,
+  image_url text not null default '',
+  released_at timestamptz not null,
+  tracking_status text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, anime_id),
+  constraint release_notifications_anime_id_check check (
+    anime_id > 0 and anime_id <= 10000000
+  ),
+  constraint release_notifications_id_length_check check (
+    char_length(notification_id) between 1 and 80
+  ),
+  constraint release_notifications_title_length_check check (
+    char_length(title) between 1 and 500
+  ),
+  constraint release_notifications_image_length_check check (
+    char_length(image_url) <= 2048
+  ),
+  constraint release_notifications_status_check check (
+    tracking_status in ('watching', 'plan_to_watch')
+  )
+);
+
+create index if not exists release_notifications_user_released_idx
+  on public.release_notifications (user_id, released_at desc);
+
+alter table public.release_notifications enable row level security;
+
+revoke all on public.release_notifications from anon, authenticated;
+grant select, insert, update, delete on public.release_notifications
+  to authenticated;
+
+drop policy if exists "Users can read their own release notifications"
+  on public.release_notifications;
+create policy "Users can read their own release notifications"
+  on public.release_notifications
+  for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can insert their own release notifications"
+  on public.release_notifications;
+create policy "Users can insert their own release notifications"
+  on public.release_notifications
+  for insert
+  to authenticated
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can update their own release notifications"
+  on public.release_notifications;
+create policy "Users can update their own release notifications"
+  on public.release_notifications
+  for update
+  to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can delete their own release notifications"
+  on public.release_notifications;
+create policy "Users can delete their own release notifications"
+  on public.release_notifications
+  for delete
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+create table if not exists public.release_notification_cursors (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  last_checked_at timestamptz not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.release_notification_cursors enable row level security;
+
+revoke all on public.release_notification_cursors from anon, authenticated;
+grant select, insert, update on public.release_notification_cursors
+  to authenticated;
+
+drop policy if exists "Users can read their own release cursor"
+  on public.release_notification_cursors;
+create policy "Users can read their own release cursor"
+  on public.release_notification_cursors
+  for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can insert their own release cursor"
+  on public.release_notification_cursors;
+create policy "Users can insert their own release cursor"
+  on public.release_notification_cursors
+  for insert
+  to authenticated
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can update their own release cursor"
+  on public.release_notification_cursors;
+create policy "Users can update their own release cursor"
+  on public.release_notification_cursors
+  for update
+  to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+
 create or replace function public.rls_auto_enable()
 returns event_trigger
 language plpgsql

@@ -90,9 +90,12 @@ trailer feed from trailer metadata on current-season anime records.
   be cleared with a check action, or all alerts can be cleared together.
 - Release checks run when Banime opens, once per minute while it remains open,
   and when a background tab becomes visible again.
-- These are schedule-based in-app notifications stored in the browser. They are
-  not operating-system push notifications and do not run while the app is fully
-  closed. Broadcast schedules can also differ from streaming availability.
+- In account mode, the notification inbox, clear actions, and release-check
+  cursor are synchronized through owner-scoped Supabase rows, so the same user
+  sees a consistent inbox on every signed-in device. Local-only mode keeps the
+  inbox in that browser. These are not operating-system push notifications and
+  do not run while the app is fully closed. Broadcast schedules can also differ
+  from streaming availability.
 
 ### Accounts, privacy, and storage
 
@@ -198,8 +201,9 @@ the server session and database ownership.
 Tenrai memory and persistent caches are capped at 120 entries each. Expired or
 malformed records are removed. Authenticated library caches are keyed by the
 account ID, validated when read, refreshed after tracker changes, and cleared
-for the previous owner during sign-out. Release notifications use a separate
-owner-scoped `localStorage` record and are not part of the library cache.
+for the previous owner during sign-out. Account release notifications use
+owner-scoped Supabase inbox and cursor tables; local-only notifications use a
+separate browser `localStorage` record.
 
 ## Run locally
 

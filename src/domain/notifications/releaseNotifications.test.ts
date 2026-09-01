@@ -3,6 +3,7 @@ import type { Anime } from "../anime/types";
 import type { TrackedAnime } from "../tracker/types";
 import {
   findReleasedAnime,
+  normalizeReleaseNotificationState,
   mergeReleaseNotifications,
   type ReleaseNotification
 } from "./releaseNotifications";
@@ -85,5 +86,26 @@ describe("mergeReleaseNotifications", () => {
     };
 
     expect(mergeReleaseNotifications([older], [newer])).toEqual([newer]);
+  });
+});
+
+describe("normalizeReleaseNotificationState", () => {
+  it("keeps only valid bounded cloud messages", () => {
+    const notification: ReleaseNotification = {
+      id: "42:2026-06-11T13:00:00.000Z",
+      animeId: 42,
+      title: "Release Test",
+      imageUrl: "",
+      releasedAt: "2026-06-11T13:00:00.000Z",
+      trackingStatus: "watching"
+    };
+
+    expect(normalizeReleaseNotificationState({
+      lastCheckedAt: "2026-06-11T13:05:00.000Z",
+      notifications: [notification, { id: 4 }]
+    })).toEqual({
+      lastCheckedAt: "2026-06-11T13:05:00.000Z",
+      notifications: [notification]
+    });
   });
 });
