@@ -12,6 +12,7 @@ import {
   type ReleaseNotification
 } from "../../domain/notifications/releaseNotifications";
 import { notificationRepository } from "../../services/storage/notificationRepository";
+import { notificationCloudRepository } from "../../services/notifications/notificationCloudRepository";
 import { NotificationContext } from "./notificationContext";
 import { useCloudAuth } from "./useCloudAuth";
 import { useTracker } from "./useTracker";
@@ -22,6 +23,8 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   const { configured, initialized, user } = useCloudAuth();
   const { isReady, items } = useTracker();
   const itemsRef = useRef(items);
+  const activeOwnerRef = useRef<string | undefined>(undefined);
+  const checkingRef = useRef(false);
   const [notifications, setNotifications] = useState<ReleaseNotification[]>([]);
   const ownerId = initialized
     ? configured
@@ -33,9 +36,44 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     itemsRef.current = items;
   }, [items]);
 
-  const checkForReleases = useCallback(() => {
+  useEffect(() => {
+    activeOwnerRef.current = ownerId;
+  }, [ownerId]);
+
+  const checkForReleases = useCallback(async () => {
     if (!ownerId || !isReady) {
       setNotifications([]);
+      return;
+    }
+
+    if (configured) {
+      if (checkingRef.current) return;
+      checkingRef.current = true;
+      try {
+        const cloud = await notificationCloudRepository.get();
+        if (activeOwnerRef.current !== ownerId) return;
+        const legacy = cloud.lastCheckedAt
+          ? { notifications: [] as ReleaseNotification[] }
+          : notificationRepository.get(ownerId);
+        const now = new Date();
+        const released = findReleasedAnime(
+          itemsRef.current,
+          cloud.lastCheckedAt ?? legacy.lastCheckedAt,
+          now
+        );
+        const synced = await notificationCloudRepository.sync(
+          now.toISOString(),
+          mergeReleaseNotifications(legacy.notifications, released),
+          ownerId
+        );
+        if (activeOwnerRef.current !== ownerId) return;
+        notificationRepository.remove(ownerId);
+        setNotifications(synced.notifications);
+      } catch {
+        // Keep the last successfully synchronized inbox and retry on the next check.
+      } finally {
+        checkingRef.current = false;
+      }
       return;
     }
 
@@ -55,18 +93,21 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     };
     notificationRepository.save(ownerId, next);
     setNotifications(next.notifications);
-  }, [isReady, ownerId]);
+  }, [configured, isReady, ownerId]);
 
   useEffect(() => {
-    const initialCheck = window.setTimeout(checkForReleases, 0);
+    const initialCheck = window.setTimeout(() => void checkForReleases(), 0);
     return () => window.clearTimeout(initialCheck);
   }, [checkForReleases, items]);
 
   useEffect(() => {
     if (!ownerId || !isReady) return;
-    const interval = window.setInterval(checkForReleases, CHECK_INTERVAL_MS);
+    const interval = window.setInterval(
+      () => void checkForReleases(),
+      CHECK_INTERVAL_MS
+    );
     const checkWhenVisible = () => {
-      if (document.visibilityState === "visible") checkForReleases();
+      if (document.visibilityState === "visible") void checkForReleases();
     };
     document.addEventListener("visibilitychange", checkWhenVisible);
     return () => {
@@ -77,7 +118,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
 
   const saveNotifications = useCallback(
     (next: ReleaseNotification[]) => {
-      if (!ownerId) return;
+      if (!ownerId || configured) return;
       const current = notificationRepository.get(ownerId);
       notificationRepository.save(ownerId, {
         ...current,
@@ -85,21 +126,48 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       });
       setNotifications(next);
     },
-    [ownerId]
+    [configured, ownerId]
   );
 
   const clearNotification = useCallback(
     (notificationId: string) => {
-      saveNotifications(
-        notifications.filter((notification) => notification.id !== notificationId)
+      if (!ownerId) return;
+      const next = notifications.filter(
+        (notification) => notification.id !== notificationId
       );
+      if (!configured) {
+        saveNotifications(next);
+        return;
+      }
+      setNotifications(next);
+      void notificationCloudRepository
+        .remove(notificationId, ownerId)
+        .then((state) => {
+          if (activeOwnerRef.current === ownerId) {
+            setNotifications(state.notifications);
+          }
+        })
+        .catch(() => void checkForReleases());
     },
-    [notifications, saveNotifications]
+    [checkForReleases, configured, notifications, ownerId, saveNotifications]
   );
 
   const clearAllNotifications = useCallback(() => {
-    saveNotifications([]);
-  }, [saveNotifications]);
+    if (!ownerId) return;
+    if (!configured) {
+      saveNotifications([]);
+      return;
+    }
+    setNotifications([]);
+    void notificationCloudRepository
+      .clear(ownerId)
+      .then((state) => {
+        if (activeOwnerRef.current === ownerId) {
+          setNotifications(state.notifications);
+        }
+      })
+      .catch(() => void checkForReleases());
+  }, [checkForReleases, configured, ownerId, saveNotifications]);
 
   const value = useMemo(
     () => ({

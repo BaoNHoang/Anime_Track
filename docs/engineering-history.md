@@ -2817,6 +2817,19 @@ A future change is complete only when all applicable checks are satisfied:
   - Kept the description scoped to the implemented system and Supabase-managed
     behavior.
 
+### HIST-0039 - 2026-09-01 - Synchronize release notifications by account
+
+- Status: Implemented on `develop`; production Supabase schema deployed.
+- Changes:
+  - Replaced per-device account inbox state with owner-scoped notification and
+    release-cursor tables protected by RLS and least-privilege grants.
+  - Added a same-origin authenticated notification API for inbox reads,
+    idempotent release upserts, individual clears, and clear-all actions.
+  - Kept local-only profiles on browser storage and migrates the first signed-in
+    browser's existing account alerts when the cloud cursor is initialized.
+  - Devices reconcile the account inbox at startup, once per minute, and when a
+    background tab becomes visible.
+
 ## Release History
 
 No formal production release has been recorded.
