@@ -2148,7 +2148,7 @@ h3,
 
 .profile-favorites__groups {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
 }
@@ -2158,7 +2158,7 @@ h3,
 }
 
 .profile-favorites__groups > div + div {
-  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
 }
 
 .profile-favorites__groups h3 {
@@ -4823,14 +4823,8 @@ h3,
     grid-template-columns: 1fr;
   }
 
-  .profile-favorites__groups,
   .favorite-editor-grid {
     grid-template-columns: 1fr;
-  }
-
-  .profile-favorites__groups > div + div {
-    border-top: 1px solid var(--border);
-    border-left: 0;
   }
 
   .profile-editor-heading {

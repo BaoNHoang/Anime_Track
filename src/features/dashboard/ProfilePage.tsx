@@ -98,9 +98,9 @@ export function ProfilePage() {
 
   const favorites = displayProfile?.favorites;
   const favoriteGroups: Array<{ kind: FavoriteKind; label: string }> = [
+    { kind: "characters", label: "Characters" },
     { kind: "studios", label: "Studios" },
-    { kind: "directors", label: "Directors" },
-    { kind: "characters", label: "Characters" }
+    { kind: "directors", label: "Directors" }
   ];
 
   if (editMode === "favorites") return <FavoriteEditor />;
