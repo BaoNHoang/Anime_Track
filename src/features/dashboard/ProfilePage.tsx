@@ -98,6 +98,7 @@ export function ProfilePage() {
 
   const favorites = displayProfile?.favorites;
   const favoriteGroups: Array<{ kind: FavoriteKind; label: string }> = [
+    { kind: "anime", label: "Anime" },
     { kind: "characters", label: "Characters" },
     { kind: "studios", label: "Studios" },
     { kind: "directors", label: "Directors" }
@@ -242,25 +243,24 @@ export function ProfilePage() {
             <div><h2>Favorites</h2></div>
             <Link to="/profile?edit=favorites">Edit favorites</Link>
           </div>
-          {favorites.anime.length > 0 ? (
-            <div className="profile-favorites__anime">
-              {favorites.anime.map((item, index) => (
-                <article key={item.id}>
-                  <span>{index + 1}</span>
-                  {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy" /> : <div>{item.name.slice(0, 1)}</div>}
-                  <strong>{item.name}</strong>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <p className="profile-favorites__empty">No favorite anime selected yet.</p>
-          )}
           <div className="profile-favorites__groups">
             {favoriteGroups.map(({ kind, label }) => (
               <div key={kind}>
                 <h3>{label}</h3>
                 {favorites[kind].length > 0 ? (
-                  <ol>{favorites[kind].map((item) => <li key={item.id}>{item.name}</li>)}</ol>
+                  <div className="profile-favorites__items">
+                    {favorites[kind].map((item, index) => (
+                      <article key={item.id}>
+                        <span>{index + 1}</span>
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt="" loading="lazy" />
+                        ) : (
+                          <div aria-hidden="true">{item.name.slice(0, 1)}</div>
+                        )}
+                        <strong title={item.name}>{item.name}</strong>
+                      </article>
+                    ))}
+                  </div>
                 ) : <p>None selected</p>}
               </div>
             ))}
