@@ -61,6 +61,8 @@ export const Plus = (props: NamedIconProps) => <Icon {...props}><path d="M12 5v1
 export const RefreshCw = (props: NamedIconProps) => <Icon {...props}><path d="M19 8V4l-2 2a8 8 0 1 0 2.2 8"/><path d="M15 4h4v4"/></Icon>;
 export const Scale = (props: NamedIconProps) => <Icon {...props}><path d="M12 3v17M7 21h10M5 6h14M5 6l-3 6h6L5 6Zm14 0-3 6h6l-3-6Z"/></Icon>;
 export const Search = (props: NamedIconProps) => <Icon {...props}><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></Icon>;
+export const Share2 = (props: NamedIconProps) => <Icon {...props}><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.5m-7.6 6.9 7.6 4.5"/></Icon>;
+export const Sparkles = (props: NamedIconProps) => <Icon {...props}><path d="m12 3 1.2 3.8L17 8l-3.8 1.2L12 13l-1.2-3.8L7 8l3.8-1.2L12 3Zm6 10 .8 2.2L21 16l-2.2.8L18 19l-.8-2.2L15 16l2.2-.8L18 13ZM6 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Z"/></Icon>;
 export const Settings2 = (props: NamedIconProps) => <Icon {...props}><path d="M4 7h6m4 0h6M4 17h10m4 0h2"/><circle cx="12" cy="7" r="2"/><circle cx="16" cy="17" r="2"/></Icon>;
 export const ShieldCheck = (props: NamedIconProps) => <Icon {...props}><path d="M12 3 4.5 6v5.5c0 4.5 3 7.7 7.5 9.5 4.5-1.8 7.5-5 7.5-9.5V6L12 3Z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></Icon>;
 export const SlidersHorizontal = (props: NamedIconProps) => <Icon {...props}><path d="M4 7h4m4 0h8M4 17h9m4 0h3"/><circle cx="10" cy="7" r="2"/><circle cx="15" cy="17" r="2"/></Icon>;

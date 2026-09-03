@@ -11,8 +11,11 @@ import {
 import { useEffect, useState } from "react";
 import { formatNextAiring } from "../../domain/anime/airing";
 import {
+  RELEASE_NOTIFICATION_LABELS,
+  RELEASE_NOTIFICATION_MODES,
   STATUS_LABELS,
   TRACKING_STATUSES,
+  type ReleaseNotificationMode,
   type TrackingStatus
 } from "../../domain/tracker/types";
 import { useAnimeDetails } from "../../hooks/useAnimeQueries";
@@ -251,6 +254,30 @@ export function AnimeDetailPanel() {
                     </option>
                   ))}
                 </select>
+              </label>
+              <label className="field">
+                <span>Release notifications</span>
+                <select
+                  value={tracked.releaseNotificationMode ?? "every_episode"}
+                  onChange={(event) =>
+                    updateAnime(anime.id, {
+                      releaseNotificationMode:
+                        event.target.value as ReleaseNotificationMode
+                    })
+                  }
+                >
+                  {RELEASE_NOTIFICATION_MODES.map((mode) => (
+                    <option value={mode} key={mode}>
+                      {RELEASE_NOTIFICATION_LABELS[mode]}
+                    </option>
+                  ))}
+                </select>
+                {tracked.releaseNotificationMode === "dubbed_only" && (
+                  <small className="field__hint">
+                    Original broadcast alerts are paused. Dubbed alerts appear
+                    when the catalog provides a dubbed release time.
+                  </small>
+                )}
               </label>
               <label className="field">
                 <span className="tracking-box__progress-label">

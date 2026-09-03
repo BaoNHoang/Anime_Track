@@ -7,7 +7,9 @@ import {
 } from "../security/validation.js";
 import { mergeTrackedAnime } from "./merge.js";
 import {
+  RELEASE_NOTIFICATION_MODES,
   TRACKING_STATUSES,
+  type ReleaseNotificationMode,
   type TrackedAnime,
   type TrackingStatus
 } from "./types.js";
@@ -312,6 +314,20 @@ function parseTrackedAnime(value: unknown, index: number): TrackedAnime {
   const episodeHistory = value.episodeHistory === undefined
     ? undefined
     : parseEpisodeHistory(value.episodeHistory, index, anime.episodes);
+  const releaseNotificationMode = value.releaseNotificationMode;
+  if (
+    releaseNotificationMode !== undefined &&
+    (
+      typeof releaseNotificationMode !== "string" ||
+      !RELEASE_NOTIFICATION_MODES.includes(
+        releaseNotificationMode as ReleaseNotificationMode
+      )
+    )
+  ) {
+    throw new LibraryImportError(
+      `Item ${index + 1} has an invalid release notification preference.`
+    );
+  }
   return {
     anime,
     status: value.status as TrackingStatus,
@@ -320,6 +336,8 @@ function parseTrackedAnime(value: unknown, index: number): TrackedAnime {
       anime.episodes ?? Number.MAX_SAFE_INTEGER
     ),
     ...(episodeHistory ? { episodeHistory } : {}),
+    releaseNotificationMode:
+      releaseNotificationMode as ReleaseNotificationMode | undefined,
     userScore,
     notes: requiredString(
       value.notes,

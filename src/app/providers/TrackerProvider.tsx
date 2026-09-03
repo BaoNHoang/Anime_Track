@@ -192,7 +192,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
     (
       animeId: number,
       updates: Partial<
-        Pick<TrackedAnime, "status" | "progress" | "episodeHistory" | "userScore" | "notes">
+        Pick<TrackedAnime, "status" | "progress" | "episodeHistory" | "releaseNotificationMode" | "userScore" | "notes">
       >
     ) => {
       if (!canManage) return;

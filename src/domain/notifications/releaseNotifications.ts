@@ -1,6 +1,29 @@
 import { getNextAiringAt } from "../anime/airing";
 import type { TrackedAnime, TrackingStatus } from "../tracker/types";
 
+function isFinaleRelease(item: TrackedAnime, releasedAt: Date) {
+  const { episodes, startDate } = item.anime;
+  if (!episodes || !startDate) return false;
+  const premiere = new Date(startDate);
+  if (Number.isNaN(premiere.getTime())) return false;
+  const firstBroadcast = getNextAiringAt(
+    item.anime,
+    new Date(premiere.getTime() - 1)
+  );
+  if (!firstBroadcast) return false;
+  const weeksSincePremiere = Math.round(
+    (releasedAt.getTime() - firstBroadcast.getTime()) /
+      (7 * 24 * 60 * 60 * 1000)
+  );
+  return weeksSincePremiere + 1 >= episodes;
+}
+
+function isDubbedRelease(item: TrackedAnime) {
+  return /\b(?:english\s+)?dub(?:bed)?\b/i.test(
+    item.anime.broadcast?.label ?? ""
+  );
+}
+
 export interface ReleaseNotification {
   id: string;
   animeId: number;
@@ -69,8 +92,14 @@ export function findReleasedAnime(
       return [];
     }
 
+    const preference = item.releaseNotificationMode ?? "every_episode";
+    if (preference === "dubbed_only" && !isDubbedRelease(item)) return [];
+
     const releasedAt = getNextAiringAt(item.anime, previousCheck);
     if (!releasedAt || releasedAt.getTime() > now.getTime()) return [];
+    if (preference === "finale_only" && !isFinaleRelease(item, releasedAt)) {
+      return [];
+    }
 
     return [{
       id: `${item.anime.id}:${releasedAt.toISOString()}`,

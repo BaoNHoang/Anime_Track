@@ -10,6 +10,24 @@ export const TRACKING_STATUSES = [
 
 export type TrackingStatus = (typeof TRACKING_STATUSES)[number];
 
+export const RELEASE_NOTIFICATION_MODES = [
+  "every_episode",
+  "finale_only",
+  "dubbed_only"
+] as const;
+
+export type ReleaseNotificationMode =
+  (typeof RELEASE_NOTIFICATION_MODES)[number];
+
+export const RELEASE_NOTIFICATION_LABELS: Record<
+  ReleaseNotificationMode,
+  string
+> = {
+  every_episode: "Every episode",
+  finale_only: "Finale only",
+  dubbed_only: "Dubbed releases only"
+};
+
 export interface EpisodeWatch {
   episode: number;
   watchedAt?: string;
@@ -20,6 +38,7 @@ export interface TrackedAnime {
   status: TrackingStatus;
   progress: number;
   episodeHistory?: EpisodeWatch[];
+  releaseNotificationMode?: ReleaseNotificationMode;
   userScore?: number;
   notes: string;
   addedAt: string;
