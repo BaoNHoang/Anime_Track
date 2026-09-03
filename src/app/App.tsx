@@ -20,6 +20,7 @@ import { ThemeProvider } from "./providers/ThemeProvider";
 import { WatchProvider } from "./providers/WatchProvider";
 import { NotificationProvider } from "./providers/NotificationProvider";
 import { NotificationsPage } from "../features/notifications/NotificationsPage";
+import { YearInReviewPage } from "../features/stats/YearInReviewPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,6 +54,7 @@ const router = createBrowserRouter([
         path: "/notifications",
         element: <RequireAuth><NotificationsPage /></RequireAuth>
       },
+      { path: "/year-in-review", element: <YearInReviewPage /> },
       { path: "/account", element: <AccountRoute /> },
       { path: "/privacy", element: <PrivacyPage /> },
       { path: "/accessibility", element: <AccessibilityPage /> },

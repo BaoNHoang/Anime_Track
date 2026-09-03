@@ -67,6 +67,51 @@ describe("findReleasedAnime", () => {
       )
     ).toEqual([]);
   });
+
+  it("suppresses original-broadcast alerts for dubbed-only preferences", () => {
+    expect(
+      findReleasedAnime(
+        [{ ...tracked(), releaseNotificationMode: "dubbed_only" }],
+        "2026-06-11T12:55:00.000Z",
+        new Date("2026-06-11T13:05:00.000Z")
+      )
+    ).toEqual([]);
+  });
+
+  it("allows dubbed-only alerts when the schedule is marked as dubbed", () => {
+    const notifications = findReleasedAnime(
+      [{
+        ...tracked(),
+        anime: {
+          ...anime,
+          broadcast: { ...anime.broadcast, label: "English dubbed Thursdays" }
+        },
+        releaseNotificationMode: "dubbed_only"
+      }],
+      "2026-06-11T12:55:00.000Z",
+      new Date("2026-06-11T13:05:00.000Z")
+    );
+    expect(notifications).toHaveLength(1);
+  });
+
+  it("notifies finale-only followers when the scheduled finale airs", () => {
+    const finaleAnime = {
+      ...anime,
+      episodes: 2,
+      startDate: "2026-06-04T13:00:00.000Z"
+    };
+    const notifications = findReleasedAnime(
+      [{
+        ...tracked(),
+        anime: finaleAnime,
+        releaseNotificationMode: "finale_only"
+      }],
+      "2026-06-11T12:55:00.000Z",
+      new Date("2026-06-11T13:05:00.000Z")
+    );
+
+    expect(notifications).toHaveLength(1);
+  });
 });
 
 describe("mergeReleaseNotifications", () => {

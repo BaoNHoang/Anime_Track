@@ -166,6 +166,9 @@ export function ProfilePage() {
             >
               <span style={{ width: `${completionPercent}%` }} />
             </div>
+            <Link className="watch-summary__review" to="/year-in-review">
+              View year in review
+            </Link>
           </div>
         </section>
       )}

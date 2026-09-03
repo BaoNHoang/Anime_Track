@@ -84,4 +84,15 @@ describe("parseLibraryImport", () => {
       })
     ).toThrow("invalid episode history");
   });
+
+  it("validates and preserves release notification preferences", () => {
+    const [parsed] = parseLibraryImport({
+      items: [{ ...item, releaseNotificationMode: "finale_only" }]
+    });
+    expect(parsed.releaseNotificationMode).toBe("finale_only");
+
+    expect(() => parseLibraryImport({
+      items: [{ ...item, releaseNotificationMode: "sometimes" }]
+    })).toThrow("invalid release notification preference");
+  });
 });

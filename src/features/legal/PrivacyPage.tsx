@@ -11,7 +11,7 @@ export function PrivacyPage() {
         </span>
         <div>
           <h1>Privacy Policy</h1>
-          <p>Last updated: August 8, 2026</p>
+          <p>Last updated: September 2, 2026</p>
         </div>
       </header>
 
@@ -32,7 +32,8 @@ export function PrivacyPage() {
             </li>
             <li>
               Library information: anime entries, watch status, episode
-              progress, scores, notes, and the dates you add or update entries.
+              progress, scores, notes, episode watch dates, per-show release
+              notification preferences, and the dates you add or update entries.
             </li>
             <li>
               Notification information: scheduled-release alerts, their
@@ -61,6 +62,8 @@ export function PrivacyPage() {
           <ul>
             <li>create, secure, and recover accounts;</li>
             <li>store and synchronize your private anime library;</li>
+            <li>calculate personal recommendations and annual viewing stats in
+              your browser;</li>
             <li>provide anime discovery, news, and external watch-search links;</li>
             <li>prevent abuse, authenticate requests, apply rate limits, and
               investigate service errors; and</li>
@@ -179,6 +182,14 @@ export function PrivacyPage() {
             service, comply with applicable law or valid legal process, protect
             the rights and safety of users or the public, or prevent fraud and
             abuse.
+          </p>
+          <p>
+            If you choose Share recap, Banime creates a public link containing
+            the displayed annual totals, monthly episode counts, favorite genre
+            and studio aggregates, and your username. The link does not include
+            library entries, notes, episode-level history, account identifiers,
+            or authentication data. Anyone with the link can view and forward
+            those aggregate values.
           </p>
         </section>
 

@@ -87,6 +87,9 @@ The application is designed to work as:
 | GOAL-0014 | Open configurable watch-search links from tracked anime | Implemented with provider limits | Watch provider registry, Settings selector, and library/detail "Find on" links |
 | GOAL-0015 | Provide private user profiles and favorites | Implemented | Profile media, statistics, genre overview, ordered favorites, and account deletion |
 | GOAL-0016 | Notify users about scheduled tracked releases | Implemented with browser limitations | Owner-scoped in-app notification repository and one-minute visible-tab checks |
+| GOAL-0017 | Recommend untracked anime from personal taste | Implemented | Local deterministic ranking over synced watch history, favorites, and public catalog candidates |
+| GOAL-0018 | Offer per-show release alert preferences | Implemented with source limitations | Synced Every episode, Finale only, and catalog-marked dubbed-only modes |
+| GOAL-0019 | Provide annual viewing statistics and sharing | Implemented | Dated-episode aggregation, twelve-month watch strip, bounded public recap links |
 
 ### Current Non-Goals
 
@@ -96,7 +99,8 @@ documentation:
 - Streaming or hosting anime episodes.
 - Editing MyAnimeList user lists.
 - A native iOS or Android binary.
-- Social features, public profiles, or comments.
+- Social features, public profiles, or comments. Aggregate recap links are not
+  public profiles and do not expose library records.
 - Server-side aggregation of arbitrary anime news sources.
 - Real-time cross-device synchronization.
 - Multi-user administration.
@@ -104,7 +108,7 @@ documentation:
 
 ## Current-State Summary
 
-As of 2026-08-15:
+As of 2026-09-02:
 
 - Banime is a React 19 and TypeScript single-page PWA built with Vite and
   deployed with same-origin Vercel Functions for account and library APIs.
@@ -140,7 +144,14 @@ As of 2026-08-15:
   for 6 hours, and news/trailers refresh every 2 hours.
 - Release notifications are schedule-based, owner-scoped browser records.
   Checks run at app start, once per minute while open, and when the tab becomes
-  visible. They are not background operating-system push notifications.
+  visible. Per-title preferences sync inside the tracker aggregate. Finale-only
+  alerts require sufficient schedule metadata, and dubbed-only alerts require
+  an explicitly dubbed catalog schedule. They are not background
+  operating-system push notifications.
+- Home recommendations are ranked locally from watched/scored genre and studio
+  affinity plus ordered favorite studios; private history is not sent to a new
+  service. Annual recaps derive monthly activity and watch time from dated
+  episodes and can be shared as bounded aggregate-only URLs.
 - MyAnimeList XML and Banime JSON imports are capped at 5 MB and 5,000 rows.
   XML imports checkpoint validated tracker rows before Tenrai enrichment.
 - The generated service worker precaches the application shell and checks for
@@ -148,8 +159,8 @@ As of 2026-08-15:
 - The separate MCP process exposes eight catalog, news, library, mutation, and
   recommendation tools with bearer-token validation, RLS-bound library access,
   bounded schemas, host/origin controls, and optional Upstash quotas.
-- The active automated suite contains 104 tests across 34 files. Lint, API
-  typecheck, tests, production build, and GitHub `Verify` passed for PR #22.
+- The active automated suite contains 132 tests across 41 files. Lint, API and
+  MCP typechecks, tests, and the production build pass on `develop`.
 - A connected Supabase project exists and its schema/advisors have been
   inspected. Full two-user isolation, deployed MCP OAuth, sustained load, and
   physical-device PWA testing remain explicit verification gaps.
@@ -1164,24 +1175,24 @@ No production deployment has completed this checklist yet.
 
 ### Current Automated Tests
 
-As of 2026-08-15, Vitest runs 104 tests across 34 files. The table below
+As of 2026-09-02, Vitest runs 132 tests across 41 files. The table below
 groups representative coverage rather than duplicating every test filename.
 
 | Area | Representative coverage |
 | --- | --- |
-| Tracker domain | Status/progress/score normalization, statistics, profile summaries, conflict merge, XML/JSON import, and bounds |
+| Tracker domain | Status/progress/score normalization, statistics, annual recaps, profile summaries, conflict merge, XML/JSON import, and bounds |
 | Anime and Tenrai | DTO normalization, deduplication, airing calculations, browse/search pagination, cache behavior, news, and import enrichment |
 | Accounts and profile media | Account client responses, validation, sessions, cookies, origin checks, image dimensions, upload processing, and delete flows |
 | Cloud library APIs | Owner scoping, bounded pagination, compact summaries, mutations, malformed input, and repository batching |
-| Notifications and favorites | Scheduled-release detection, deduplication, favorite bounds, ordering, and sanitization |
+| Notifications, recommendations, and favorites | Scheduled-release preferences, finale/dub filtering, deterministic affinity ranking, deduplication, favorite bounds, ordering, and sanitization |
 | MCP | Protocol discovery, authorization challenges, repository mutations, recommendations, security headers, limits, and distributed quota behavior |
 | Security utilities | URL policy, wildcard escaping, control characters, truncation, and request-size handling |
 
 Current result:
 
 ```text
-Test files: 13 passed
-Tests: 26 passed
+Test files: 41 passed
+Tests: 132 passed
 ```
 
 ### Static Checks
@@ -1513,6 +1524,9 @@ These values are development evidence, not a permanent performance budget.
 | ADR-0037 | 2026-08-11 | Store profile media privately after server-side normalization | Accepted | Uploaded images are untrusted and require decode, resize, metadata stripping, re-encoding, owner paths, and signed reads |
 | ADR-0038 | 2026-08-15 | Hydrate authenticated profiles from owner caches and a compact summary before the full library | Accepted | Large libraries should not flash zeros or block identity/navigation while thousands of rows load |
 | ADR-0039 | 2026-08-15 | Keep release notifications owner-scoped and in-app until a push service exists | Accepted with limitation | Schedule alerts work without another service, but cannot run while Banime is closed |
+| ADR-0040 | 2026-09-02 | Rank recommendations locally from existing library and catalog data | Accepted | Personalizes Home without disclosing private history or adding an opaque recommendation service |
+| ADR-0041 | 2026-09-02 | Store release preferences inside each tracker aggregate | Accepted | Reuses validated local-first and RLS-protected account sync without a duplicate settings table |
+| ADR-0042 | 2026-09-02 | Share annual recaps as bounded aggregate-only URLs | Accepted with limitation | Recaps are portable without publishing a profile, but shared values are presentation data rather than verified server records |
 
 ### Superseded Decision Note
 
@@ -2829,6 +2843,30 @@ A future change is complete only when all applicable checks are satisfied:
     browser's existing account alerts when the cloud cursor is initialized.
   - Devices reconcile the account inbox at startup, once per minute, and when a
     background tab becomes visible.
+
+### HIST-0040 - 2026-09-02 - Add recommendations, release rules, and annual recaps
+
+- Status: Implemented on `develop`.
+- Changes:
+  - Added deterministic Home recommendations from the user's watched/scored
+    genre and studio affinity, with favorite-studio boosts and plain-language
+    explanations. Tracked titles are excluded and private history remains local
+    to the browser/account session.
+  - Added validated per-show notification preferences for every scheduled
+    episode, the inferred finale, or explicitly catalog-marked dubbed releases.
+    Preferences live in the existing tracker aggregate, so local storage,
+    account sync, imports, exports, and RLS ownership remain consistent.
+  - Added a responsive annual recap with dated episodes per month, watch time,
+    completed titles, completion rate, favorite genres, favorite studios, and
+    bounded aggregate-only share links.
+  - Added the recap route to the site map and linked it from Profile statistics.
+  - Removed obsolete favorites chip styling while consolidating every favorite
+    category on the same image-card renderer.
+- Verification:
+  - `npm.cmd run lint` passed.
+  - `npm.cmd test -- --run` passed 132 tests across 41 files.
+  - `npm.cmd run build`, `npm.cmd run api:check`, and
+    `npm.cmd run mcp:check` passed.
 
 ## Release History
 

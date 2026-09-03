@@ -61,6 +61,18 @@ trailer feed from trailer metadata on current-season anime records.
 - Library and detail pages can open a configurable third-party search or
   availability provider. Banime does not host, stream, or embed episodes.
 
+### Personal recommendations
+
+- Home ranks untracked titles from the current, airing, and upcoming catalog
+  feeds against the genres and studios in titles the user is watching, has
+  completed, or has scored.
+- Completed titles, higher personal scores, and explicitly favorited studios
+  contribute more affinity. Each result explains its strongest match, and
+  tracked titles are excluded.
+- Recommendation ranking runs locally over the synchronized library and public
+  catalog candidates. Private watch history is not sent to Tenrai or a separate
+  recommendation service.
+
 ### Profile and activity
 
 - The profile shows a user banner, profile picture, total tracked anime, days
@@ -88,6 +100,12 @@ trailer feed from trailer metadata on current-season anime records.
   unread-count badge.
 - A notification opens the related anime detail drawer. Individual alerts can
   be cleared with a check action, or all alerts can be cleared together.
+- Each tracked title can use Every episode, Finale only, or Dubbed releases
+  only. The preference is stored in that title's validated tracker record and
+  follows the same account sync as episode progress. Finale alerts require a
+  known premiere date, weekly schedule, and episode total. Dubbed-only mode
+  suppresses original-broadcast alerts and can alert only when the catalog
+  explicitly marks a schedule as dubbed.
 - Release checks run when Banime opens, once per minute while it remains open,
   and when a background tab becomes visible again.
 - In account mode, the notification inbox, clear actions, and release-check
@@ -96,6 +114,19 @@ trailer feed from trailer metadata on current-season anime records.
   inbox in that browser. These are not operating-system push notifications and
   do not run while the app is fully closed. Broadcast schedules can also differ
   from streaming availability.
+
+### Stats and year in review
+
+- `/year-in-review` turns dated episode history into watch time, monthly episode
+  totals, completed-title count, completion rate, favorite genres, and favorite
+  studios for the selected year.
+- The completion rate is completed titles divided by titles active during that
+  year. Monthly activity and watch time include only episodes with explicit
+  watch dates; the page says so when viewing a personal recap.
+- Share creates a bounded public URL containing only the displayed aggregate
+  recap values and optional username. It does not expose the library, notes,
+  episode-level history, account ID, or authentication data. Shared values are
+  presentation data and are not treated as verified records.
 
 ### Accounts, privacy, and storage
 
@@ -147,12 +178,13 @@ trailer feed from trailer metadata on current-season anime records.
 
 | Route | Purpose | Access when cloud accounts are enabled |
 | --- | --- | --- |
-| `/` | Current season, coming soon, historical shelves, headlines, and top airing | Public |
+| `/` | Personalized recommendations, current season, coming soon, historical shelves, headlines, and top airing | Public |
 | `/discover` | Search, feed presets, filters, sorting, and catalog pagination | Public |
 | `/news` | Anime headlines and trailer feed | Public |
 | `/profile` | Identity, statistics, activity, airing next, genres, favorites, and profile editing | Signed-in user |
 | `/library` | Personal tracking grid, search, filters, sorting, and pagination | Signed-in user |
 | `/notifications` | Scheduled-release alerts and clear actions | Signed-in user |
+| `/year-in-review` | Personal annual stats or a bounded public shared recap | Public; personal data requires a signed-in or local profile |
 | `/settings` | Theme, score precision, install, watch provider, imports, exports, and connection status | Signed-in user |
 | `/account` | Sign-in, sign-up, verification, and password recovery | Public when signed out |
 | `/privacy`, `/terms`, `/accessibility`, `/sitemap` | Legal, privacy, accessibility, and navigation references | Public |
@@ -165,6 +197,9 @@ local-first persistence, validated backup format, and optional owner-scoped
 Supabase sync as the rest of a tracked title. Existing libraries remain
 compatible: their numeric progress is treated as episodes 1 through the saved
 progress until the checklist is edited.
+
+Per-show release notification preferences are stored in the same tracker
+aggregate. Existing records without a preference default to Every episode.
 
 ## Update cadence
 
@@ -568,6 +603,7 @@ when deployed to Vercel or Netlify.
 - `src/app`: Application composition, routing, and shared providers
 - `src/app/providers`: Context providers and their colocated consumer hooks
 - `src/domain`: Framework-independent anime, news, and tracker models
+- `src/domain/recommendations`: Deterministic, local recommendation ranking
 - `src/domain/account`: Profile appearance and bounded favorites models
 - `src/domain/watch`: Watch-provider registry and search-link builder
 - `src/services/tenrai`: Tenrai DTOs, mapping, throttling, news, and API access
@@ -577,7 +613,7 @@ when deployed to Vercel or Netlify.
 - `src/services/supabase`: Paged cloud tracker and profile-summary repository
 - `api`: Same-origin Vercel auth, profile-media, and owner-scoped library routes
 - `src/hooks`: Reusable query, install, and utility hooks
-- `src/features`: Dashboard, discovery, news, library, details, and settings
+- `src/features`: Dashboard, discovery, news, library, details, stats, and settings
 - `src/components`: Shared presentation components
 - `docs`: Engineering history and long-form project records
 - `mcp`: Streamable HTTP server, OAuth token validation, tool registration,

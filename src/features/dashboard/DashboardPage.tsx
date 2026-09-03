@@ -12,6 +12,8 @@ import {
 import type { Anime } from "../../domain/anime/types";
 import type { AnimePage } from "../../domain/anime/types";
 import { ContinueWatching } from "./ContinueWatching";
+import { Recommendations } from "./Recommendations";
+import { useMemo } from "react";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -80,12 +82,22 @@ export function DashboardPage() {
   const twentyTens = useAnimeBrowse("2010s");
   const twentyTwenties = useAnimeBrowse("2020s");
   const news = useAnimeNews();
+  const recommendationCandidates = useMemo(
+    () => [
+      ...(season.data?.items ?? []),
+      ...(airing.data?.items ?? []),
+      ...(upcoming.data?.items ?? [])
+    ],
+    [airing.data?.items, season.data?.items, upcoming.data?.items]
+  );
 
   return (
     <div className="home-page">
       <h1 className="visually-hidden">Home</h1>
 
       <ContinueWatching />
+
+      <Recommendations candidates={recommendationCandidates} />
 
       <div className="home-layout">
         <div className="home-main">
