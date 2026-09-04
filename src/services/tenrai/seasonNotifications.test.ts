@@ -80,4 +80,23 @@ describe("findUpcomingSeasonNotifications", () => {
     expect(result.notifications).toEqual([]);
     expect(result.seenSeasonIds).toContain(84);
   });
+
+  it("does not enqueue the entire library relation scan at once", async () => {
+    let resolveFirst!: (value: number[]) => void;
+    const firstRequest = new Promise<number[]>((resolve) => {
+      resolveFirst = resolve;
+    });
+    mocks.getAnimeSequels
+      .mockImplementationOnce(() => firstRequest)
+      .mockResolvedValueOnce([]);
+    const secondItem = { ...tracked, anime: { ...anime, id: 43 } };
+
+    const pending = findUpcomingSeasonNotifications([tracked, secondItem], []);
+    await Promise.resolve();
+
+    expect(mocks.getAnimeSequels).toHaveBeenCalledTimes(1);
+    resolveFirst([]);
+    await pending;
+    expect(mocks.getAnimeSequels).toHaveBeenCalledTimes(2);
+  });
 });

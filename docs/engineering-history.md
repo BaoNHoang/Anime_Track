@@ -159,7 +159,7 @@ As of 2026-09-02:
 - The separate MCP process exposes eight catalog, news, library, mutation, and
   recommendation tools with bearer-token validation, RLS-bound library access,
   bounded schemas, host/origin controls, and optional Upstash quotas.
-- The active automated suite contains 141 tests across 42 files. Lint, API and
+- The active automated suite contains 143 tests across 42 files. Lint, API and
   MCP typechecks, tests, and the production build pass on `develop`.
 - A connected Supabase project exists and its schema/advisors have been
   inspected. Full two-user isolation, deployed MCP OAuth, sustained load, and
@@ -2895,6 +2895,31 @@ A future change is complete only when all applicable checks are satisfied:
     compound primary key, validation constraints, and enabled RLS on both
     notification tables. The database advisors reported no new schema security
     finding from this change.
+
+### HIST-0042 - 2026-09-04 - Prevent background catalog work from delaying Discover
+
+- Status: Implemented on `develop`.
+- Changes:
+  - Changed the app-wide sequel notification scan from bulk relation-request
+    enqueueing to sequential background processing. A cold cache can no longer
+    reserve one future Tenrai request slot for every tracked title ahead of
+    foreground browsing.
+  - Made queued Tenrai waits abortable and check cancellation before entering
+    the shared request gate. Requests from an unmounted route now leave the
+    queue immediately instead of consuming obsolete 500 ms rate-limit slots.
+  - Kept cached or placeholder Discover results visible while a refresh runs,
+    with an accessible updating label; the full skeleton is now limited to a
+    true initial load.
+- Verification:
+  - Direct upstream timing measured the Discover catalog request at about
+    0.81 seconds and representative relation requests at 0.47–0.49 seconds,
+    confirming that queue depth—not the Discover endpoint alone—caused the
+    multi-second delay.
+  - Added regression coverage for sequential background relation checks and
+    cancellation of queued requests before the request gate.
+  - `npm.cmd test -- --run` passed 143 tests across 42 files.
+  - `npm.cmd run lint`, `npm.cmd run build`, `npm.cmd run api:check`, and
+    `npm.cmd run mcp:check` passed.
 
 ## Release History
 
