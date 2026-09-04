@@ -16,7 +16,7 @@ is incorrect, add a dated correction rather than silently changing the event.
 | Version | `0.1.0` development snapshot |
 | Document owner | Project maintainer |
 | Created | 2026-06-06 |
-| Last updated | 2026-08-15 |
+| Last updated | 2026-09-04 |
 | Time zone | America/New_York |
 | Workspace | `C:\Users\bao12\OneDrive\Desktop\Anime_Track` |
 | Status | Active development |
@@ -159,7 +159,7 @@ As of 2026-09-02:
 - The separate MCP process exposes eight catalog, news, library, mutation, and
   recommendation tools with bearer-token validation, RLS-bound library access,
   bounded schemas, host/origin controls, and optional Upstash quotas.
-- The active automated suite contains 132 tests across 41 files. Lint, API and
+- The active automated suite contains 141 tests across 42 files. Lint, API and
   MCP typechecks, tests, and the production build pass on `develop`.
 - A connected Supabase project exists and its schema/advisors have been
   inspected. Full two-user isolation, deployed MCP OAuth, sustained load, and
@@ -2867,6 +2867,34 @@ A future change is complete only when all applicable checks are satisfied:
   - `npm.cmd test -- --run` passed 132 tests across 41 files.
   - `npm.cmd run build`, `npm.cmd run api:check`, and
     `npm.cmd run mcp:check` passed.
+
+### HIST-0041 - 2026-09-04 - Add numbered episode and sequel notifications
+
+- Status: Implemented on `develop`; production Supabase schema deployed.
+- Changes:
+  - Replaced the one-message-per-anime merge rule with stable per-episode
+    message IDs so consecutive episode alerts remain independently visible.
+  - Derived scheduled episode numbers from premiere and weekly broadcast data,
+    retained every unwatched release since the last check, and pruned alerts
+    when synchronized progress or episode history marks them watched.
+  - Added explicit Tenrai sequel-relation discovery for upcoming TV and ONA
+    seasons related to non-dropped library titles. Bounded seen-season IDs keep
+    cleared announcements from being recreated.
+  - Expanded the owner-scoped notification schema and API validation for typed
+    episode/season metadata, exact inbox reconciliation, and a compound
+    `(user_id, notification_id)` primary key. RLS ownership and explicit
+    authenticated grants remain in place.
+  - Preserved compatibility with cached older clients and avoided multi-device
+    replacement races by sending bounded, validated IDs only for messages
+    proven watched or obsolete instead of replacing the whole cloud inbox.
+- Verification:
+  - `npm.cmd test -- --run` passed 141 tests across 42 files.
+  - `npm.cmd run lint`, `npm.cmd run build`, `npm.cmd run api:check`, and
+    `npm.cmd run mcp:check` passed.
+  - Applied the production Supabase migration, then verified the new columns,
+    compound primary key, validation constraints, and enabled RLS on both
+    notification tables. The database advisors reported no new schema security
+    finding from this change.
 
 ## Release History
 

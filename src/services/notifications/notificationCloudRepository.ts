@@ -61,12 +61,19 @@ export const notificationCloudRepository = {
   sync(
     lastCheckedAt: string,
     notifications: ReleaseNotification[],
+    seenSeasonIds: number[],
+    removedNotificationIds: string[],
     expectedUserId: string
   ) {
     return notificationRequest({
       method: "PUT",
       expectedUserId,
-      body: { lastCheckedAt, notifications }
+      body: {
+        lastCheckedAt,
+        notifications,
+        seenSeasonIds,
+        removedNotificationIds
+      }
     });
   },
 

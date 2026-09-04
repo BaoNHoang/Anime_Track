@@ -1,7 +1,11 @@
 import type { Anime, AnimePage } from "../../domain/anime/types";
 import { dedupeAnimeById } from "../../domain/anime/dedupe";
 import { tenraiGet } from "./client";
-import type { TenraiItemResponse, TenraiListResponse } from "./dto";
+import type {
+  TenraiItemResponse,
+  TenraiListResponse,
+  TenraiRelationResponse
+} from "./dto";
 import { mapTenraiAnime } from "./mapper";
 
 const SHORT_LIST_CACHE_MS = 15 * 60 * 1000;
@@ -156,4 +160,24 @@ export async function getAnimeById(
     cacheMs: 30 * 60 * 1000
   });
   return mapTenraiAnime(response.data);
+}
+
+export async function getAnimeSequels(
+  id: number,
+  signal?: AbortSignal
+) {
+  const response = await tenraiGet<TenraiRelationResponse>(
+    `/anime/${id}/relations`,
+    {
+      signal,
+      cacheMs: 24 * 60 * 60 * 1000,
+      cacheStorage: "local"
+    }
+  );
+  return response.data
+    .filter((relation) => relation.relation.toLowerCase() === "sequel")
+    .flatMap((relation) => relation.entry)
+    .filter((entry) => entry.type.toLowerCase() === "anime")
+    .map((entry) => entry.mal_id)
+    .filter((id) => Number.isInteger(id) && id > 0 && id <= 10_000_000);
 }

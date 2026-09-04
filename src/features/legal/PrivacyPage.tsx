@@ -11,7 +11,7 @@ export function PrivacyPage() {
         </span>
         <div>
           <h1>Privacy Policy</h1>
-          <p>Last updated: September 2, 2026</p>
+          <p>Last updated: September 4, 2026</p>
         </div>
       </header>
 
@@ -37,8 +37,9 @@ export function PrivacyPage() {
             </li>
             <li>
               Notification information: scheduled-release alerts, their
-              release times, and the last time your account checked for new
-              releases.
+              episode numbers and release times, related upcoming-season
+              alerts, the related season IDs already discovered, and the last
+              time your account checked for new releases.
             </li>
             <li>
               Device storage: your locally stored library, theme choice, watch

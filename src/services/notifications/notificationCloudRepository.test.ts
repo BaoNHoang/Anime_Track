@@ -7,7 +7,8 @@ describe("notification cloud repository", () => {
   it("synchronizes messages through the owner-bound API", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       lastCheckedAt: "2026-08-30T12:01:00.000Z",
-      notifications: []
+      notifications: [],
+      seenSeasonIds: []
     }), {
       status: 200,
       headers: { "Content-Type": "application/json" }
@@ -16,6 +17,8 @@ describe("notification cloud repository", () => {
 
     await notificationCloudRepository.sync(
       "2026-08-30T12:01:00.000Z",
+      [],
+      [],
       [],
       "user-a"
     );
@@ -28,11 +31,15 @@ describe("notification cloud repository", () => {
         headers: expect.objectContaining({ "X-Banime-User": "user-a" })
       })
     );
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
+      seenSeasonIds: [],
+      removedNotificationIds: []
+    });
   });
 
   it("encodes the message ID when clearing one notification", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(
-      JSON.stringify({ notifications: [] }),
+      JSON.stringify({ notifications: [], seenSeasonIds: [] }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     ));
     vi.stubGlobal("fetch", fetchMock);

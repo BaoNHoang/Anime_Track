@@ -5,6 +5,7 @@ import {
   findReleasedAnime,
   normalizeReleaseNotificationState,
   mergeReleaseNotifications,
+  pruneReleaseNotifications,
   type ReleaseNotification
 } from "./releaseNotifications";
 
@@ -48,6 +49,8 @@ describe("findReleasedAnime", () => {
     expect(notifications).toEqual([
       expect.objectContaining({
         animeId: 42,
+        kind: "episode",
+        episodeNumber: 4,
         releasedAt: "2026-06-11T13:00:00.000Z",
         trackingStatus: "watching"
       })
@@ -104,53 +107,99 @@ describe("findReleasedAnime", () => {
       [{
         ...tracked(),
         anime: finaleAnime,
+        progress: 1,
         releaseNotificationMode: "finale_only"
       }],
       "2026-06-11T12:55:00.000Z",
       new Date("2026-06-11T13:05:00.000Z")
     );
 
-    expect(notifications).toHaveLength(1);
+    expect(notifications).toEqual([
+      expect.objectContaining({ episodeNumber: 2 })
+    ]);
+  });
+
+  it("creates one numbered alert for every episode released while away", () => {
+    const scheduled = {
+      ...anime,
+      episodes: 12,
+      startDate: "2026-05-14T13:00:00.000Z"
+    };
+    const notifications = findReleasedAnime(
+      [{ ...tracked(), anime: scheduled, progress: 5 }],
+      "2026-06-11T13:05:00.000Z",
+      new Date("2026-06-25T13:05:00.000Z")
+    );
+
+    expect(notifications.map((notification) => notification.episodeNumber))
+      .toEqual([6, 7]);
   });
 });
 
 describe("mergeReleaseNotifications", () => {
-  it("keeps only the newest unread release for each anime", () => {
+  it("keeps separate unread releases for the same anime", () => {
     const older: ReleaseNotification = {
-      id: "42:older",
+      id: "42:episode:6",
+      kind: "episode",
       animeId: 42,
       title: "Release Test",
       imageUrl: "",
       releasedAt: "2026-06-04T13:00:00.000Z",
-      trackingStatus: "watching"
+      trackingStatus: "watching",
+      episodeNumber: 6
     };
     const newer = {
       ...older,
-      id: "42:newer",
-      releasedAt: "2026-06-11T13:00:00.000Z"
+      id: "42:episode:7",
+      releasedAt: "2026-06-11T13:00:00.000Z",
+      episodeNumber: 7
     };
 
-    expect(mergeReleaseNotifications([older], [newer])).toEqual([newer]);
+    expect(mergeReleaseNotifications([older], [newer])).toEqual([newer, older]);
+  });
+});
+
+describe("pruneReleaseNotifications", () => {
+  it("removes episode alerts once progress reaches that episode", () => {
+    const notification = (episodeNumber: number): ReleaseNotification => ({
+      id: `42:episode:${episodeNumber}`,
+      kind: "episode",
+      animeId: 42,
+      title: "Release Test",
+      imageUrl: "",
+      releasedAt: "2026-06-11T13:00:00.000Z",
+      trackingStatus: "watching",
+      episodeNumber
+    });
+
+    expect(pruneReleaseNotifications(
+      [notification(6), notification(7)],
+      [{ ...tracked(), progress: 7 }]
+    )).toEqual([]);
   });
 });
 
 describe("normalizeReleaseNotificationState", () => {
   it("keeps only valid bounded cloud messages", () => {
     const notification: ReleaseNotification = {
-      id: "42:2026-06-11T13:00:00.000Z",
+      id: "42:episode:4",
+      kind: "episode",
       animeId: 42,
       title: "Release Test",
       imageUrl: "",
       releasedAt: "2026-06-11T13:00:00.000Z",
-      trackingStatus: "watching"
+      trackingStatus: "watching",
+      episodeNumber: 4
     };
 
     expect(normalizeReleaseNotificationState({
       lastCheckedAt: "2026-06-11T13:05:00.000Z",
-      notifications: [notification, { id: 4 }]
+      notifications: [notification, { id: 4 }],
+      seenSeasonIds: [55, 55, -1]
     })).toEqual({
       lastCheckedAt: "2026-06-11T13:05:00.000Z",
-      notifications: [notification]
+      notifications: [notification],
+      seenSeasonIds: [55]
     });
   });
 });

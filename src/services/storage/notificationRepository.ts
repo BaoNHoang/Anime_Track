@@ -13,10 +13,10 @@ export const notificationRepository = {
   get(ownerId: string): ReleaseNotificationState {
     try {
       const stored = window.localStorage.getItem(storageKey(ownerId));
-      if (!stored) return { notifications: [] };
+      if (!stored) return { notifications: [], seenSeasonIds: [] };
       return normalizeReleaseNotificationState(JSON.parse(stored) as unknown);
     } catch {
-      return { notifications: [] };
+      return { notifications: [], seenSeasonIds: [] };
     }
   },
 

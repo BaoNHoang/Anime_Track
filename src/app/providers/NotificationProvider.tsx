@@ -9,10 +9,12 @@ import {
 import {
   findReleasedAnime,
   mergeReleaseNotifications,
+  pruneReleaseNotifications,
   type ReleaseNotification
 } from "../../domain/notifications/releaseNotifications";
 import { notificationRepository } from "../../services/storage/notificationRepository";
 import { notificationCloudRepository } from "../../services/notifications/notificationCloudRepository";
+import { findUpcomingSeasonNotifications } from "../../services/tenrai/seasonNotifications";
 import { NotificationContext } from "./notificationContext";
 import { useCloudAuth } from "./useCloudAuth";
 import { useTracker } from "./useTracker";
@@ -46,14 +48,19 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    if (configured) {
-      if (checkingRef.current) return;
-      checkingRef.current = true;
+    if (checkingRef.current) return;
+    checkingRef.current = true;
+    try {
+      if (configured) {
       try {
         const cloud = await notificationCloudRepository.get();
         if (activeOwnerRef.current !== ownerId) return;
         const legacy = cloud.lastCheckedAt
-          ? { notifications: [] as ReleaseNotification[] }
+          ? {
+              notifications: [] as ReleaseNotification[],
+              seenSeasonIds: [] as number[],
+              lastCheckedAt: undefined
+            }
           : notificationRepository.get(ownerId);
         const now = new Date();
         const released = findReleasedAnime(
@@ -61,38 +68,71 @@ export function NotificationProvider({ children }: PropsWithChildren) {
           cloud.lastCheckedAt ?? legacy.lastCheckedAt,
           now
         );
+        const seasons = await findUpcomingSeasonNotifications(
+          itemsRef.current,
+          cloud.seenSeasonIds,
+          now
+        );
+        const existingNotifications = [
+          ...cloud.notifications,
+          ...legacy.notifications
+        ];
+        const merged = pruneReleaseNotifications(
+          mergeReleaseNotifications(
+            existingNotifications,
+            [...released, ...seasons.notifications]
+          ),
+          itemsRef.current
+        );
+        const mergedIds = new Set(merged.map((notification) => notification.id));
         const synced = await notificationCloudRepository.sync(
           now.toISOString(),
-          mergeReleaseNotifications(legacy.notifications, released),
+          merged,
+          seasons.seenSeasonIds,
+          existingNotifications
+            .filter((notification) => !mergedIds.has(notification.id))
+            .map((notification) => notification.id),
           ownerId
         );
         if (activeOwnerRef.current !== ownerId) return;
         notificationRepository.remove(ownerId);
-        setNotifications(synced.notifications);
+        setNotifications(
+          pruneReleaseNotifications(synced.notifications, itemsRef.current)
+        );
       } catch {
         // Keep the last successfully synchronized inbox and retry on the next check.
-      } finally {
-        checkingRef.current = false;
       }
       return;
-    }
+      }
 
-    const current = notificationRepository.get(ownerId);
-    const now = new Date();
-    const released = findReleasedAnime(
-      itemsRef.current,
-      current.lastCheckedAt,
-      now
-    );
-    const next = {
-      lastCheckedAt: now.toISOString(),
-      notifications: mergeReleaseNotifications(
-        current.notifications,
-        released
-      )
-    };
-    notificationRepository.save(ownerId, next);
-    setNotifications(next.notifications);
+      const current = notificationRepository.get(ownerId);
+      const now = new Date();
+      const released = findReleasedAnime(
+        itemsRef.current,
+        current.lastCheckedAt,
+        now
+      );
+      const seasons = await findUpcomingSeasonNotifications(
+        itemsRef.current,
+        current.seenSeasonIds,
+        now
+      );
+      const next = {
+        lastCheckedAt: now.toISOString(),
+        notifications: pruneReleaseNotifications(
+          mergeReleaseNotifications(
+            current.notifications,
+            [...released, ...seasons.notifications]
+          ),
+          itemsRef.current
+        ),
+        seenSeasonIds: seasons.seenSeasonIds
+      };
+      notificationRepository.save(ownerId, next);
+      setNotifications(next.notifications);
+    } finally {
+      checkingRef.current = false;
+    }
   }, [configured, isReady, ownerId]);
 
   useEffect(() => {
@@ -116,6 +156,11 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     };
   }, [checkForReleases, isReady, ownerId]);
 
+  const visibleNotifications = useMemo(
+    () => pruneReleaseNotifications(notifications, items),
+    [items, notifications]
+  );
+
   const saveNotifications = useCallback(
     (next: ReleaseNotification[]) => {
       if (!ownerId || configured) return;
@@ -132,7 +177,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   const clearNotification = useCallback(
     (notificationId: string) => {
       if (!ownerId) return;
-      const next = notifications.filter(
+      const next = visibleNotifications.filter(
         (notification) => notification.id !== notificationId
       );
       if (!configured) {
@@ -144,12 +189,14 @@ export function NotificationProvider({ children }: PropsWithChildren) {
         .remove(notificationId, ownerId)
         .then((state) => {
           if (activeOwnerRef.current === ownerId) {
-            setNotifications(state.notifications);
+            setNotifications(
+              pruneReleaseNotifications(state.notifications, itemsRef.current)
+            );
           }
         })
         .catch(() => void checkForReleases());
     },
-    [checkForReleases, configured, notifications, ownerId, saveNotifications]
+    [checkForReleases, configured, ownerId, saveNotifications, visibleNotifications]
   );
 
   const clearAllNotifications = useCallback(() => {
@@ -163,7 +210,9 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       .clear(ownerId)
       .then((state) => {
         if (activeOwnerRef.current === ownerId) {
-          setNotifications(state.notifications);
+          setNotifications(
+            pruneReleaseNotifications(state.notifications, itemsRef.current)
+          );
         }
       })
       .catch(() => void checkForReleases());
@@ -171,12 +220,12 @@ export function NotificationProvider({ children }: PropsWithChildren) {
 
   const value = useMemo(
     () => ({
-      notifications,
-      unreadCount: notifications.length,
+      notifications: visibleNotifications,
+      unreadCount: visibleNotifications.length,
       clearNotification,
       clearAllNotifications
     }),
-    [clearAllNotifications, clearNotification, notifications]
+    [clearAllNotifications, clearNotification, visibleNotifications]
   );
 
   return (

@@ -535,9 +535,14 @@ create table if not exists public.release_notifications (
   image_url text not null default '',
   released_at timestamptz not null,
   tracking_status text not null,
+  notification_type text not null default 'episode',
+  episode_number integer,
+  source_anime_id integer,
+  source_title text,
+  premiere_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  primary key (user_id, anime_id),
+  primary key (user_id, notification_id),
   constraint release_notifications_anime_id_check check (
     anime_id > 0 and anime_id <= 10000000
   ),
@@ -551,9 +556,53 @@ create table if not exists public.release_notifications (
     char_length(image_url) <= 2048
   ),
   constraint release_notifications_status_check check (
-    tracking_status in ('watching', 'plan_to_watch')
+    tracking_status in ('watching', 'plan_to_watch', 'completed', 'on_hold')
+  ),
+  constraint release_notifications_type_check check (
+    notification_type in ('episode', 'season')
+  ),
+  constraint release_notifications_episode_check check (
+    episode_number is null or (episode_number > 0 and episode_number <= 100000)
+  ),
+  constraint release_notifications_source_anime_check check (
+    source_anime_id is null or (source_anime_id > 0 and source_anime_id <= 10000000)
+  ),
+  constraint release_notifications_source_title_length_check check (
+    source_title is null or char_length(source_title) <= 500
   )
 );
+
+alter table public.release_notifications
+  add column if not exists notification_type text not null default 'episode',
+  add column if not exists episode_number integer,
+  add column if not exists source_anime_id integer,
+  add column if not exists source_title text,
+  add column if not exists premiere_at timestamptz;
+
+alter table public.release_notifications
+  drop constraint if exists release_notifications_pkey,
+  add constraint release_notifications_pkey
+    primary key (user_id, notification_id),
+  drop constraint if exists release_notifications_status_check,
+  add constraint release_notifications_status_check check (
+    tracking_status in ('watching', 'plan_to_watch', 'completed', 'on_hold')
+  ),
+  drop constraint if exists release_notifications_type_check,
+  add constraint release_notifications_type_check check (
+    notification_type in ('episode', 'season')
+  ),
+  drop constraint if exists release_notifications_episode_check,
+  add constraint release_notifications_episode_check check (
+    episode_number is null or (episode_number > 0 and episode_number <= 100000)
+  ),
+  drop constraint if exists release_notifications_source_anime_check,
+  add constraint release_notifications_source_anime_check check (
+    source_anime_id is null or (source_anime_id > 0 and source_anime_id <= 10000000)
+  ),
+  drop constraint if exists release_notifications_source_title_length_check,
+  add constraint release_notifications_source_title_length_check check (
+    source_title is null or char_length(source_title) <= 500
+  );
 
 create index if not exists release_notifications_user_released_idx
   on public.release_notifications (user_id, released_at desc);
@@ -600,8 +649,18 @@ create policy "Users can delete their own release notifications"
 create table if not exists public.release_notification_cursors (
   user_id uuid primary key references auth.users(id) on delete cascade,
   last_checked_at timestamptz not null,
+  seen_season_ids jsonb not null default '[]'::jsonb,
   updated_at timestamptz not null default now()
 );
+
+alter table public.release_notification_cursors
+  add column if not exists seen_season_ids jsonb not null default '[]'::jsonb;
+
+alter table public.release_notification_cursors
+  drop constraint if exists release_notification_cursors_seen_seasons_check,
+  add constraint release_notification_cursors_seen_seasons_check check (
+    jsonb_typeof(seen_season_ids) = 'array'
+  );
 
 alter table public.release_notification_cursors enable row level security;
 
