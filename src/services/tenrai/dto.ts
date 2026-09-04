@@ -54,3 +54,15 @@ export interface TenraiListResponse {
 export interface TenraiItemResponse {
   data: TenraiAnimeDto;
 }
+
+export interface TenraiAnimeRelationDto {
+  relation: string;
+  entry: Array<{
+    mal_id: number;
+    type: string;
+  }>;
+}
+
+export interface TenraiRelationResponse {
+  data: TenraiAnimeRelationDto[];
+}

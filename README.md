@@ -95,9 +95,18 @@ trailer feed from trailer metadata on current-season anime records.
 
 ### Release notifications
 
-- Banime creates in-app alerts when a scheduled episode airs for a title marked
-  Watching or Plan to watch. The profile picture and Notifications menu show an
-  unread-count badge.
+- Banime creates a separate numbered alert for each scheduled episode that airs
+  for a title marked Watching or Plan to watch. Episode 6 and episode 7 remain
+  separate inbox items until each is watched or cleared. The profile picture
+  and Notifications menu show the combined unread count.
+- Marking an episode watched automatically removes that episode's alert during
+  notification reconciliation. Account mode mirrors the removal to every
+  signed-in device.
+- Banime also checks Tenrai's explicit sequel relationships for non-dropped
+  library titles. A newly discovered upcoming TV or ONA season creates a
+  one-time alert that opens the related title; adding that season to the library
+  removes the alert. Discovered season IDs are remembered so dismissed alerts
+  do not reappear.
 - A notification opens the related anime detail drawer. Individual alerts can
   be cleared with a check action, or all alerts can be cleared together.
 - Each tracked title can use Every episode, Finale only, or Dubbed releases
@@ -113,7 +122,9 @@ trailer feed from trailer metadata on current-season anime records.
   sees a consistent inbox on every signed-in device. Local-only mode keeps the
   inbox in that browser. These are not operating-system push notifications and
   do not run while the app is fully closed. Broadcast schedules can also differ
-  from streaming availability.
+  from streaming availability. Episode numbers are inferred from the stored
+  premiere and weekly broadcast schedule, so an unreported delay or hiatus can
+  temporarily make the displayed number inaccurate until catalog data changes.
 
 ### Stats and year in review
 
@@ -374,6 +385,12 @@ and makes its server endpoints fail closed.
 The SQL file is designed to be rerun. It backfills query columns for existing
 rows, creates private user profiles, adds missing constraints and indexes, and
 recreates the same RLS policies.
+
+Rerun `supabase/schema.sql` for the improved notification system. It changes
+the notification key from one row per anime to one row per message, adds
+episode and related-season metadata, and stores the bounded set of discovered
+season IDs on the owner's notification cursor. Existing tracker and profile
+records are not deleted.
 
 The publishable key is not a secret, but Banime keeps it server-side for the
 web account boundary. The Supabase secret key is used only by narrowly scoped

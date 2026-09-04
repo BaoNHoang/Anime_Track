@@ -30,7 +30,7 @@ export function NotificationsPage() {
       imageUrl: notification.imageUrl,
       largeImageUrl: notification.imageUrl,
       synopsis: "",
-      status: "Currently Airing",
+      status: notification.kind === "season" ? "Not yet aired" : "Currently Airing",
       type: "Anime",
       genres: [],
       studios: [],
@@ -82,12 +82,18 @@ export function NotificationsPage() {
                 <span className="notification-item__copy">
                   <strong>{notification.title}</strong>
                   <span>
-                    {notification.trackingStatus === "watching"
-                      ? "A new scheduled episode has aired."
-                      : "A planned title has a new scheduled episode."}
+                    {notification.kind === "season"
+                      ? `A new season related to ${notification.sourceTitle ?? "your library"} was announced.`
+                      : notification.episodeNumber
+                        ? `Episode ${notification.episodeNumber} has aired.`
+                        : "A new scheduled episode has aired."}
                   </span>
-                  <time dateTime={notification.releasedAt}>
-                    {releaseTimeFormatter.format(new Date(notification.releasedAt))}
+                  <time dateTime={notification.premiereAt ?? notification.releasedAt}>
+                    {notification.kind === "season" && notification.premiereAt
+                      ? `Premieres ${releaseTimeFormatter.format(new Date(notification.premiereAt))}`
+                      : notification.kind === "season"
+                        ? `Announced ${releaseTimeFormatter.format(new Date(notification.releasedAt))}`
+                        : releaseTimeFormatter.format(new Date(notification.releasedAt))}
                   </time>
                 </span>
               </button>
@@ -95,7 +101,7 @@ export function NotificationsPage() {
                 className="notification-item__clear"
                 type="button"
                 onClick={() => clearNotification(notification.id)}
-                aria-label={`Clear ${notification.title} notification`}
+                aria-label={`Clear ${notification.title}${notification.episodeNumber ? ` episode ${notification.episodeNumber}` : ""} notification`}
                 title="Mark as cleared"
               >
                 <Check size={18} />
@@ -108,7 +114,7 @@ export function NotificationsPage() {
           <span aria-hidden="true"><CheckCircle2 size={28} /></span>
           <h2>No new releases</h2>
           <p>
-            New episodes for anime you are watching or planning will appear here.
+            New episode numbers and upcoming seasons related to your library will appear here.
           </p>
         </section>
       )}
