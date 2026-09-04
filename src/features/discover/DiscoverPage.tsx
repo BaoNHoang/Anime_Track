@@ -212,22 +212,24 @@ export function DiscoverPage() {
                 : feeds.find((item) => item.value === feed)?.label}
             </h2>
           </div>
-          {result.data && !result.isFetching && (
-            <span className="result-count">
-              {`${filteredItems.length} shown on this page`}
+          {result.data && (
+            <span className="result-count" aria-live="polite">
+              {`${filteredItems.length} shown on this page${
+                result.isFetching ? " · Updating…" : ""
+              }`}
             </span>
           )}
         </div>
 
-        {result.isFetching && <LoadingState cards={8} label="Loading anime results" />}
-        {result.isError && <ErrorState onRetry={() => result.refetch()} />}
-        {result.data && !result.isFetching && filteredItems.length === 0 && (
+        {result.isPending && <LoadingState cards={8} label="Loading anime results" />}
+        {result.isError && !result.data && <ErrorState onRetry={() => result.refetch()} />}
+        {result.data && filteredItems.length === 0 && (
           <div className="empty-state">
             <strong>No titles match these filters.</strong>
             <p>Change the search text or clear a filter.</p>
           </div>
         )}
-        {result.data && !result.isFetching && filteredItems.length > 0 && (
+        {result.data && filteredItems.length > 0 && (
           <div className="anime-grid anime-grid--wide">
             {filteredItems.map((anime) => (
               <AnimeCard anime={anime} key={anime.id} />

@@ -23,19 +23,17 @@ export async function findUpcomingSeasonNotifications(
   const seenIds = new Set(previouslySeenIds);
   const sequelSources = new Map<number, TrackedAnime>();
 
-  const relationResults = await Promise.all(
-    items
-      .filter((item) => item.status !== "dropped")
-      .map(async (item) => {
-        try {
-          return { item, sequels: await getAnimeSequels(item.anime.id) };
-        } catch {
-          return { item, sequels: [] };
-        }
-      })
-  );
-
-  for (const { item, sequels } of relationResults) {
+  // Keep this background scan sequential. Enqueuing the whole library at once
+  // would place foreground Discover requests behind one rate-limit slot per
+  // tracked title on a cold cache.
+  for (const item of items) {
+    if (item.status === "dropped") continue;
+    let sequels: number[];
+    try {
+      sequels = await getAnimeSequels(item.anime.id);
+    } catch {
+      sequels = [];
+    }
     for (const sequelId of sequels) {
       if (!sequelSources.has(sequelId)) sequelSources.set(sequelId, item);
     }

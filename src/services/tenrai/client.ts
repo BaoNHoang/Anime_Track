@@ -106,16 +106,33 @@ async function readBoundedJson<T>(response: Response): Promise<T> {
   }
 }
 
-async function waitForRateLimit() {
+function waitForAbortableDelay(ms: number, signal?: AbortSignal) {
+  if (ms <= 0) return Promise.resolve();
+  signal?.throwIfAborted();
+
+  return new Promise<void>((resolve, reject) => {
+    const timeout = globalThis.setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      globalThis.clearTimeout(timeout);
+      reject(signal?.reason ?? new DOMException("The request was aborted.", "AbortError"));
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+async function waitForRateLimit(signal?: AbortSignal) {
+  signal?.throwIfAborted();
   await externalRequestGate?.();
+  signal?.throwIfAborted();
   const waitTime = Math.max(
     0,
     MIN_REQUEST_INTERVAL_MS - (Date.now() - lastRequestStartedAt)
   );
 
-  if (waitTime > 0) {
-    await new Promise((resolve) => setTimeout(resolve, waitTime));
-  }
+  await waitForAbortableDelay(waitTime, signal);
 
   lastRequestStartedAt = Date.now();
 }
@@ -193,8 +210,10 @@ export async function tenraiGet<T>(
   const cached = readCachedResponse<T>(path, cacheStorage);
   if (cached !== undefined) return cached;
 
-  requestQueue = requestQueue.then(waitForRateLimit, waitForRateLimit);
+  const waitForRequestSlot = () => waitForRateLimit(options.signal);
+  requestQueue = requestQueue.then(waitForRequestSlot, waitForRequestSlot);
   await requestQueue;
+  options.signal?.throwIfAborted();
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     signal: options.signal,
