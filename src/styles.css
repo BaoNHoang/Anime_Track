@@ -1718,7 +1718,7 @@ h3,
   position: absolute;
   z-index: 2;
   right: 24px;
-  bottom: 24px;
+  top: 24px;
   padding: 8px 11px;
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 6px;
@@ -5328,7 +5328,7 @@ h3,
 
   .profile-hero__edit {
     right: 12px;
-    bottom: 12px;
+    top: 12px;
   }
 
   .topbar-auth {
