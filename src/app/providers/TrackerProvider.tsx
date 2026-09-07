@@ -31,6 +31,8 @@ import {
   type TrackerContextValue
 } from "./trackerContext";
 
+import { libraryOutbox } from "../../services/storage/libraryOutbox";
+
 const accountAuthEnabled =
   import.meta.env.VITE_ACCOUNT_AUTH_ENABLED === "true";
 
@@ -46,11 +48,10 @@ export function TrackerProvider({ children }: PropsWithChildren) {
   const [remoteProfileSummary, setRemoteProfileSummary] =
     useState<ProfileSummary>();
   const itemsRef = useRef(items);
-  const syncQueueRef = useRef(Promise.resolve());
   const syncedUserRef = useRef<string | undefined>(undefined);
   const { configured, user, initialized } = useCloudAuth();
   const activeUserIdRef = useRef(user?.id);
-  const canManage = !configured || Boolean(user);
+  const canManage = !configured || Boolean(user && hydratedUserId === user.id);
   const isReady =
     !configured || Boolean(user && hydratedUserId === user.id);
 
@@ -58,7 +59,16 @@ export function TrackerProvider({ children }: PropsWithChildren) {
     activeUserIdRef.current = user?.id;
   }, [user?.id]);
 
-  const saveItems = useCallback((next: TrackedAnime[]) => {
+  const saveItems = useCallback((next: TrackedAnime[], trackChanges = true) => {
+    const owner = activeUserIdRef.current;
+    if (owner && trackChanges) {
+      try { libraryOutbox.record(owner, itemsRef.current, next); }
+      catch {
+        setSyncStatus("error");
+        setSyncError("This device could not save the edit. Free site storage or export a backup and try again.");
+        return false;
+      }
+    }
     itemsRef.current = next;
     setItems(next);
     setRemoteProfileSummary(undefined);
@@ -68,33 +78,27 @@ export function TrackerProvider({ children }: PropsWithChildren) {
     } else {
       trackerRepository.save(next);
     }
+    return true;
   }, []);
 
-  const enqueueCloud = useCallback(
-    (operation: (expectedUserId: string) => Promise<void>) => {
-      if (!user) return;
-      const expectedUserId = user.id;
-      setSyncStatus("syncing");
-      setSyncError(undefined);
-      syncQueueRef.current = syncQueueRef.current
-        .catch(() => undefined)
-        .then(async () => {
-          if (activeUserIdRef.current !== expectedUserId) return;
-          await operation(expectedUserId);
-          if (activeUserIdRef.current === expectedUserId) {
-            setSyncStatus("synced");
-          }
-        })
-        .catch((error: unknown) => {
-          if (activeUserIdRef.current !== expectedUserId) return;
-          setSyncStatus("error");
-          setSyncError(
-            error instanceof Error ? error.message : "Cloud sync failed."
-          );
-        });
-    },
-    [user]
-  );
+  const enqueueCloud = useCallback(() => {
+    if (!user) return;
+    const owner = user.id;
+    setSyncStatus("syncing");
+    setSyncError(undefined);
+    void libraryOutbox.flush(owner, () => activeUserIdRef.current === owner)
+      .then(() => { if (activeUserIdRef.current === owner) setSyncStatus("synced"); })
+      .catch((error: unknown) => {
+        if (activeUserIdRef.current !== owner) return;
+        setSyncStatus("error");
+        setSyncError(error instanceof Error ? error.message : "Sync failed.");
+      });
+  }, [user]);
+
+  useEffect(() => {
+    window.addEventListener("online", enqueueCloud);
+    return () => window.removeEventListener("online", enqueueCloud);
+  }, [enqueueCloud]);
 
   useEffect(() => {
     if (!initialized) return;
@@ -114,7 +118,6 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       });
       return;
     }
-    if (syncedUserRef.current === user.id) return;
     syncedUserRef.current = user.id;
 
     let cancelled = false;
@@ -131,8 +134,9 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       const cachedLibrary = await cloudLibraryCache.get(user.id);
       if (cancelled) return;
       if (cachedLibrary) {
-        itemsRef.current = cachedLibrary;
-        setItems(cachedLibrary);
+        const restored = libraryOutbox.overlay(user.id, cachedLibrary);
+        itemsRef.current = restored;
+        setItems(restored);
         setHydratedUserId(user.id);
       }
 
@@ -147,14 +151,19 @@ export function TrackerProvider({ children }: PropsWithChildren) {
           })
           .catch(() => undefined);
       }
+      const libraryAtRequest = itemsRef.current;
       const libraryPromise = trackerCloudRepository.getAll();
       try {
         const cloudItems = await libraryPromise;
         libraryFinished = true;
         if (cancelled) return;
-        saveItems(cloudItems);
+        // A response started before a local edit must not undo that edit,
+        // including a deletion already acknowledged while this read was pending.
+        if (itemsRef.current === libraryAtRequest) {
+          saveItems(libraryOutbox.overlay(user.id, cloudItems), false);
+        }
         setHydratedUserId(user.id);
-        setSyncStatus("synced");
+        enqueueCloud();
         return;
       } catch (error: unknown) {
         libraryFinished = true;
@@ -171,18 +180,16 @@ export function TrackerProvider({ children }: PropsWithChildren) {
     return () => {
       cancelled = true;
     };
-  }, [configured, initialized, saveItems, user]);
+  }, [configured, initialized, saveItems, user, enqueueCloud]);
 
   const addAnime = useCallback(
     (anime: Anime, status: TrackingStatus = "plan_to_watch") => {
       if (!canManage) return;
       if (itemsRef.current.some((item) => item.anime.id === anime.id)) return;
       const created = trackerRepository.create(anime, status);
-      saveItems([created, ...itemsRef.current]);
+      if (!saveItems([created, ...itemsRef.current])) return;
       if (user) {
-        enqueueCloud((expectedUserId) =>
-          trackerCloudRepository.upsert(created, expectedUserId)
-        );
+        enqueueCloud();
       }
     },
     [canManage, enqueueCloud, saveItems, user]
@@ -192,7 +199,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
     (
       animeId: number,
       updates: Partial<
-        Pick<TrackedAnime, "status" | "progress" | "episodeHistory" | "releaseNotificationMode" | "userScore" | "notes">
+        Pick<TrackedAnime, "status" | "progress" | "episodeHistory" | "releaseNotificationMode" | "userScore" | "notes" | "customLists">
       >
     ) => {
       if (!canManage) return;
@@ -222,12 +229,9 @@ export function TrackerProvider({ children }: PropsWithChildren) {
         return updatedItem;
       });
       if (!updatedItem) return;
-      saveItems(next);
+      if (!saveItems(next)) return;
       if (user) {
-        const itemToSync = updatedItem;
-        enqueueCloud((expectedUserId) =>
-          trackerCloudRepository.upsert(itemToSync, expectedUserId)
-        );
+        enqueueCloud();
       }
     },
     [canManage, enqueueCloud, saveItems, user]
@@ -248,13 +252,11 @@ export function TrackerProvider({ children }: PropsWithChildren) {
   const removeAnime = useCallback(
     (animeId: number) => {
       if (!canManage) return;
-      saveItems(
+      if (!saveItems(
         itemsRef.current.filter((item) => item.anime.id !== animeId)
-      );
+      )) return;
       if (user) {
-        enqueueCloud((expectedUserId) =>
-          trackerCloudRepository.remove(animeId, expectedUserId)
-        );
+        enqueueCloud();
       }
     },
     [canManage, enqueueCloud, saveItems, user]
@@ -290,11 +292,9 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       const merged = mergeTrackedAnime(itemsRef.current, importedItems, {
         replaceOnEqualUpdatedAt: options.replaceOnEqualUpdatedAt
       });
-      saveItems(merged);
+      if (!saveItems(merged)) return { added: 0, updated: 0, total: itemsRef.current.length };
       if (user) {
-        enqueueCloud((expectedUserId) =>
-          trackerCloudRepository.upsertMany(merged, expectedUserId)
-        );
+        enqueueCloud();
       }
 
       return { added, updated, total: merged.length };

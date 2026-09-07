@@ -15,6 +15,7 @@ import {
   type CloudAuthContextValue
 } from "./cloudAuthContext";
 import { accountSessionHint } from "../../services/storage/accountSessionHint";
+import { offlineAccount } from "../../services/storage/offlineAccount";
 
 const accountAuthEnabled =
   import.meta.env.VITE_ACCOUNT_AUTH_ENABLED === "true";
@@ -31,19 +32,25 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (!accountAuthEnabled) return;
     let active = true;
-    void accountApi.session().then((result) => {
+    const refresh = () => void accountApi.session().then((result) => {
       if (!active) return;
-      const nextUser = result.user ?? undefined;
+      const nextUser = !navigator.onLine && result.error
+        ? offlineAccount.get()
+        : result.user ?? undefined;
       setUser(nextUser);
       if (!result.error) {
+        offlineAccount.save(nextUser);
         const authenticated = Boolean(nextUser);
         accountSessionHint.save(authenticated);
         setLikelyAuthenticated(authenticated);
       }
       setInitialized(true);
     });
+    refresh();
+    window.addEventListener("online", refresh);
     return () => {
       active = false;
+      window.removeEventListener("online", refresh);
     };
   }, []);
 
@@ -59,6 +66,7 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       if (result.user !== undefined) {
         const nextUser = result.user ?? undefined;
         setUser(nextUser);
+        offlineAccount.save(nextUser);
         const authenticated = Boolean(nextUser);
         accountSessionHint.save(authenticated);
         setLikelyAuthenticated(authenticated);
@@ -206,6 +214,7 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       const result = await accountApi.deleteAccount(confirmation);
       if (!result.error) {
         setUser(undefined);
+        offlineAccount.save(undefined);
         accountSessionHint.save(false);
         setLikelyAuthenticated(false);
       }
@@ -218,6 +227,7 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
     const result = await accountApi.signOut();
     if (!result.error) {
       setUser(undefined);
+      offlineAccount.save(undefined);
       accountSessionHint.save(false);
       setLikelyAuthenticated(false);
     }

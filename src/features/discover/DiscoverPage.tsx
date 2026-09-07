@@ -6,6 +6,8 @@ import { ErrorState } from "../../components/ErrorState";
 import { LoadingState } from "../../components/LoadingState";
 import { useAnimeBrowse, useAnimeSearch } from "../../hooks/useAnimeQueries";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import { useTracker } from "../../app/providers/useTracker";
+import { LibraryTools } from "../library/LibraryTools";
 import type { AnimeBrowsePreset } from "../../services/tenrai/animeService";
 
 type Sort = "default" | "score" | "popularity" | "title" | "year";
@@ -30,6 +32,12 @@ export function DiscoverPage() {
   }));
   const query = queryState.source === urlQuery ? queryState.value : urlQuery;
   const [feed, setFeed] = useState<AnimeBrowsePreset>("airing");
+  const { items: library } = useTracker();
+  const [year, setYear] = useState("");
+  const [season, setSeason] = useState("");
+  const [studio, setStudio] = useState("");
+  const [maxEpisodes, setMaxEpisodes] = useState("");
+  const [hideTracked, setHideTracked] = useState(false);
   const [type, setType] = useState("all");
   const [genre, setGenre] = useState("all");
   const [minimumScore, setMinimumScore] = useState("0");
@@ -63,7 +71,12 @@ export function DiscoverPage() {
       const matchesGenre =
         genre === "all" || anime.genres.includes(genre);
       const matchesScore = (anime.score ?? 0) >= Number(minimumScore);
-      return matchesType && matchesGenre && matchesScore;
+      return matchesType && matchesGenre && matchesScore &&
+        (!year || anime.year === Number(year)) &&
+        (!season || anime.season === season) &&
+        (!studio || anime.studios.some((name) => name.toLowerCase().includes(studio.toLowerCase()))) &&
+        (!maxEpisodes || (anime.episodes !== undefined && anime.episodes <= Number(maxEpisodes))) &&
+        (!hideTracked || !library.some((item) => item.anime.id === anime.id));
     }) ?? [];
 
     return [...items].sort((left, right) => {
@@ -82,13 +95,14 @@ export function DiscoverPage() {
       if (sort === "year") return (right.year ?? 0) - (left.year ?? 0);
       return 0;
     });
-  }, [genre, minimumScore, result.data, sort, type]);
+  }, [genre, minimumScore, result.data, sort, type, year, season, studio, maxEpisodes, hideTracked, library]);
 
   const clearFilters = () => {
     setType("all");
     setGenre("all");
     setMinimumScore("0");
     setSort("default");
+    setYear(""); setSeason(""); setStudio(""); setMaxEpisodes(""); setHideTracked(false);
   };
   const updateQuery = (value: string) => {
     setQueryState({ source: urlQuery, value });
@@ -117,11 +131,12 @@ export function DiscoverPage() {
     type !== "all" ||
     genre !== "all" ||
     minimumScore !== "0" ||
-    sort !== "default";
+    sort !== "default" || Boolean(year || season || studio || maxEpisodes || hideTracked);
 
   return (
     <div className="page-stack">
       <h1 className="visually-hidden">Discover anime</h1>
+      <LibraryTools />
 
       <section className="query-panel">
         <div className="search-box">
@@ -195,6 +210,11 @@ export function DiscoverPage() {
               <option value="year">Newest year</option>
             </select>
           </label>
+          <label><span>Year</span><input type="number" min="1900" max="2100" value={year} onChange={(e) => setYear(e.target.value)} /></label>
+          <label><span>Season</span><select value={season} onChange={(e) => setSeason(e.target.value)}><option value="">Any</option>{["winter", "spring", "summer", "fall"].map((s) => <option key={s}>{s}</option>)}</select></label>
+          <label><span>Studio</span><input value={studio} onChange={(e) => setStudio(e.target.value)} /></label>
+          <label><span>Maximum episodes</span><input type="number" min="1" max="100000" value={maxEpisodes} onChange={(e) => setMaxEpisodes(e.target.value)} /></label>
+          <label><span>Hide library titles</span><input type="checkbox" checked={hideTracked} onChange={(e) => setHideTracked(e.target.checked)} /></label>
           {hasFilters && (
             <button className="clear-filters" onClick={clearFilters}>
               Clear filters
@@ -203,6 +223,7 @@ export function DiscoverPage() {
         </div>
       </section>
 
+      <p>Filters apply to the current catalog page. Try another page for more matches. Streaming and dub availability are not supplied by this catalog.</p>
       <section id="discover-results">
         <div className="results-heading">
           <div>

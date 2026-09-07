@@ -29,7 +29,7 @@ export function Recommendations({ candidates }: { candidates: Anime[] }) {
     <section className="home-section recommendation-section">
       <SectionHeader
         title="Recommended for you"
-        action={{ label: "Explore more", to: "/discover" }}
+        action={{ label: "Explore more", to: "/recommendations" }}
       />
       {recommendations.length ? (
         <div className="recommendation-strip">

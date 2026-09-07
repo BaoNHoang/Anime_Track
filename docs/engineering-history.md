@@ -159,7 +159,7 @@ As of 2026-09-02:
 - The separate MCP process exposes eight catalog, news, library, mutation, and
   recommendation tools with bearer-token validation, RLS-bound library access,
   bounded schemas, host/origin controls, and optional Upstash quotas.
-- The active automated suite contains 143 tests across 42 files. Lint, API and
+- The active automated suite contains 150 tests across 45 files. Lint, API and
   MCP typechecks, tests, and the production build pass on `develop`.
 - A connected Supabase project exists and its schema/advisors have been
   inspected. Full two-user isolation, deployed MCP OAuth, sustained load, and
@@ -2920,6 +2920,31 @@ A future change is complete only when all applicable checks are satisfied:
   - `npm.cmd test -- --run` passed 143 tests across 42 files.
   - `npm.cmd run lint`, `npm.cmd run build`, `npm.cmd run api:check`, and
     `npm.cmd run mcp:check` passed.
+
+### HIST-0043 - 2026-09-06 - Library tools and notification delivery
+
+- Separated inbox hydration and episode sync from the awaited full-library
+  sequel scan. Catalog discovery now scans rotating batches of 25 every five
+  minutes, with cancellation on account changes and bounded network requests.
+- Exposed notification refresh failures and missing broadcast metadata. Fixed
+  checklist-aware pruning for non-contiguous episode histories and normalized
+  sequel premiere timestamps for API validation.
+- Added 7/30-day watch calendar, custom-list membership through validated
+  tracked-anime JSON, CSV round-trip backups alongside existing JSON/MAL XML,
+  additional current-page Discover filters, and a dedicated recommendations view.
+- Added an owner-specific durable library outbox, reconnect retries, pending
+  deletion restoration, and offline account display/cache hydration. Server
+  cookie validation and expected-user checks continue to authorize writes.
+  Public catalog responses use bounded service-worker caching; account API
+  responses are not cached by the service worker.
+- Simplified duplicated notification sync paths and removed the replaced
+  in-memory-only tracker write queue. New routes load separately.
+- Production read-only diagnostics found the expected notification columns,
+  22 notification rows, and watching records without broadcast schedules.
+  No production user records were changed by these diagnostics.
+- Verification includes CSV round trips, owner isolation/retry tests, calendar
+  timezone tests, checklist pruning, and browser list creation/rename/reload.
+  Live two-device authentication and sync remains a manual verification gap.
 
 ## Release History
 

@@ -41,6 +41,7 @@ export interface TrackedAnime {
   releaseNotificationMode?: ReleaseNotificationMode;
   userScore?: number;
   notes: string;
+  customLists?: string[];
   addedAt: string;
   updatedAt: string;
 }

@@ -17,7 +17,8 @@ function isUpcoming(status: string, startDate: string | undefined, now: Date) {
 export async function findUpcomingSeasonNotifications(
   items: TrackedAnime[],
   previouslySeenIds: number[],
-  now = new Date()
+  now = new Date(),
+  options: { offset?: number; limit?: number; signal?: AbortSignal } = {}
 ): Promise<SeasonNotificationResult> {
   const trackedIds = new Set(items.map((item) => item.anime.id));
   const seenIds = new Set(previouslySeenIds);
@@ -26,11 +27,15 @@ export async function findUpcomingSeasonNotifications(
   // Keep this background scan sequential. Enqueuing the whole library at once
   // would place foreground Discover requests behind one rate-limit slot per
   // tracked title on a cold cache.
-  for (const item of items) {
+  const sources = items.filter((item) => item.status !== "dropped");
+  const offset = (options.offset ?? 0) % Math.max(1, sources.length);
+  const batch = [...sources.slice(offset), ...sources.slice(0, offset)].slice(0, options.limit ?? sources.length);
+  for (const item of batch) {
+    options.signal?.throwIfAborted();
     if (item.status === "dropped") continue;
     let sequels: number[];
     try {
-      sequels = await getAnimeSequels(item.anime.id);
+      sequels = await getAnimeSequels(item.anime.id, options.signal);
     } catch {
       sequels = [];
     }
@@ -41,6 +46,7 @@ export async function findUpcomingSeasonNotifications(
 
   const notifications: ReleaseNotification[] = [];
   for (const [sequelId, source] of sequelSources) {
+    options.signal?.throwIfAborted();
     if (source.status === "dropped") continue;
     if (seenIds.has(sequelId)) continue;
     if (trackedIds.has(sequelId)) {
@@ -48,7 +54,7 @@ export async function findUpcomingSeasonNotifications(
       continue;
     }
     try {
-      const sequel = await getAnimeById(sequelId);
+      const sequel = await getAnimeById(sequelId, options.signal);
       if (!isUpcoming(sequel.status, sequel.startDate, now)) {
         if (/finished airing/i.test(sequel.status) || sequel.startDate) {
           seenIds.add(sequelId);
@@ -70,7 +76,8 @@ export async function findUpcomingSeasonNotifications(
         trackingStatus: source.status,
         sourceAnimeId: source.anime.id,
         sourceTitle: source.anime.titleEnglish || source.anime.title,
-        premiereAt: sequel.startDate
+        premiereAt: sequel.startDate && Number.isFinite(Date.parse(sequel.startDate))
+          ? new Date(sequel.startDate).toISOString() : undefined
       });
     } catch {
       // Retry unresolved sequel metadata on a later notification check.

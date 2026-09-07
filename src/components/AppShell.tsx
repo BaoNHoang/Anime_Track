@@ -12,8 +12,10 @@ import { SiteFooter } from "./SiteFooter";
 import { UserMenu } from "./UserMenu";
 import { useLocalProfile } from "../hooks/useLocalProfile";
 import { HeaderAuthSkeleton } from "./LoadingState";
+import { useOnline } from "../hooks/useOnline";
 
 export function AppShell() {
+  const online = useOnline();
   const { configured, initialized, user } = useCloudAuth();
   const { profile: localProfile } = useLocalProfile();
 
@@ -47,6 +49,7 @@ export function AppShell() {
             </div>
           </header>
           <main className="page">
+            {!online && <p role="status">Offline — using saved data. Library edits will sync when you reconnect to the same account.</p>}
             <Outlet />
           </main>
           <SiteFooter />

@@ -7,6 +7,7 @@ import {
 } from "../../components/OwnedIcons";
 import { useDeferredValue, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { LibraryTools } from "./LibraryTools";
 import {
   STATUS_LABELS,
   TRACKING_STATUSES,
@@ -207,6 +208,7 @@ export function LibraryPage() {
 
   return (
     <div className="page-stack">
+      <LibraryTools />
       <h1 className="visually-hidden">Library</h1>
 
       <section className="query-panel" id="library-results">
