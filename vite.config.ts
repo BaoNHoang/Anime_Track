@@ -9,7 +9,17 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["icon.svg"],
       workbox: {
-        navigateFallbackDenylist: [/^\/api\//]
+        navigateFallbackDenylist: [/^\/api\//],
+        runtimeCaching: [{
+          urlPattern: /^https:\/\/api\.tenrai\.org\/v1\//,
+          handler: "NetworkFirst",
+          options: {
+            cacheName: "banime-catalog-v1",
+            networkTimeoutSeconds: 3,
+            expiration: { maxEntries: 120, maxAgeSeconds: 7 * 24 * 60 * 60 },
+            cacheableResponse: { statuses: [200] }
+          }
+        }]
       },
       manifest: {
         name: "Banime",

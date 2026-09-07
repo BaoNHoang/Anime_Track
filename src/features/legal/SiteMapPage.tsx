@@ -11,6 +11,9 @@ const publicLinks = [
 const personalLinks = [
   { to: "/profile", label: "Profile", icon: IdCard },
   { to: "/library", label: "Library", icon: LibraryBig },
+  { to: "/calendar", label: "Watch calendar", icon: Map },
+  { to: "/lists", label: "Custom lists", icon: LibraryBig },
+  { to: "/recommendations", label: "For you", icon: Sparkles },
   { to: "/notifications", label: "Notifications", icon: Bell },
   { to: "/year-in-review", label: "Year in review", icon: Sparkles },
   { to: "/settings", label: "Settings", icon: Settings2 }

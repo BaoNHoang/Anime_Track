@@ -32,13 +32,14 @@ export function rankRecommendations(
   const studioWeights = new Map<string, number>();
 
   for (const item of library) {
-    if (item.status === "dropped" || item.status === "plan_to_watch") continue;
+    if (item.status === "plan_to_watch") continue;
     const scoreWeight = item.userScore === undefined
       ? 1
-      : Math.max(0.25, item.userScore / 5);
+      : (item.userScore - 5) / 2.5;
     const statusWeight = item.status === "completed" ? 1.5 : 1;
-    addWeight(genreWeights, item.anime.genres, scoreWeight * statusWeight);
-    addWeight(studioWeights, item.anime.studios, scoreWeight * statusWeight * 1.5);
+    const weight = item.status === "dropped" ? -1 : scoreWeight * statusWeight;
+    addWeight(genreWeights, item.anime.genres, weight);
+    addWeight(studioWeights, item.anime.studios, weight * 1.5);
   }
 
   const favoriteStudioNames = new Set(
@@ -50,11 +51,9 @@ export function rankRecommendations(
 
   if (!genreWeights.size && !studioWeights.size) return [];
 
-  const uniqueCandidates = candidates.filter(
-    (candidate, index, all) =>
-      !trackedIds.has(candidate.id) &&
-      all.findIndex((item) => item.id === candidate.id) === index
-  );
+  const uniqueCandidates = [...new Map(candidates
+    .filter((candidate) => !trackedIds.has(candidate.id))
+    .map((candidate) => [candidate.id, candidate])).values()];
 
   return uniqueCandidates
     .map((anime): RankedRecommendation | undefined => {

@@ -4,6 +4,8 @@ import type { ReleaseNotification } from "../../domain/notifications/releaseNoti
 export interface NotificationContextValue {
   notifications: ReleaseNotification[];
   unreadCount: number;
+  error?: string;
+  refresh: () => Promise<void>;
   clearNotification: (notificationId: string) => void;
   clearAllNotifications: () => void;
 }

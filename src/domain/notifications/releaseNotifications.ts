@@ -138,8 +138,9 @@ export function findReleasedAnime(
       if (item.anime.episodes && episodeNumber > item.anime.episodes) break;
       cursor = new Date(releasedAt.getTime() + 1);
 
-      const watched = item.progress >= episodeNumber ||
-        item.episodeHistory?.some((entry) => entry.episode === episodeNumber);
+      const watched = item.episodeHistory
+        ? item.episodeHistory.some((entry) => entry.episode === episodeNumber)
+        : item.progress >= episodeNumber;
       const isFinale = Boolean(
         item.anime.episodes && episodeNumber === item.anime.episodes
       );
@@ -172,10 +173,9 @@ export function pruneReleaseNotifications(
     if (!notification.episodeNumber) return false;
     const item = trackedById.get(notification.animeId);
     if (!item || item.status === "dropped" || item.status === "completed") return false;
-    return item.progress < notification.episodeNumber &&
-      !item.episodeHistory?.some(
-        (entry) => entry.episode === notification.episodeNumber
-      );
+    return item.episodeHistory
+      ? !item.episodeHistory.some((entry) => entry.episode === notification.episodeNumber)
+      : item.progress < notification.episodeNumber;
   });
 }
 

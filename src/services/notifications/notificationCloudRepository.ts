@@ -20,6 +20,7 @@ async function notificationRequest(
     response = await fetch(`/api/notifications${query}`, {
       method: options.method ?? "GET",
       credentials: "same-origin",
+      signal: AbortSignal.timeout(15000),
       headers: {
         ...(options.body === undefined
           ? {}

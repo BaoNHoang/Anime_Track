@@ -16,11 +16,16 @@ export function NotificationsPage() {
   const {
     notifications,
     unreadCount,
+    error,
+    refresh,
     clearNotification,
     clearAllNotifications
   } = useNotifications();
   const { openAnime } = useAnimePanel();
-  const { getTracked } = useTracker();
+  const { getTracked, items } = useTracker();
+  const missingSchedules = items.filter((item) =>
+    item.status === "watching" && (!item.anime.broadcast?.day || !item.anime.broadcast?.time)
+  ).length;
 
   const openNotificationAnime = (notification: ReleaseNotification) => {
     const tracked = getTracked(notification.animeId);
@@ -62,6 +67,10 @@ export function NotificationsPage() {
           </button>
         )}
       </header>
+      <p>Checked while Banime is open. Episode times are estimated from broadcast schedules.</p>
+      <button className="button button--compact" onClick={() => void refresh()}>Check now</button>
+      {error && <p role="alert">{error}</p>}
+      {missingSchedules > 0 && <p>{missingSchedules} watching titles have no broadcast schedule available. They cannot generate scheduled episode alerts.</p>}
 
       {notifications.length > 0 ? (
         <section className="notification-list" aria-label="New anime releases">

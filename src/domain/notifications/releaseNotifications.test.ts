@@ -39,6 +39,12 @@ function tracked(status: TrackedAnime["status"] = "watching"): TrackedAnime {
 }
 
 describe("findReleasedAnime", () => {
+  it("does not clear an unwatched episode based on a non-contiguous history count", () => {
+    const item = { ...tracked(), progress: 3, episodeHistory: [{ episode: 1 }, { episode: 3 }, { episode: 4 }] };
+    const message: ReleaseNotification = { id: "42:episode:2", kind: "episode", animeId: 42,
+      episodeNumber: 2, title: "Test", imageUrl: "", trackingStatus: "watching", releasedAt: "2026-06-11T13:00:00.000Z" };
+    expect(pruneReleaseNotifications([message], [item])).toEqual([message]);
+  });
   it("creates an alert when a tracked broadcast passed since the last check", () => {
     const notifications = findReleasedAnime(
       [tracked()],

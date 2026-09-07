@@ -31,6 +31,10 @@ function tracked(value: Anime, score = 8): TrackedAnime {
 }
 
 describe("rankRecommendations", () => {
+  it("does not treat low scores as positive preferences", () => {
+    expect(rankRecommendations([tracked(anime(1, ["Drama"], ["Bones"]), 2)],
+      [anime(2, ["Drama"], ["Bones"])])).toEqual([]);
+  });
   it("ranks untracked titles by watch-history affinity", () => {
     const library = [tracked(anime(1, ["Drama", "Fantasy"], ["Bones"]))];
     const recommendations = rankRecommendations(library, [

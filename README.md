@@ -22,6 +22,56 @@ trailer feed from trailer metadata on current-season anime records.
 
 ## Feature reference
 
+### Calendar, lists, recommendations, and offline use
+
+- Open **Library → Watch calendar** for a 7- or 30-day release agenda in your
+  device timezone. Broadcasts are weekly estimates; premieres require a known
+  date, and delays or special schedules are not confirmed by this calendar.
+- Open **Custom lists**, choose a library title, and enter a name to create a
+  list. You can add/remove titles and rename lists. Membership syncs with each
+  tracked title and is included in backups. Lists need at least one member;
+  removing the last member removes the list. Limit: 50 lists per title.
+- **Discover** adds year, season, studio, maximum episode count, and hiding
+  already tracked titles to existing filters. These filters apply to the
+  current catalog page. The catalog does not supply reliable streaming-region
+  or dubbed-episode availability.
+- **For you** ranks popular and current-season candidates using watch history,
+  personal scores, and favorite studios, with a reason for each result. Low
+  ratings and dropped titles reduce affinity. Use **More suggestions** to
+  browse additional candidates.
+- **Settings** imports MyAnimeList XML and Banime JSON/CSV, and exports JSON
+  or CSV. Banime CSV includes a full `record_json` column to retain checklist
+  history, dates, preferences, and custom lists. Its summary columns are for
+  reading in a spreadsheet; importing uses `record_json`. Direct AniList
+  imports are not implemented.
+- After opening the app online, the installed app shell and previously cached
+  catalog responses can be used offline. A previously signed-in account can
+  reopen its saved library while offline. Local account display data is not an
+  authentication credential; the server still validates cookies and account
+  ownership for every sync.
+- Library edits and removals are stored in an account-specific local outbox
+  before syncing. Reconnecting retries them for the same account; failed writes
+  remain saved. Pending local edits take precedence when restoring a remote
+  library. Simultaneous edits to the same title on multiple devices currently
+  resolve by whichever write the server receives last.
+- Offline notifications display the last saved inbox. Clearing account
+  notifications and receiving new announcements require a connection.
+
+### Notification troubleshooting
+
+The inbox now loads and syncs episode messages before scanning for sequels.
+Use **Notifications → Check now** to retry; failures are shown on the page.
+The page also reports watching titles without broadcast schedules. Episode
+alerts use saved premiere/broadcast metadata and cannot confirm actual release
+or dub availability. The first check establishes a baseline. Subsequent checks
+run every minute while the app is open; this is not background push delivery.
+Upcoming-season discovery processes rotating batches of 25 titles every five
+minutes. Large libraries can take multiple visits to scan completely.
+
+The existing notification schema from the prior release is still required.
+This update adds no tables or columns: custom lists live inside the existing
+validated tracked-anime JSON records.
+
 ### Home and anime discovery
 
 - Home presents the current season, a compact coming-soon shelf, top airing

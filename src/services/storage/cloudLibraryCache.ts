@@ -80,7 +80,7 @@ export const cloudLibraryCache = {
             return;
           }
           try {
-            finish(parseLibraryImport(cached.items));
+            finish(cached.items.length ? parseLibraryImport(cached.items) : []);
           } catch {
             finish(undefined);
           }

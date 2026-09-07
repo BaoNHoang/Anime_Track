@@ -216,7 +216,9 @@ export async function tenraiGet<T>(
   options.signal?.throwIfAborted();
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
-    signal: options.signal,
+    signal: options.signal
+      ? AbortSignal.any([options.signal, AbortSignal.timeout(15000)])
+      : AbortSignal.timeout(15000),
     headers: { Accept: "application/json" }
   });
 

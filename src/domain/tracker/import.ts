@@ -339,6 +339,9 @@ function parseTrackedAnime(value: unknown, index: number): TrackedAnime {
     releaseNotificationMode:
       releaseNotificationMode as ReleaseNotificationMode | undefined,
     userScore,
+    customLists: value.customLists === undefined ? undefined :
+      [...new Set(stringArray(value.customLists, "Custom lists")
+        .map((name) => name.trim()).filter(Boolean))],
     notes: requiredString(
       value.notes,
       `Item ${index + 1} notes`,

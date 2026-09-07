@@ -11,7 +11,7 @@ export function PrivacyPage() {
         </span>
         <div>
           <h1>Privacy Policy</h1>
-          <p>Last updated: September 4, 2026</p>
+          <p>Last updated: September 6, 2026</p>
         </div>
       </header>
 
@@ -133,7 +133,10 @@ export function PrivacyPage() {
           <p>
             Browser local storage and the offline application cache are not
             cookies. They hold your local library, preferences, and public
-            catalog files. You can remove them through your browser&apos;s site-data
+            catalog files, your last account display profile, cached notifications,
+            custom-list membership, and pending account-specific library edits.
+            Pending edits remain on this device until synchronized or site data
+            is cleared. You can remove them through your browser&apos;s site-data
             controls.
           </p>
         </section>

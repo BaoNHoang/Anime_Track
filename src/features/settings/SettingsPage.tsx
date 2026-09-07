@@ -17,6 +17,7 @@ import {
   LibraryImportError,
   parseLibraryImport
 } from "../../domain/tracker/import";
+import { exportLibraryCsv, parseLibraryCsv } from "../../domain/tracker/csv";
 import { parseMyAnimeListXml } from "../../domain/tracker/xml";
 import { useAppUpdateStatus } from "../../hooks/useAppUpdateStatus";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
@@ -55,8 +56,8 @@ export function SettingsPage() {
     );
   };
 
-  const exportLibrary = () => {
-    const payload = JSON.stringify(
+  const exportLibrary = (format: "json" | "csv" = "json") => {
+    const payload = format === "csv" ? exportLibraryCsv(items) : JSON.stringify(
       {
         app: "Banime",
         exportedAt: new Date().toISOString(),
@@ -66,13 +67,13 @@ export function SettingsPage() {
       2
     );
     const url = URL.createObjectURL(
-      new Blob([payload], { type: "application/json" })
+      new Blob([payload], { type: format === "csv" ? "text/csv;charset=utf-8" : "application/json" })
     );
     const link = document.createElement("a");
     link.href = url;
     link.download = `banime-library-${new Date()
       .toISOString()
-      .slice(0, 10)}.json`;
+      .slice(0, 10)}.${format}`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -94,8 +95,8 @@ export function SettingsPage() {
       const text = await file.text();
       const trimmedText = text.trimStart();
 
-      if (trimmedText.startsWith("{") || trimmedText.startsWith("[")) {
-        const imported = parseLibraryImport(JSON.parse(text) as unknown);
+      if (file.name.toLowerCase().endsWith(".csv") || trimmedText.startsWith("{") || trimmedText.startsWith("[")) {
+        const imported = file.name.toLowerCase().endsWith(".csv") ? parseLibraryCsv(text) : parseLibraryImport(JSON.parse(text) as unknown);
         const result = importItems(imported);
         setImportMessage({
           tone: "success",
@@ -322,7 +323,7 @@ export function SettingsPage() {
                 ref={importInput}
                 className="visually-hidden"
                 type="file"
-                accept="application/xml,text/xml,application/json,.xml,.json"
+                accept="application/xml,text/xml,application/json,text/csv,.xml,.json,.csv"
                 onChange={(event) => void handleImport(event)}
               />
               <button
@@ -335,12 +336,14 @@ export function SettingsPage() {
               </button>
               <button
                 className="button button--ghost button--compact"
-                onClick={exportLibrary}
+                onClick={() => exportLibrary()}
                 disabled={!items.length || importing}
               >
                 <Download size={15} /> Export JSON
               </button>
             </div>
+            <button className="button button--compact" disabled={!items.length} onClick={() => exportLibrary("csv")}>Export CSV</button>
+            <p>Import MyAnimeList XML or Banime JSON/CSV. JSON and CSV retain episode history, custom lists, and preferences.</p>
             {importMessage && (
               <p
                 className={`form-message form-message--${importMessage.tone}`}

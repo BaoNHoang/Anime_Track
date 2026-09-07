@@ -13,6 +13,7 @@ import { AccessibilityPage } from "../features/legal/AccessibilityPage";
 import { SiteMapPage } from "../features/legal/SiteMapPage";
 import { TermsPage } from "../features/legal/TermsPage";
 import { RequireAuth } from "../components/RequireAuth";
+import { RouteSkeleton } from "../components/LoadingState";
 import { AnimePanelProvider } from "./providers/AnimePanelProvider";
 import { CloudAuthProvider } from "./providers/CloudAuthProvider";
 import { TrackerProvider } from "./providers/TrackerProvider";
@@ -34,6 +35,7 @@ const queryClient = new QueryClient({
 const router = createBrowserRouter([
   {
     element: <AppShell />,
+    HydrateFallback: () => <RouteSkeleton label="Loading Banime" />,
     children: [
       { path: "/", element: <DashboardPage /> },
       {
@@ -41,6 +43,18 @@ const router = createBrowserRouter([
         element: <RequireAuth><ProfilePage /></RequireAuth>
       },
       { path: "/discover", element: <DiscoverPage /> },
+      { path: "/calendar", lazy: async () => {
+        const { WatchCalendarPage } = await import("../features/library/WatchCalendarPage");
+        return { Component: () => <RequireAuth><WatchCalendarPage /></RequireAuth> };
+      } },
+      { path: "/lists", lazy: async () => {
+        const { CustomListsPage } = await import("../features/library/CustomListsPage");
+        return { Component: () => <RequireAuth><CustomListsPage /></RequireAuth> };
+      } },
+      { path: "/recommendations", lazy: async () => {
+        const { RecommendationsPage } = await import("../features/discover/RecommendationsPage");
+        return { Component: () => <RequireAuth><RecommendationsPage /></RequireAuth> };
+      } },
       { path: "/news", element: <NewsPage /> },
       {
         path: "/library",
