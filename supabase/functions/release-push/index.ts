@@ -3,11 +3,110 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 
 type TrackedRow = { user_id: string; item: Record<string, unknown>; tracking_status: string };
-type Cursor = { user_id: string; last_checked_at: string };
+type Cursor = { user_id: string; last_checked_at: string; seen_season_ids?: unknown };
 type Subscription = { endpoint: string; p256dh: string; auth: string };
+type Delivery = { userId: string; id: string; title: string; body: string; animeId: number };
 
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });
 const titleOf = (anime: Record<string, unknown>) => String(anime.titleEnglish || anime.title || "Anime");
+
+async function loadTrackedRows(client: ReturnType<typeof createClient>) {
+  const rows: TrackedRow[] = [];
+  const pageSize = 1_000;
+  for (let start = 0; start < 10_000; start += pageSize) {
+    const page = await client
+      .from("tracked_anime")
+      .select("user_id,item,tracking_status")
+      .range(start, start + pageSize - 1);
+    if (page.error) throw page.error;
+    const values = page.data as TrackedRow[];
+    rows.push(...values);
+    if (values.length < pageSize) break;
+  }
+  return rows;
+}
+
+async function tenrai(path: string) {
+  const response = await fetch(`https://api.tenrai.org/v1${path}`, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(8_000)
+  });
+  if (!response.ok) throw new Error(`Tenrai returned ${response.status}`);
+  return await response.json() as { data?: unknown };
+}
+
+function seenSeasonIds(value: unknown) {
+  return new Set(Array.isArray(value)
+    ? value.filter((id): id is number => Number.isInteger(id) && id > 0 && id <= 10_000_000)
+    : []);
+}
+
+function isUpcomingSeason(anime: Record<string, unknown>, now: Date) {
+  if (/not yet aired|upcoming/i.test(String(anime.status ?? ""))) return true;
+  const start = typeof (anime.aired as Record<string, unknown> | undefined)?.from === "string"
+    ? (anime.aired as Record<string, unknown>).from as string : undefined;
+  return Boolean(start && !Number.isNaN(Date.parse(start)) && Date.parse(start) > now.getTime());
+}
+
+async function createSeasonNotifications(
+  client: ReturnType<typeof createClient>,
+  rows: TrackedRow[],
+  cursors: Map<string, Cursor>,
+  now: Date
+) {
+  const deliveries: Delivery[] = [];
+  const seenUpdates = new Map<string, number[]>();
+  const period = Math.floor(now.getTime() / (15 * 60 * 1000));
+  const byUser = new Map<string, TrackedRow[]>();
+  for (const row of rows) {
+    if (row.tracking_status === "dropped") continue;
+    byUser.set(row.user_id, [...(byUser.get(row.user_id) ?? []), row]);
+  }
+
+  for (const [userId, sources] of byUser) {
+    const seen = seenSeasonIds(cursors.get(userId)?.seen_season_ids);
+    const trackedIds = new Set(sources.map((row) => Number((row.item.anime as Record<string, unknown> | undefined)?.id)));
+    const offset = (period * 3) % sources.length;
+    const batch = [...sources.slice(offset), ...sources.slice(0, offset)].slice(0, 3);
+    for (const source of batch) {
+      const sourceAnime = source.item.anime as Record<string, unknown> | undefined;
+      const sourceId = Number(sourceAnime?.id);
+      if (!sourceAnime || !Number.isInteger(sourceId) || sourceId <= 0) continue;
+      try {
+        const relations = await tenrai(`/anime/${sourceId}/relations`);
+        const sequelIds = Array.isArray(relations.data)
+          ? relations.data.flatMap((relation) => {
+            if (!relation || typeof relation !== "object" || String((relation as Record<string, unknown>).relation).toLowerCase() !== "sequel") return [];
+            const entries = (relation as Record<string, unknown>).entry;
+            return Array.isArray(entries) ? entries : [];
+          }).filter((entry) => entry && typeof entry === "object" && String((entry as Record<string, unknown>).type).toLowerCase() === "anime")
+            .map((entry) => Number((entry as Record<string, unknown>).mal_id))
+            .filter((id) => Number.isInteger(id) && id > 0 && id <= 10_000_000)
+          : [];
+        for (const sequelId of sequelIds) {
+          if (seen.has(sequelId) || trackedIds.has(sequelId)) { seen.add(sequelId); continue; }
+          const response = await tenrai(`/anime/${sequelId}/full`);
+          const sequel = response.data as Record<string, unknown> | undefined;
+          if (!sequel || !isUpcomingSeason(sequel, now)) continue;
+          if (!["TV", "ONA"].includes(String(sequel.type ?? ""))) { seen.add(sequelId); continue; }
+          seen.add(sequelId);
+          const aired = sequel.aired as Record<string, unknown> | undefined;
+          const premiere = typeof aired?.from === "string" && !Number.isNaN(Date.parse(aired.from)) ? aired.from : null;
+          const title = String(sequel.title_english || sequel.title || "New season");
+          const imageUrl = String((((sequel.images as Record<string, unknown> | undefined)?.jpg as Record<string, unknown> | undefined)?.image_url) ?? "");
+          const notificationId = `season:${sourceId}:${sequelId}`;
+          const inserted = await client.from("release_notifications").upsert({ user_id: userId, anime_id: sequelId, notification_id: notificationId, notification_type: "season", title, image_url: imageUrl, released_at: now.toISOString(), tracking_status: source.tracking_status, source_anime_id: sourceId, source_title: titleOf(sourceAnime), premiere_at: premiere }, { onConflict: "user_id,notification_id", ignoreDuplicates: true }).select("notification_id");
+          if (inserted.error) throw inserted.error;
+          if (inserted.data?.length) deliveries.push({ userId, id: notificationId, title, body: `A new season related to ${titleOf(sourceAnime)} is coming.`, animeId: sequelId });
+        }
+      } catch (error) {
+        console.error("season notification scan failed", { userId, sourceId, message: error instanceof Error ? error.message : "unknown" });
+      }
+    }
+    seenUpdates.set(userId, [...seen].slice(-500));
+  }
+  return { deliveries, seenUpdates };
+}
 
 function nextAt(anime: Record<string, unknown>, from: Date) {
   const broadcast = anime.broadcast as Record<string, unknown> | undefined;
@@ -43,9 +142,9 @@ function releasedEpisodes(row: TrackedRow, since: Date, now: Date) {
   const preference = item.releaseNotificationMode === "finale_only" || item.releaseNotificationMode === "dubbed_only" ? item.releaseNotificationMode : "every_episode";
   if (preference === "dubbed_only" && !/\b(?:english\s+)?dub(?:bed)?\b/i.test(String((anime.broadcast as Record<string, unknown> | undefined)?.label ?? ""))) return [];
   const start = typeof anime.startDate === "string" ? new Date(anime.startDate) : undefined;
-  if (!start || Number.isNaN(start.getTime())) return [];
-  const first = nextAt(anime, new Date(start.getTime() - 1));
-  if (!first) return [];
+  const first = start && !Number.isNaN(start.getTime())
+    ? nextAt(anime, new Date(start.getTime() - 1))
+    : undefined;
   const history = Array.isArray(item.episodeHistory) ? item.episodeHistory : undefined;
   const progress = Number(item.progress) || 0;
   const max = Number(anime.episodes) || Infinity;
@@ -54,7 +153,12 @@ function releasedEpisodes(row: TrackedRow, since: Date, now: Date) {
   for (let count = 0; count < 100; count += 1) {
     const release = nextAt(anime, cursor);
     if (!release || release > now) break;
-    const episode = Math.round((release.getTime() - first.getTime()) / 604800000) + 1;
+    // Some currently-airing shows have a broadcast slot before Tenrai has a
+    // reliable premiere date. A weekly slot is still enough to notify; use the
+    // same progress-based numbering fallback as the in-app notification scan.
+    const episode = first
+      ? Math.round((release.getTime() - first.getTime()) / 604800000) + 1
+      : progress + count + 1;
     cursor = new Date(release.getTime() + 1);
     if (episode > max) break;
     const watched = history ? history.some((entry) => typeof entry === "object" && entry !== null && (entry as { episode?: unknown }).episode === episode) : progress >= episode;
@@ -86,28 +190,47 @@ Deno.serve(async (request) => {
     if (settings.error || request.headers.get("x-banime-push-job") !== settings.data.job_secret) return json({ error: "Not authorized." }, 401);
     webpush.setVapidDetails("mailto:security@banime.app", keys.publicKey, keys.privateKey);
     const now = new Date();
-    const [tracked, cursors] = await Promise.all([
-      client.from("tracked_anime").select("user_id,item,tracking_status").in("tracking_status", ["watching", "plan_to_watch"]).limit(5000),
-      client.from("release_notification_cursors").select("user_id,last_checked_at")
+    const [trackedRows, cursors] = await Promise.all([
+      loadTrackedRows(client),
+      client.from("release_notification_cursors").select("user_id,last_checked_at,seen_season_ids")
     ]);
-    if (tracked.error || cursors.error) throw tracked.error ?? cursors.error;
-    const cursorByUser = new Map((cursors.data as Cursor[]).map((cursor) => [cursor.user_id, cursor.last_checked_at]));
-    const created: Array<{ userId: string; id: string; title: string; episode: number; animeId: number }> = [];
-    for (const row of (tracked.data as TrackedRow[])) {
-      const last = cursorByUser.get(row.user_id); if (!last) continue;
-      for (const episode of releasedEpisodes(row, new Date(last), now)) {
+    if (cursors.error) throw cursors.error;
+    const cursorByUser = new Map((cursors.data as Cursor[]).map((cursor) => [cursor.user_id, cursor]));
+    const created: Delivery[] = [];
+    const failedUsers = new Set<string>();
+    let checkedRows = 0;
+    let scheduledRows = 0;
+    for (const row of trackedRows) {
+      const cursor = cursorByUser.get(row.user_id); if (!cursor) continue;
+      const last = cursor.last_checked_at;
+      checkedRows += 1;
+      const episodes = releasedEpisodes(row, new Date(last), now);
+      if (episodes.length) scheduledRows += 1;
+      for (const episode of episodes) {
         const inserted = await client.from("release_notifications").upsert({ user_id: row.user_id, anime_id: episode.animeId, notification_id: episode.id, notification_type: "episode", title: episode.title, image_url: episode.imageUrl, released_at: episode.releasedAt, tracking_status: row.tracking_status, episode_number: episode.episode }, { onConflict: "user_id,notification_id", ignoreDuplicates: true }).select("notification_id");
-        if (!inserted.error && inserted.data?.length) created.push({ userId: row.user_id, id: episode.id, title: episode.title, episode: episode.episode, animeId: episode.animeId });
+        if (inserted.error) {
+          failedUsers.add(row.user_id);
+          console.error("release notification upsert failed", { userId: row.user_id, code: inserted.error.code });
+        } else if (inserted.data?.length) created.push({ userId: row.user_id, id: episode.id, title: episode.title, body: `Episode ${episode.episode} has aired.`, animeId: episode.animeId });
       }
     }
-    for (const userId of new Set((tracked.data as TrackedRow[]).map((row) => row.user_id))) await client.from("release_notification_cursors").upsert({ user_id: userId, last_checked_at: now.toISOString(), updated_at: now.toISOString() });
+    const seasons = await createSeasonNotifications(client, trackedRows, cursorByUser, now);
+    created.push(...seasons.deliveries);
+    for (const userId of new Set(trackedRows.map((row) => row.user_id))) {
+      if (failedUsers.has(userId)) continue;
+      const saved = await client.from("release_notification_cursors").upsert({ user_id: userId, last_checked_at: now.toISOString(), seen_season_ids: seasons.seenUpdates.get(userId) ?? cursorByUser.get(userId)?.seen_season_ids ?? [], updated_at: now.toISOString() });
+      if (saved.error) {
+        failedUsers.add(userId);
+        console.error("release cursor update failed", { userId, code: saved.error.code });
+      }
+    }
     for (const release of created) {
       const subscriptions = await client.from("push_subscriptions").select("endpoint,p256dh,auth").eq("user_id", release.userId);
       await Promise.all((subscriptions.data as Subscription[] ?? []).map(async (subscription) => {
-        try { await webpush.sendNotification({ endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } }, JSON.stringify({ title: release.title, body: `Episode ${release.episode} has aired.`, url: `/notifications`, tag: release.id })); }
+        try { await webpush.sendNotification({ endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } }, JSON.stringify({ title: release.title, body: release.body, url: `/notifications`, tag: release.id })); }
         catch (error) { const status = (error as { statusCode?: number }).statusCode; if (status === 404 || status === 410) await client.from("push_subscriptions").delete().eq("endpoint", subscription.endpoint); }
       }));
     }
-    return json({ delivered: created.length });
+    return json({ delivered: created.length, checkedRows, scheduledRows, seasonAlerts: seasons.deliveries.length, failedUsers: failedUsers.size });
   } catch (error) { console.error("release-push failed", error instanceof Error ? error.message : "unknown"); return json({ error: "Push delivery failed." }, 500); }
 });
