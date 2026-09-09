@@ -1,31 +1,7 @@
 import { getNextAiringAt } from "../anime/airing";
 import type { TrackedAnime, TrackingStatus } from "../tracker/types";
 
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_RELEASES_PER_CHECK = 100;
-
-function firstScheduledRelease(item: TrackedAnime) {
-  const { startDate } = item.anime;
-  if (!startDate) return undefined;
-  const premiere = new Date(startDate);
-  if (Number.isNaN(premiere.getTime())) return undefined;
-  return getNextAiringAt(
-    item.anime,
-    new Date(premiere.getTime() - 1)
-  );
-}
-
-function scheduledEpisodeNumber(
-  item: TrackedAnime,
-  releasedAt: Date,
-  fallbackOffset: number
-) {
-  const firstBroadcast = firstScheduledRelease(item);
-  if (!firstBroadcast) return item.progress + fallbackOffset + 1;
-  return Math.round(
-    (releasedAt.getTime() - firstBroadcast.getTime()) / WEEK_MS
-  ) + 1;
-}
 
 function isDubbedRelease(item: TrackedAnime) {
   return /\b(?:english\s+)?dub(?:bed)?\b/i.test(
@@ -134,27 +110,17 @@ export function findReleasedAnime(
     for (let offset = 0; offset < MAX_RELEASES_PER_CHECK; offset += 1) {
       const releasedAt = getNextAiringAt(item.anime, cursor);
       if (!releasedAt || releasedAt.getTime() > now.getTime()) break;
-      const episodeNumber = scheduledEpisodeNumber(item, releasedAt, offset);
-      if (item.anime.episodes && episodeNumber > item.anime.episodes) break;
       cursor = new Date(releasedAt.getTime() + 1);
-
-      const watched = item.episodeHistory
-        ? item.episodeHistory.some((entry) => entry.episode === episodeNumber)
-        : item.progress >= episodeNumber;
-      const isFinale = Boolean(
-        item.anime.episodes && episodeNumber === item.anime.episodes
-      );
-      if (watched || (preference === "finale_only" && !isFinale)) continue;
+      if (preference === "finale_only") continue;
 
       notifications.push({
-        id: `${item.anime.id}:episode:${episodeNumber}`,
+        id: `${item.anime.id}:release:${releasedAt.toISOString()}`,
         kind: "episode",
         animeId: item.anime.id,
         title: item.anime.titleEnglish || item.anime.title,
         imageUrl: item.anime.imageUrl,
         releasedAt: releasedAt.toISOString(),
-        trackingStatus: item.status,
-        episodeNumber
+        trackingStatus: item.status
       });
     }
     return notifications;
@@ -170,9 +136,9 @@ export function pruneReleaseNotifications(
     if (notification.kind === "season") {
       return !trackedById.has(notification.animeId);
     }
-    if (!notification.episodeNumber) return false;
     const item = trackedById.get(notification.animeId);
     if (!item || item.status === "dropped" || item.status === "completed") return false;
+    if (!notification.episodeNumber) return true;
     return item.episodeHistory
       ? !item.episodeHistory.some((entry) => entry.episode === notification.episodeNumber)
       : item.progress < notification.episodeNumber;

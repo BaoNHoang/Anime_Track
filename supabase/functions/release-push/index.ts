@@ -208,30 +208,17 @@ function releasedEpisodes(row: TrackedRow, since: Date, now: Date) {
   const item = row.item; const anime = item.anime as Record<string, unknown> | undefined;
   if (!anime || (row.tracking_status !== "watching" && row.tracking_status !== "plan_to_watch")) return [];
   const preference = item.releaseNotificationMode === "finale_only" || item.releaseNotificationMode === "dubbed_only" ? item.releaseNotificationMode : "every_episode";
+  // Without an authoritative schedule, do not claim an episode number or
+  // finale. A generic release notice is more honest and still useful.
+  if (preference === "finale_only") return [];
   if (preference === "dubbed_only" && !/\b(?:english\s+)?dub(?:bed)?\b/i.test(String((anime.broadcast as Record<string, unknown> | undefined)?.label ?? ""))) return [];
-  const start = typeof anime.startDate === "string" ? new Date(anime.startDate) : undefined;
-  const first = start && !Number.isNaN(start.getTime())
-    ? nextAt(anime, new Date(start.getTime() - 1))
-    : undefined;
-  const history = Array.isArray(item.episodeHistory) ? item.episodeHistory : undefined;
-  const progress = Number(item.progress) || 0;
-  const max = Number(anime.episodes) || Infinity;
-  const results: Array<{ id: string; animeId: number; title: string; imageUrl: string; releasedAt: string; episode: number }> = [];
+  const results: Array<{ id: string; animeId: number; title: string; imageUrl: string; releasedAt: string; episode?: number }> = [];
   let cursor = since;
   for (let count = 0; count < 100; count += 1) {
     const release = nextAt(anime, cursor);
     if (!release || release > now) break;
-    // Some currently-airing shows have a broadcast slot before Tenrai has a
-    // reliable premiere date. A weekly slot is still enough to notify; use the
-    // same progress-based numbering fallback as the in-app notification scan.
-    const episode = first
-      ? Math.round((release.getTime() - first.getTime()) / 604800000) + 1
-      : progress + count + 1;
     cursor = new Date(release.getTime() + 1);
-    if (episode > max) break;
-    const watched = history ? history.some((entry) => typeof entry === "object" && entry !== null && (entry as { episode?: unknown }).episode === episode) : progress >= episode;
-    if (watched || (preference === "finale_only" && episode !== max)) continue;
-    results.push({ id: `${anime.id}:episode:${episode}`, animeId: Number(anime.id), title: titleOf(anime), imageUrl: String(anime.imageUrl ?? ""), releasedAt: release.toISOString(), episode });
+    results.push({ id: `${anime.id}:release:${release.toISOString()}`, animeId: Number(anime.id), title: titleOf(anime), imageUrl: String(anime.imageUrl ?? ""), releasedAt: release.toISOString() });
   }
   return results.filter((entry) => Number.isInteger(entry.animeId) && entry.animeId > 0);
 }
@@ -323,11 +310,11 @@ Deno.serve(async (request) => {
         : releasedEpisodes(row, new Date(last), now);
       if (episodes.length) scheduledRows += 1;
       for (const episode of episodes) {
-        const inserted = await client.from("release_notifications").upsert({ user_id: row.user_id, anime_id: episode.animeId, notification_id: episode.id, notification_type: "episode", title: episode.title, image_url: episode.imageUrl, released_at: episode.releasedAt, tracking_status: row.tracking_status, episode_number: episode.episode }, { onConflict: "user_id,notification_id", ignoreDuplicates: true }).select("notification_id");
+        const inserted = await client.from("release_notifications").upsert({ user_id: row.user_id, anime_id: episode.animeId, notification_id: episode.id, notification_type: "episode", title: episode.title, image_url: episode.imageUrl, released_at: episode.releasedAt, tracking_status: row.tracking_status, episode_number: episode.episode ?? null }, { onConflict: "user_id,notification_id", ignoreDuplicates: true }).select("notification_id");
         if (inserted.error) {
           failedUsers.add(row.user_id);
           console.error("release notification upsert failed", { userId: row.user_id, code: inserted.error.code });
-        } else if (inserted.data?.length) created.push({ userId: row.user_id, id: episode.id, title: episode.title, body: `Episode ${episode.episode} has aired.`, animeId: episode.animeId });
+        } else if (inserted.data?.length) created.push({ userId: row.user_id, id: episode.id, title: episode.title, body: episode.episode ? `Episode ${episode.episode} has aired.` : "A new episode has aired.", animeId: episode.animeId });
       }
     }
     const seasons = await createSeasonNotifications(client, trackedRows, cursorByUser, now);
