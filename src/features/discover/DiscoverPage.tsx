@@ -223,7 +223,6 @@ export function DiscoverPage() {
         </div>
       </section>
 
-      <p>Filters apply to the current catalog page. Try another page for more matches. Streaming and dub availability are not supplied by this catalog.</p>
       <section id="discover-results">
         <div className="results-heading">
           <div>

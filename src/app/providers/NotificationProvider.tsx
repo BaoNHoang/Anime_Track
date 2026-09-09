@@ -72,7 +72,6 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       const merged = pruneReleaseNotifications(
         mergeReleaseNotifications(current.notifications, released), itemsRef.current
       );
-      setNotifications(merged);
       const ids = new Set(merged.map((entry) => entry.id));
       const state = configured
         ? await notificationCloudRepository.sync(
