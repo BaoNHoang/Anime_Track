@@ -46,7 +46,7 @@ function isoDate(value: unknown, field: string, allowFuture = true) {
 
 export function notificationId(value: unknown) {
   const id = boundedText(value, "Notification ID", 80);
-  if (!/^(?:\d{1,8}:episode:\d{1,6}|season:\d{1,8}:\d{1,8}|\d{1,8}:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z)$/.test(id)) {
+  if (!/^(?:\d{1,8}:episode:\d{1,6}|\d{1,8}:release:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z|season:\d{1,8}:\d{1,8}|\d{1,8}:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z)$/.test(id)) {
     throw new ApiError(400, "Notification ID is invalid.");
   }
   return id;
@@ -86,15 +86,15 @@ export function notificationSync(value: unknown): {
     }
     const episodeNumber = item.episodeNumber;
     const sourceAnimeId = item.sourceAnimeId;
-    const legacyEpisode = /^\d{1,8}:\d{4}-/.test(id);
+    const genericRelease = /^\d{1,8}:(?:release:)?\d{4}-/.test(id);
     if (
-      kind === "episode" && !legacyEpisode &&
+      kind === "episode" && !genericRelease &&
       (!Number.isInteger(episodeNumber) || Number(episodeNumber) < 1 || Number(episodeNumber) > 100_000)
     ) {
       throw new ApiError(400, "Episode number is invalid.");
     }
     if (
-      kind === "episode" && !legacyEpisode &&
+      kind === "episode" && !genericRelease &&
       id !== `${Number(animeId)}:episode:${Number(episodeNumber)}`
     ) {
       throw new ApiError(400, "Episode notification ID does not match its message.");

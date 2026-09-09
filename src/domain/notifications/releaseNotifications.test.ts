@@ -45,7 +45,7 @@ describe("findReleasedAnime", () => {
       episodeNumber: 2, title: "Test", imageUrl: "", trackingStatus: "watching", releasedAt: "2026-06-11T13:00:00.000Z" };
     expect(pruneReleaseNotifications([message], [item])).toEqual([message]);
   });
-  it("creates an alert when a tracked broadcast passed since the last check", () => {
+  it("creates a generic alert when a tracked broadcast passed since the last check", () => {
     const notifications = findReleasedAnime(
       [tracked()],
       "2026-06-11T12:55:00.000Z",
@@ -56,7 +56,6 @@ describe("findReleasedAnime", () => {
       expect.objectContaining({
         animeId: 42,
         kind: "episode",
-        episodeNumber: 4,
         releasedAt: "2026-06-11T13:00:00.000Z",
         trackingStatus: "watching"
       })
@@ -103,7 +102,7 @@ describe("findReleasedAnime", () => {
     expect(notifications).toHaveLength(1);
   });
 
-  it("notifies finale-only followers when the scheduled finale airs", () => {
+  it("waits for an authoritative schedule before notifying finale-only followers", () => {
     const finaleAnime = {
       ...anime,
       episodes: 2,
@@ -120,12 +119,10 @@ describe("findReleasedAnime", () => {
       new Date("2026-06-11T13:05:00.000Z")
     );
 
-    expect(notifications).toEqual([
-      expect.objectContaining({ episodeNumber: 2 })
-    ]);
+    expect(notifications).toEqual([]);
   });
 
-  it("creates one numbered alert for every episode released while away", () => {
+  it("creates one generic alert for every release while away", () => {
     const scheduled = {
       ...anime,
       episodes: 12,
@@ -138,7 +135,7 @@ describe("findReleasedAnime", () => {
     );
 
     expect(notifications.map((notification) => notification.episodeNumber))
-      .toEqual([6, 7]);
+      .toEqual([undefined, undefined]);
   });
 });
 
@@ -166,6 +163,20 @@ describe("mergeReleaseNotifications", () => {
 });
 
 describe("pruneReleaseNotifications", () => {
+  it("keeps a generic release alert until it is cleared", () => {
+    const notification: ReleaseNotification = {
+      id: "42:release:2026-06-11T13:00:00.000Z",
+      kind: "episode",
+      animeId: 42,
+      title: "Release Test",
+      imageUrl: "",
+      releasedAt: "2026-06-11T13:00:00.000Z",
+      trackingStatus: "watching"
+    };
+
+    expect(pruneReleaseNotifications([notification], [tracked()])).toEqual([notification]);
+  });
+
   it("removes episode alerts once progress reaches that episode", () => {
     const notification = (episodeNumber: number): ReleaseNotification => ({
       id: `42:episode:${episodeNumber}`,
