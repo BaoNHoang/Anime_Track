@@ -20,16 +20,12 @@ export function NotificationsPage() {
     notifications,
     unreadCount,
     error,
-    refresh,
     clearNotification,
     clearAllNotifications
   } = useNotifications();
   const { openAnime } = useAnimePanel();
-  const { getTracked, items } = useTracker();
+  const { getTracked } = useTracker();
   const { configured, user } = useCloudAuth();
-  const missingSchedules = items.filter((item) =>
-    item.status === "watching" && (!item.anime.broadcast?.day || !item.anime.broadcast?.time)
-  ).length;
   const [pushCapability, setPushCapability] = useState<PushCapability>("unsupported");
   const [pushMessage, setPushMessage] = useState<string>();
   const [pushSaving, setPushSaving] = useState(false);
@@ -107,10 +103,7 @@ export function NotificationsPage() {
           {pushMessage && <p className="form-message form-message--error" role="alert">{pushMessage}</p>}
         </div>
       </section>
-      <p>Episode times are estimated from broadcast schedules. Device alerts follow each title’s episode/finale/dub preference.</p>
-      <button className="button button--compact" onClick={() => void refresh()}>Check now</button>
       {error && <p role="alert">{error}</p>}
-      {missingSchedules > 0 && <p>{missingSchedules} watching titles have no broadcast schedule available. They cannot generate scheduled episode alerts.</p>}
 
       {notifications.length > 0 ? (
         <section className="notification-list" aria-label="New anime releases">
