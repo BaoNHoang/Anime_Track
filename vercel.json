@@ -57,7 +57,43 @@
       "destination": "/index.html"
     },
     {
+      "source": "/profile",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/calendar",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/lists",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/recommendations",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/notifications",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/year-in-review",
+      "destination": "/index.html"
+    },
+    {
       "source": "/privacy",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/accessibility",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/sitemap",
       "destination": "/index.html"
     }
   ]
