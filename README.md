@@ -184,11 +184,14 @@ to the browser after registration.
   be cleared with a check action, or all alerts can be cleared together.
 - Each tracked title can use Every episode, Finale only, or Dubbed releases
   only. The preference is stored in that title's validated tracker record and
-  follows the same account sync as episode progress. Finale alerts require a
-  known premiere date, weekly schedule, and episode total. Dubbed-only mode
+  follows the same account sync as episode progress. Account-mode episode
+  alerts use AniList's exact airing timestamp and episode number when its
+  schedule is available, matched through the catalog's MyAnimeList ID. The
+  existing weekly broadcast schedule is used only as a fallback. Finale alerts
+  require a known episode total. Dubbed-only mode
   suppresses original-broadcast alerts and can alert only when the catalog
   explicitly marks a schedule as dubbed.
-- Release checks run when Banime opens, once per minute while it remains open,
+- Release checks run when Banime opens, every 20 seconds while it remains open,
   and when a background tab becomes visible again. Account mode also runs a
   server-side check every 15 minutes for opted-in Web Push devices.
 - In account mode, the notification inbox, clear actions, and release-check
@@ -301,8 +304,11 @@ aggregate. Existing records without a preference default to Every episode.
   requests when switching tabs.
 - Search results and anime details are cached for 30 minutes.
 
-Tenrai broadcast times are weekly schedule estimates. They may differ from the
-time an episode becomes available on a streaming platform.
+Tenrai broadcast times are weekly schedule estimates. For account release
+alerts, Banime prefers AniList's exact broadcast timestamp and episode number;
+the weekly Tenrai slot remains the fallback when AniList has no schedule or is
+temporarily unavailable. Either source can differ from the time an episode
+becomes available on a streaming platform.
 
 ## Caching at a glance
 
