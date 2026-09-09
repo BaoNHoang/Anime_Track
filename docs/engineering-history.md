@@ -2966,6 +2966,16 @@ A future change is complete only when all applicable checks are satisfied:
   Function were verified through the public VAPID-key endpoint. A physical
   browser permission prompt and provider push receipt remain manual tests.
 
+### HIST-0045 - 2026-09-09 - Strengthen cross-device notification reconciliation
+
+- Active signed-in clients now poll the account notification inbox every 20
+  seconds, refresh on browser focus, and immediately reconcile when their
+  service worker receives a release-push message. The inbox remains the single
+  owner-scoped source of truth; no device-local push state can replace it.
+- The service worker now informs open Banime windows about a received push in
+  addition to displaying the system notification. Offline/background devices
+  still reconcile from the same cloud inbox on reconnect.
+
 ## Release History
 
 No formal production release has been recorded.

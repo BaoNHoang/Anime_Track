@@ -25,13 +25,17 @@ self.addEventListener("push", (event) => {
   const title = typeof payload?.title === "string" ? payload.title : "Banime release update";
   const body = typeof payload?.body === "string" ? payload.body : "A title in your library has a new release.";
   const url = typeof payload?.url === "string" && payload.url.startsWith("/") ? payload.url : "/notifications";
-  event.waitUntil(self.registration.showNotification(title, {
-    body,
-    icon: "/icon.svg",
-    badge: "/icon.svg",
-    tag: typeof payload?.tag === "string" ? payload.tag : "banime-release",
-    data: { url }
-  }));
+  event.waitUntil(Promise.all([
+    self.registration.showNotification(title, {
+      body,
+      icon: "/icon.svg",
+      badge: "/icon.svg",
+      tag: typeof payload?.tag === "string" ? payload.tag : "banime-release",
+      data: { url }
+    }),
+    self.clients.matchAll({ type: "window", includeUncontrolled: true })
+      .then((clients) => clients.forEach((client) => client.postMessage({ type: "banime:release-push" })))
+  ]));
 });
 
 self.addEventListener("notificationclick", (event) => {
