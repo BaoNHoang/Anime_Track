@@ -19,7 +19,7 @@ import { NotificationContext } from "./notificationContext";
 import { useCloudAuth } from "./useCloudAuth";
 import { useTracker } from "./useTracker";
 
-const CHECK_INTERVAL_MS = 60 * 1000;
+const CHECK_INTERVAL_MS = 20 * 1000;
 const SEASON_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
 export function NotificationProvider({ children }: PropsWithChildren) {
@@ -151,12 +151,31 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     const checkWhenVisible = () => {
       if (document.visibilityState === "visible") void checkForReleases();
     };
+    const checkWhenFocused = () => void checkForReleases();
     document.addEventListener("visibilitychange", checkWhenVisible);
+    window.addEventListener("focus", checkWhenFocused);
     return () => {
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", checkWhenVisible);
+      window.removeEventListener("focus", checkWhenFocused);
     };
   }, [checkForReleases, isReady, ownerId]);
+
+  useEffect(() => {
+    if (!configured || !ownerId || !("serviceWorker" in navigator)) return;
+    const syncAfterPush = (event: MessageEvent<unknown>) => {
+      if (
+        event.data &&
+        typeof event.data === "object" &&
+        "type" in event.data &&
+        event.data.type === "banime:release-push"
+      ) {
+        void checkForReleases();
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", syncAfterPush);
+    return () => navigator.serviceWorker.removeEventListener("message", syncAfterPush);
+  }, [checkForReleases, configured, ownerId]);
 
   const visibleNotifications = useMemo(
     () => inboxOwner === ownerId ? pruneReleaseNotifications(notifications, items) : [],

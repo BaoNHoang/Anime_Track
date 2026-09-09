@@ -72,6 +72,13 @@ is closed. Turning it off removes only that browser's subscription; other
 devices remain subscribed. Push delivery uses browser provider endpoints, so a
 browser or OS can still delay, group, or suppress alerts.
 
+The release inbox is account-scoped: a new episode message created by the
+background job or any signed-in device is stored once in Supabase and appears
+on every signed-in device. Open clients refresh on a received device push, on
+focus, and every 20 seconds; background or offline devices reconcile when they
+next connect. Clearing an alert or marking its episode watched removes the
+same account message everywhere.
+
 The inbox now loads and syncs episode messages before scanning for sequels.
 Use **Notifications → Check now** to retry; failures are shown on the page.
 The page also reports watching titles without broadcast schedules. Episode
