@@ -25,6 +25,7 @@ import { usePwaInstall } from "../../hooks/usePwaInstall";
 import { useTheme } from "../../app/providers/useTheme";
 import { useTracker } from "../../app/providers/useTracker";
 import { useWatchProvider } from "../../app/providers/useWatchProvider";
+import { getStreamingRegionLabel, STREAMING_REGIONS } from "../../domain/watch/providers";
 import { enrichTrackedAnimeFromTenrai } from "../../services/tenrai/trackerEnrichment";
 
 export function SettingsPage() {
@@ -32,8 +33,7 @@ export function SettingsPage() {
   const { user, updateScoreStep } = useCloudAuth();
   const { canInstall, installed, install, isIos } = usePwaInstall();
   const { theme, setTheme } = useTheme();
-  const { provider, providerId, providers, setProviderId } =
-    useWatchProvider();
+  const { region, setRegion } = useWatchProvider();
   const { lastChecked, intervalMinutes } = useAppUpdateStatus();
   const importInput = useRef<HTMLInputElement>(null);
   const [importMessage, setImportMessage] = useState<{
@@ -284,26 +284,25 @@ export function SettingsPage() {
             <PlayCircle size={22} />
           </span>
           <div className="settings-card__content">
-            <h2>Watch links</h2>
+            <h2>Streaming region</h2>
             <p>
-              Choose where Banime opens "Find on" links from your library and
-              anime detail pages. Banime opens external search or availability
-              pages only; it does not host episodes.
+              Choose the region used to label official availability. Catalog
+              links are provider-supplied; language and catalog access can vary.
             </p>
             <label className="field settings-select">
-              <span>Current provider</span>
+              <span>Viewing availability for</span>
               <select
-                value={providerId}
-                onChange={(event) => setProviderId(event.target.value)}
+                value={region}
+                onChange={(event) => setRegion(event.target.value)}
               >
-                {providers.map((option) => (
-                  <option value={option.id} key={option.id}>
-                    {option.label}
+                {STREAMING_REGIONS.map(([id, label]) => (
+                  <option value={id} key={id}>
+                    {label}
                   </option>
                 ))}
               </select>
             </label>
-            <p className="settings-hint">{provider.note}</p>
+            <p className="settings-hint">Availability displayed for {getStreamingRegionLabel(region)}.</p>
           </div>
         </article>
 

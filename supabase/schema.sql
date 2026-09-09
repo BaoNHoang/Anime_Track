@@ -742,3 +742,89 @@ drop event trigger if exists ensure_rls;
 create event trigger ensure_rls
   on ddl_command_end
   execute function public.rls_auto_enable();
+
+-- Web Push subscriptions are per-account and per-browser endpoint. Subscription
+-- secrets are deliberately never exposed through a public table policy.
+create table if not exists public.push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  endpoint text not null unique,
+  expiration_time bigint,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint push_subscriptions_endpoint_check check (endpoint ~ '^https://'),
+  constraint push_subscriptions_endpoint_length_check check (char_length(endpoint) <= 2048),
+  constraint push_subscriptions_p256dh_length_check check (char_length(p256dh) between 20 and 256),
+  constraint push_subscriptions_auth_length_check check (char_length(auth) between 8 and 128)
+);
+
+create index if not exists push_subscriptions_user_updated_idx
+  on public.push_subscriptions (user_id, updated_at desc);
+
+alter table public.push_subscriptions enable row level security;
+revoke all on public.push_subscriptions from anon;
+grant select, insert, update, delete on public.push_subscriptions to authenticated;
+
+drop policy if exists "Users can read their own push subscriptions" on public.push_subscriptions;
+create policy "Users can read their own push subscriptions" on public.push_subscriptions
+  for select to authenticated using ((select auth.uid()) = user_id);
+drop policy if exists "Users can insert their own push subscriptions" on public.push_subscriptions;
+create policy "Users can insert their own push subscriptions" on public.push_subscriptions
+  for insert to authenticated with check ((select auth.uid()) = user_id);
+drop policy if exists "Users can update their own push subscriptions" on public.push_subscriptions;
+create policy "Users can update their own push subscriptions" on public.push_subscriptions
+  for update to authenticated using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+drop policy if exists "Users can delete their own push subscriptions" on public.push_subscriptions;
+create policy "Users can delete their own push subscriptions" on public.push_subscriptions
+  for delete to authenticated using ((select auth.uid()) = user_id);
+
+create table if not exists public.push_vapid_keys (
+  id boolean primary key default true check (id),
+  public_key text not null,
+  private_key text not null,
+  created_at timestamptz not null default now(),
+  constraint push_vapid_public_length_check check (char_length(public_key) between 20 and 256),
+  constraint push_vapid_private_length_check check (char_length(private_key) between 20 and 256)
+);
+alter table public.push_vapid_keys enable row level security;
+revoke all on public.push_vapid_keys from public, anon, authenticated;
+drop policy if exists "Service role can manage VAPID keys" on public.push_vapid_keys;
+create policy "Service role can manage VAPID keys" on public.push_vapid_keys
+  for all to service_role using (true) with check (true);
+
+create table if not exists public.push_delivery_settings (
+  id boolean primary key default true check (id),
+  job_secret text not null default encode(gen_random_bytes(32), 'hex'),
+  created_at timestamptz not null default now(),
+  constraint push_delivery_secret_length_check check (char_length(job_secret) = 64)
+);
+insert into public.push_delivery_settings (id) values (true) on conflict (id) do nothing;
+alter table public.push_delivery_settings enable row level security;
+revoke all on public.push_delivery_settings from public, anon, authenticated;
+drop policy if exists "Service role can read push delivery settings" on public.push_delivery_settings;
+create policy "Service role can read push delivery settings" on public.push_delivery_settings
+  for select to service_role using (true);
+
+-- The scheduled caller includes a database-only random header. The Edge
+-- Function verifies the same header before reading subscriptions or sending.
+create extension if not exists pg_net;
+create extension if not exists pg_cron;
+select cron.unschedule(jobid) from cron.job where jobname = 'banime-release-push';
+select cron.schedule(
+  'banime-release-push',
+  '*/15 * * * *',
+  $$
+    select net.http_post(
+      url := 'https://wzbboqtbczveyalkzibb.supabase.co/functions/v1/release-push',
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'x-banime-push-job', (select job_secret from public.push_delivery_settings where id = true)
+      ),
+      body := '{}'::jsonb,
+      timeout_milliseconds := 10000
+    );
+  $$
+);

@@ -34,11 +34,15 @@ search the catalog; maintain an ordered set of profile favorites; update
 individual episode progress and optional watch dates; and occasionally import
 a MyAnimeList XML export. Active titles return to a compact Continue watching
 queue on Home with the next unwatched episode identified.
+They can also open catalog-supplied legal streaming destinations for a selected
+region and opt individual browsers into account-level release alerts.
 
 ## Capabilities and Constraints
 
 - React and TypeScript PWA using ordinary CSS and a Banime-owned SVG icon set.
 - Tenrai provides read-only catalog and news data.
+- Streaming links are catalog-supplied official destinations. Provider catalog
+  access, territories, and sub/dub support must not be guessed by Banime.
 - Profile favorites are bounded local data with optional authenticated sync.
 - Cloud accounts support phishing-resistant passkey sign-in and controls to
   remove enrolled passkeys or revoke every other device session.
@@ -64,6 +68,8 @@ available.
 - Let anime artwork create atmosphere without obscuring controls or content.
 - Keep the interface useful with unreliable catalog data and offline shell
   access.
+- Treat device notification permission as a per-browser choice while keeping
+  the underlying unread release inbox consistent per account.
 - Preserve clear theme choice and comfortable use across screen sizes.
 
 ## Accessibility & Inclusion

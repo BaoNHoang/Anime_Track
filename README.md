@@ -5,8 +5,8 @@ Anime data comes from the Tenrai v1 API. Tracking is local-first and can
 optionally sync across devices through Supabase.
 
 Tenrai v1 follows the Jikan v4 response schema for the endpoints Banime uses.
-Tenrai does not provide Jikan's `/watch` endpoints, so Banime builds its
-trailer feed from trailer metadata on current-season anime records.
+Full title records include catalog-supplied official streaming links; Banime
+does not scrape providers or host episodes.
 
 ## Documentation map
 
@@ -33,8 +33,7 @@ trailer feed from trailer metadata on current-season anime records.
   removing the last member removes the list. Limit: 50 lists per title.
 - **Discover** adds year, season, studio, maximum episode count, and hiding
   already tracked titles to existing filters. These filters apply to the
-  current catalog page. The catalog does not supply reliable streaming-region
-  or dubbed-episode availability.
+  current catalog page.
 - **For you** ranks popular and current-season candidates using watch history,
   personal scores, and favorite studios, with a reason for each result. Low
   ratings and dropped titles reduce affinity. Use **More suggestions** to
@@ -57,20 +56,37 @@ trailer feed from trailer metadata on current-season anime records.
 - Offline notifications display the last saved inbox. Clearing account
   notifications and receiving new announcements require a connection.
 
-### Notification troubleshooting
+### Streaming availability and notification troubleshooting
+
+Every title drawer has a **Where to watch** section populated only from the
+catalog's official provider URLs. Set a viewing region in **Settings**; it
+labels the availability context but does not override the provider's own
+territory, subscription, subtitle, or dub catalog. Banime shows audio details
+only when a provider/catalog supplies them, so it never guesses sub/dub access.
+
+On a supported HTTPS browser, choose **Notifications → Enable device
+notifications** to subscribe that browser or installed app. A Supabase job
+checks tracked airing titles every 15 minutes and sends a real Web Push alert
+for each newly inferred, unwatched numbered episode. It continues when Banime
+is closed. Turning it off removes only that browser's subscription; other
+devices remain subscribed. Push delivery uses browser provider endpoints, so a
+browser or OS can still delay, group, or suppress alerts.
 
 The inbox now loads and syncs episode messages before scanning for sequels.
 Use **Notifications → Check now** to retry; failures are shown on the page.
 The page also reports watching titles without broadcast schedules. Episode
-alerts use saved premiere/broadcast metadata and cannot confirm actual release
-or dub availability. The first check establishes a baseline. Subsequent checks
-run every minute while the app is open; this is not background push delivery.
+alerts use saved premiere/broadcast metadata and cannot confirm an actual
+release or dub availability. The first check establishes a baseline. Subsequent
+in-app checks run every minute while the app is open, while the account job
+handles background device delivery.
 Upcoming-season discovery processes rotating batches of 25 titles every five
 minutes. Large libraries can take multiple visits to scan completely.
 
 The existing notification schema from the prior release is still required.
-This update adds no tables or columns: custom lists live inside the existing
-validated tracked-anime JSON records.
+Custom lists live inside the existing validated tracked-anime JSON records.
+Account-mode push adds an owner-scoped subscription table plus private server
+VAPID and scheduler records; subscription encryption keys are never returned
+to the browser after registration.
 
 ### Home and anime discovery
 
@@ -83,8 +99,8 @@ validated tracked-anime JSON records.
 - Search and discovery results remain cached between page changes. Previously
   visited pages can be revisited without immediately downloading the same data.
 - Anime details open in an overlay drawer without shifting the page behind it.
-  The drawer shows catalog metadata, synopsis, trailer availability, tracking
-  controls, favorites, and the configured external watch-search action.
+  The drawer shows catalog metadata, synopsis, official streaming availability,
+  trailer availability, tracking controls, and favorites.
 - The header provides catalog search and a shuffle action that opens a random
   currently airing title.
 - News uses equal-weight article cards and links to the original publisher.
@@ -108,8 +124,8 @@ validated tracked-anime JSON records.
 - Large libraries are displayed 60 titles at a time. Changing a rating does not
   immediately reorder the visible Recently updated list and move the title away
   while the user is editing it.
-- Library and detail pages can open a configurable third-party search or
-  availability provider. Banime does not host, stream, or embed episodes.
+- Detail pages link only to catalog-supplied official streaming providers.
+  Banime does not host, stream, or embed episodes.
 
 ### Personal recommendations
 
@@ -166,13 +182,14 @@ validated tracked-anime JSON records.
   suppresses original-broadcast alerts and can alert only when the catalog
   explicitly marks a schedule as dubbed.
 - Release checks run when Banime opens, once per minute while it remains open,
-  and when a background tab becomes visible again.
+  and when a background tab becomes visible again. Account mode also runs a
+  server-side check every 15 minutes for opted-in Web Push devices.
 - In account mode, the notification inbox, clear actions, and release-check
   cursor are synchronized through owner-scoped Supabase rows, so the same user
   sees a consistent inbox on every signed-in device. Local-only mode keeps the
-  inbox in that browser. These are not operating-system push notifications and
-  do not run while the app is fully closed. Broadcast schedules can also differ
-  from streaming availability. Episode numbers are inferred from the stored
+  inbox in that browser. When enabled per device, account-mode Web Push works
+  while the app is closed. Broadcast schedules can also differ from streaming
+  availability. Episode numbers are inferred from the stored
   premiere and weekly broadcast schedule, so an unreported delay or hiatus can
   temporarily make the displayed number inaccurate until catalog data changes.
 

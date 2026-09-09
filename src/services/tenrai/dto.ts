@@ -38,6 +38,7 @@ export interface TenraiAnimeDto {
   } | null;
   genres?: Array<{ name: string }>;
   studios?: Array<{ name: string }>;
+  streaming?: Array<{ name: string; url: string }>;
 }
 
 export interface TenraiPagination {
