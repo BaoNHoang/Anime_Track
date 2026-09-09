@@ -68,7 +68,12 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       if (activeOwnerRef.current !== ownerId) return;
       setInboxOwner(ownerId);
       const now = new Date();
-      const released = findReleasedAnime(itemsRef.current, current.lastCheckedAt, now);
+      // Account notifications come from the scheduled worker, which uses
+      // AniList's exact episode timestamp when available. Local-only mode has
+      // no server worker, so it retains the broadcast-slot fallback.
+      const released = configured
+        ? []
+        : findReleasedAnime(itemsRef.current, current.lastCheckedAt, now);
       const merged = pruneReleaseNotifications(
         mergeReleaseNotifications(current.notifications, released), itemsRef.current
       );

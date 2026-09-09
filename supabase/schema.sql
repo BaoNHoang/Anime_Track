@@ -795,6 +795,22 @@ drop policy if exists "Service role can manage VAPID keys" on public.push_vapid_
 create policy "Service role can manage VAPID keys" on public.push_vapid_keys
   for all to service_role using (true) with check (true);
 
+-- AniList IDs are resolved from the catalog's existing MyAnimeList IDs. This
+-- private cache lets the release worker query exact airing timestamps without
+-- exposing provider identifiers through the browser data API.
+create table if not exists public.anime_airing_sources (
+  mal_id integer primary key,
+  anilist_id integer not null unique,
+  resolved_at timestamptz not null default now(),
+  constraint anime_airing_sources_mal_id_check check (mal_id > 0 and mal_id <= 10000000),
+  constraint anime_airing_sources_anilist_id_check check (anilist_id > 0 and anilist_id <= 10000000)
+);
+alter table public.anime_airing_sources enable row level security;
+revoke all on public.anime_airing_sources from public, anon, authenticated;
+drop policy if exists "Service role can manage AniList airing sources" on public.anime_airing_sources;
+create policy "Service role can manage AniList airing sources" on public.anime_airing_sources
+  for all to service_role using (true) with check (true);
+
 create table if not exists public.push_delivery_settings (
   id boolean primary key default true check (id),
   job_secret text not null default encode(gen_random_bytes(32), 'hex'),

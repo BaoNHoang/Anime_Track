@@ -6,6 +6,8 @@ type TrackedRow = { user_id: string; item: Record<string, unknown>; tracking_sta
 type Cursor = { user_id: string; last_checked_at: string; seen_season_ids?: unknown };
 type Subscription = { endpoint: string; p256dh: string; auth: string };
 type Delivery = { userId: string; id: string; title: string; body: string; animeId: number };
+type AniListMapping = { mal_id: number; anilist_id: number };
+type ExactEpisode = { episode: number; releasedAt: string };
 
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });
 const titleOf = (anime: Record<string, unknown>) => String(anime.titleEnglish || anime.title || "Anime");
@@ -33,6 +35,72 @@ async function tenrai(path: string) {
   });
   if (!response.ok) throw new Error(`Tenrai returned ${response.status}`);
   return await response.json() as { data?: unknown };
+}
+
+async function aniList<T>(query: string, variables: Record<string, unknown>) {
+  const response = await fetch("https://graphql.anilist.co", {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ query, variables }),
+    signal: AbortSignal.timeout(10_000)
+  });
+  if (!response.ok) throw new Error(`AniList returned ${response.status}`);
+  const result = await response.json() as { data?: T; errors?: Array<{ message?: string }> };
+  if (!result.data || result.errors?.length) throw new Error(result.errors?.[0]?.message ?? "AniList returned no data");
+  return result.data;
+}
+
+function chunk<T>(values: T[], size: number) {
+  return Array.from({ length: Math.ceil(values.length / size) }, (_, index) => values.slice(index * size, (index + 1) * size));
+}
+
+async function exactAiringEpisodes(
+  client: ReturnType<typeof createClient>,
+  malIds: number[],
+  since: Date,
+  now: Date
+) {
+  const ids = [...new Set(malIds.filter((id) => Number.isInteger(id) && id > 0 && id <= 10_000_000))];
+  if (!ids.length) return new Map<number, ExactEpisode[]>();
+  const known: AniListMapping[] = [];
+  for (const idsPage of chunk(ids, 500)) {
+    const result = await client.from("anime_airing_sources").select("mal_id,anilist_id").in("mal_id", idsPage);
+    if (result.error) throw result.error;
+    known.push(...(result.data as AniListMapping[]));
+  }
+  const knownMalIds = new Set(known.map((entry) => entry.mal_id));
+  const missing = ids.filter((id) => !knownMalIds.has(id));
+  // Resolve a bounded number of new mappings per delivery pass. Until a title
+  // is resolved, the existing broadcast-slot fallback continues to protect it.
+  for (const idsPage of chunk(missing, 50).slice(0, 5)) {
+    const data = await aniList<{ Page?: { media?: Array<{ id?: number; idMal?: number }> } }>(
+      "query ($ids: [Int]) { Page(page: 1, perPage: 50) { media(idMal_in: $ids, type: ANIME) { id idMal } } }",
+      { ids: idsPage }
+    );
+    const resolved = (data.Page?.media ?? [])
+      .filter((entry): entry is { id: number; idMal: number } => Number.isInteger(entry.id) && Number.isInteger(entry.idMal))
+      .map((entry) => ({ mal_id: entry.idMal, anilist_id: entry.id }));
+    if (resolved.length) {
+      const saved = await client.from("anime_airing_sources").upsert(resolved, { onConflict: "mal_id" });
+      if (saved.error) throw saved.error;
+      known.push(...resolved);
+    }
+  }
+  if (!known.length) return new Map<number, ExactEpisode[]>();
+  const byAniListId = new Map(known.map((entry) => [entry.anilist_id, entry.mal_id]));
+  const data = await aniList<{ Page?: { airingSchedules?: Array<{ mediaId?: number; episode?: number; airingAt?: number }> } }>(
+    "query ($ids: [Int], $after: Int, $before: Int) { Page(page: 1, perPage: 50) { airingSchedules(mediaId_in: $ids, airingAt_greater: $after, airingAt_lesser: $before, sort: TIME) { mediaId episode airingAt } } }",
+    { ids: [...byAniListId.keys()], after: Math.floor(since.getTime() / 1000), before: Math.floor(now.getTime() / 1000) }
+  );
+  const episodes = new Map<number, ExactEpisode[]>();
+  for (const entry of data.Page?.airingSchedules ?? []) {
+    const malId = Number.isInteger(entry.mediaId) ? byAniListId.get(entry.mediaId) : undefined;
+    if (!malId || !Number.isInteger(entry.episode) || !Number.isInteger(entry.airingAt) || entry.episode < 1) continue;
+    const releasedAt = new Date(entry.airingAt * 1000);
+    if (Number.isNaN(releasedAt.getTime())) continue;
+    episodes.set(malId, [...(episodes.get(malId) ?? []), { episode: entry.episode, releasedAt: releasedAt.toISOString() }]);
+  }
+  return episodes;
 }
 
 function seenSeasonIds(value: unknown) {
@@ -168,6 +236,28 @@ function releasedEpisodes(row: TrackedRow, since: Date, now: Date) {
   return results.filter((entry) => Number.isInteger(entry.animeId) && entry.animeId > 0);
 }
 
+function exactReleasedEpisodes(row: TrackedRow, episodes: ExactEpisode[]) {
+  const item = row.item;
+  const anime = item.anime as Record<string, unknown> | undefined;
+  if (!anime || (row.tracking_status !== "watching" && row.tracking_status !== "plan_to_watch")) return [];
+  const preference = item.releaseNotificationMode === "finale_only" || item.releaseNotificationMode === "dubbed_only" ? item.releaseNotificationMode : "every_episode";
+  // AniList schedules original broadcasts. Preserve the dedicated dubbed
+  // preference behavior until an exact dubbed-release source is available.
+  if (preference === "dubbed_only") return [];
+  const history = Array.isArray(item.episodeHistory) ? item.episodeHistory : undefined;
+  const progress = Number(item.progress) || 0;
+  const max = Number(anime.episodes) || Infinity;
+  const animeId = Number(anime.id);
+  return episodes
+    .filter((entry) => entry.episode <= max)
+    .filter((entry) => {
+      const watched = history ? history.some((watch) => typeof watch === "object" && watch !== null && (watch as { episode?: unknown }).episode === entry.episode) : progress >= entry.episode;
+      return !watched && (preference !== "finale_only" || entry.episode === max);
+    })
+    .map((entry) => ({ id: `${animeId}:episode:${entry.episode}`, animeId, title: titleOf(anime), imageUrl: String(anime.imageUrl ?? ""), releasedAt: entry.releasedAt, episode: entry.episode }))
+    .filter((entry) => Number.isInteger(entry.animeId) && entry.animeId > 0);
+}
+
 async function vapid(client: ReturnType<typeof createClient>) {
   const existing = await client.from("push_vapid_keys").select("public_key,private_key").eq("id", true).maybeSingle();
   if (existing.data) return { publicKey: existing.data.public_key, privateKey: existing.data.private_key };
@@ -200,11 +290,37 @@ Deno.serve(async (request) => {
     const failedUsers = new Set<string>();
     let checkedRows = 0;
     let scheduledRows = 0;
+    const activeRows = trackedRows.filter((row) => row.tracking_status === "watching" || row.tracking_status === "plan_to_watch");
+    const earliestCursor = activeRows
+      .map((row) => cursorByUser.get(row.user_id)?.last_checked_at)
+      .filter((value): value is string => Boolean(value))
+      .map((value) => new Date(value))
+      .filter((value) => !Number.isNaN(value.getTime()))
+      .sort((left, right) => left.getTime() - right.getTime())[0];
+    let exactByMalId = new Map<number, ExactEpisode[]>();
+    if (earliestCursor) {
+      try {
+        exactByMalId = await exactAiringEpisodes(
+          client,
+          activeRows.map((row) => Number((row.item.anime as Record<string, unknown> | undefined)?.id)),
+          earliestCursor,
+          now
+        );
+      } catch (error) {
+        // Exact schedules are an enhancement, not a single point of failure.
+        // The established broadcast calculation remains available on outages.
+        console.error("AniList airing lookup failed", error instanceof Error ? error.message : "unknown");
+      }
+    }
     for (const row of trackedRows) {
       const cursor = cursorByUser.get(row.user_id); if (!cursor) continue;
       const last = cursor.last_checked_at;
       checkedRows += 1;
-      const episodes = releasedEpisodes(row, new Date(last), now);
+      const animeId = Number((row.item.anime as Record<string, unknown> | undefined)?.id);
+      const exact = exactByMalId.get(animeId) ?? [];
+      const episodes = exact.length
+        ? exactReleasedEpisodes(row, exact)
+        : releasedEpisodes(row, new Date(last), now);
       if (episodes.length) scheduledRows += 1;
       for (const episode of episodes) {
         const inserted = await client.from("release_notifications").upsert({ user_id: row.user_id, anime_id: episode.animeId, notification_id: episode.id, notification_type: "episode", title: episode.title, image_url: episode.imageUrl, released_at: episode.releasedAt, tracking_status: row.tracking_status, episode_number: episode.episode }, { onConflict: "user_id,notification_id", ignoreDuplicates: true }).select("notification_id");
