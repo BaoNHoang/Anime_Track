@@ -1,53 +1,35 @@
-import {
-  useCallback,
-  useMemo,
-  useState,
-  type PropsWithChildren
-} from "react";
-import type { Anime } from "../../domain/anime/types";
-import {
-  buildWatchSearchUrl,
-  DEFAULT_WATCH_PROVIDER_ID,
-  getWatchProvider,
-  WATCH_PROVIDERS
-} from "../../domain/watch/providers";
+import { useCallback, useMemo, useState, type PropsWithChildren } from "react";
+import { DEFAULT_STREAMING_REGION, STREAMING_REGIONS } from "../../domain/watch/providers";
 import { WatchProviderContext } from "./watchProviderContext";
 
-const WATCH_PROVIDER_KEY = "banime:watch-provider:v2";
+const STREAMING_REGION_KEY = "banime:streaming-region:v1";
 
-function getInitialProviderId() {
+function getInitialRegion() {
   try {
-    const savedProviderId = window.localStorage.getItem(WATCH_PROVIDER_KEY);
-    return getWatchProvider(savedProviderId ?? undefined).id;
+    const saved = window.localStorage.getItem(STREAMING_REGION_KEY);
+    return STREAMING_REGIONS.some(([id]) => id === saved)
+      ? saved as string
+      : DEFAULT_STREAMING_REGION;
   } catch {
-    return DEFAULT_WATCH_PROVIDER_ID;
+    return DEFAULT_STREAMING_REGION;
   }
 }
 
 export function WatchProvider({ children }: PropsWithChildren) {
-  const [providerId, setProviderIdState] = useState(getInitialProviderId);
-  const provider = getWatchProvider(providerId);
+  const [region, setRegionState] = useState(getInitialRegion);
 
-  const setProviderId = useCallback((nextProviderId: string) => {
-    const nextProvider = getWatchProvider(nextProviderId);
-    setProviderIdState(nextProvider.id);
-    window.localStorage.setItem(WATCH_PROVIDER_KEY, nextProvider.id);
+  const setRegion = useCallback((nextRegion: string) => {
+    if (!STREAMING_REGIONS.some(([id]) => id === nextRegion)) return;
+    setRegionState(nextRegion);
+    window.localStorage.setItem(STREAMING_REGION_KEY, nextRegion);
   }, []);
-
-  const getWatchUrl = useCallback(
-    (anime: Anime) => buildWatchSearchUrl(providerId, anime),
-    [providerId]
-  );
 
   const value = useMemo(
     () => ({
-      providerId: provider.id,
-      provider,
-      providers: WATCH_PROVIDERS,
-      setProviderId,
-      getWatchUrl
+      region,
+      setRegion
     }),
-    [getWatchUrl, provider, setProviderId]
+    [region, setRegion]
   );
 
   return (

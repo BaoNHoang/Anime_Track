@@ -2946,6 +2946,26 @@ A future change is complete only when all applicable checks are satisfied:
   timezone tests, checklist pruning, and browser list creation/rename/reload.
   Live two-device authentication and sync remains a manual verification gap.
 
+### HIST-0044 - 2026-09-08 - Add official streaming availability and Web Push
+
+- Replaced the old mixed provider-search selector, including its non-official
+  destination, with catalog-supplied streaming provider links on title drawers.
+  A device-local region selector supplies viewing context without claiming an
+  entitlement or inventing subtitle/dub tracks that the catalog does not have.
+- Added a service-worker push handler, device permission control, bounded
+  subscription validation API, and owner-scoped RLS subscription table. Each
+  subscription belongs to exactly one authenticated account and can be removed
+  by that account; stale 404/410 endpoints are deleted by the sender.
+- Added a private VAPID key record, private scheduled-job secret, Supabase Edge
+  delivery function, and 15-minute pg_cron/pg_net job. The job creates stable
+  numbered episode alerts from stored schedules, applies each title's existing
+  release preference, syncs the account cursor, and sends only newly inserted
+  alerts to opted-in endpoints.
+- Verification: lint, API typecheck, all 148 tests across 45 files, and
+  production PWA build passed. The production schema migration and active Edge
+  Function were verified through the public VAPID-key endpoint. A physical
+  browser permission prompt and provider push receipt remain manual tests.
+
 ## Release History
 
 No formal production release has been recorded.

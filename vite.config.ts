@@ -8,19 +8,10 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["icon.svg"],
-      workbox: {
-        navigateFallbackDenylist: [/^\/api\//],
-        runtimeCaching: [{
-          urlPattern: /^https:\/\/api\.tenrai\.org\/v1\//,
-          handler: "NetworkFirst",
-          options: {
-            cacheName: "banime-catalog-v1",
-            networkTimeoutSeconds: 3,
-            expiration: { maxEntries: 120, maxAgeSeconds: 7 * 24 * 60 * 60 },
-            cacheableResponse: { statuses: [200] }
-          }
-        }]
-      },
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
+      injectManifest: { globPatterns: ["**/*.{js,css,html,svg,webp}"] },
       manifest: {
         name: "Banime",
         short_name: "Banime",

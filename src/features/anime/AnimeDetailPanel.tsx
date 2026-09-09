@@ -22,6 +22,7 @@ import { useAnimeDetails } from "../../hooks/useAnimeQueries";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useTracker } from "../../app/providers/useTracker";
 import { useWatchProvider } from "../../app/providers/useWatchProvider";
+import { getStreamingRegionLabel } from "../../domain/watch/providers";
 import { useAuthPrompt } from "../../app/providers/useAuthPrompt";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { useLocalProfile } from "../../hooks/useLocalProfile";
@@ -48,7 +49,7 @@ export function AnimeDetailPanel() {
   const { requestSignIn } = useAuthPrompt();
   const { configured, user, updateFavorites } = useCloudAuth();
   const { profile: localProfile, updateProfile } = useLocalProfile();
-  const { provider, getWatchUrl } = useWatchProvider();
+  const { region } = useWatchProvider();
   const tracked = anime ? getTracked(anime.id) : undefined;
   const scoreStep = user?.scoreStep ?? 0.5;
   const [scoreDraft, setScoreDraft] = useState<{
@@ -64,7 +65,6 @@ export function AnimeDetailPanel() {
       ? scoreDraft.value
       : tracked?.userScore?.toString() ?? "";
   const nextAiring = anime ? formatNextAiring(anime) : undefined;
-  const watchUrl = anime ? getWatchUrl(anime) : "";
   const favorites = user?.favorites ?? localProfile.favorites;
   const isFavorite = anime
     ? favorites.anime.some((item) => item.id === anime.id)
@@ -222,6 +222,28 @@ export function AnimeDetailPanel() {
           <section>
             <h3>Synopsis</h3>
             <p className="synopsis">{anime.synopsis}</p>
+          </section>
+
+          <section className="streaming-availability" aria-labelledby="streaming-title">
+            <div className="streaming-availability__heading">
+              <div>
+                <h3 id="streaming-title">Where to watch</h3>
+                <p>Official provider links for {getStreamingRegionLabel(region)}.</p>
+              </div>
+              <span>Legal sources</span>
+            </div>
+            {anime.streaming?.length ? (
+              <div className="streaming-availability__services">
+                {anime.streaming.map((service) => (
+                  <a key={service.url} href={service.url} target="_blank" rel="noreferrer">
+                    <span><strong>{service.provider}</strong><small>{service.audio === "sub_and_dub" ? "Subtitles and dub listed" : service.audio === "sub" ? "Subtitles listed" : service.audio === "dub" ? "Dub listed" : "Catalog listing · availability can vary by region"}</small></span>
+                    <ExternalLink size={16} />
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p className="streaming-availability__empty">No official streaming provider was supplied for this title. Availability and sub/dub tracks can differ by provider and region.</p>
+            )}
           </section>
 
           {tracked ? (
@@ -414,11 +436,6 @@ export function AnimeDetailPanel() {
           )}
 
           <div className="detail-panel__links">
-            {watchUrl && (
-              <a href={watchUrl} target="_blank" rel="noreferrer">
-                <ExternalLink size={16} /> Find on {provider.label}
-              </a>
-            )}
             {anime.trailerUrl && (
               <a href={anime.trailerUrl} target="_blank" rel="noreferrer">
                 <Play size={16} /> Trailer

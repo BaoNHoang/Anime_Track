@@ -1,8 +1,11 @@
-import { Bell, Check, CheckCircle2 } from "../../components/OwnedIcons";
+import { Bell, Check, CheckCircle2, Smartphone } from "../../components/OwnedIcons";
+import { useEffect, useState } from "react";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useNotifications } from "../../app/providers/useNotifications";
 import { useTracker } from "../../app/providers/useTracker";
+import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import type { ReleaseNotification } from "../../domain/notifications/releaseNotifications";
+import { disablePushNotifications, enablePushNotifications, getPushCapability, type PushCapability } from "../../services/push/pushSubscription";
 
 const releaseTimeFormatter = new Intl.DateTimeFormat(undefined, {
   weekday: "short",
@@ -23,9 +26,37 @@ export function NotificationsPage() {
   } = useNotifications();
   const { openAnime } = useAnimePanel();
   const { getTracked, items } = useTracker();
+  const { configured, user } = useCloudAuth();
   const missingSchedules = items.filter((item) =>
     item.status === "watching" && (!item.anime.broadcast?.day || !item.anime.broadcast?.time)
   ).length;
+  const [pushCapability, setPushCapability] = useState<PushCapability>("unsupported");
+  const [pushMessage, setPushMessage] = useState<string>();
+  const [pushSaving, setPushSaving] = useState(false);
+
+  useEffect(() => {
+    void getPushCapability().then(setPushCapability).catch(() => setPushCapability("unsupported"));
+  }, []);
+
+  const updatePush = async () => {
+    if (!user) return;
+    setPushSaving(true);
+    setPushMessage(undefined);
+    try {
+      if (pushCapability === "enabled") {
+        await disablePushNotifications(user.id);
+        setPushCapability(await getPushCapability());
+      } else {
+        await enablePushNotifications(user.id);
+        setPushCapability(await getPushCapability());
+      }
+    } catch (failure) {
+      setPushMessage(failure instanceof Error ? failure.message : "Push notifications could not be updated.");
+      setPushCapability(await getPushCapability().catch((): PushCapability => "unsupported"));
+    } finally {
+      setPushSaving(false);
+    }
+  };
 
   const openNotificationAnime = (notification: ReleaseNotification) => {
     const tracked = getTracked(notification.animeId);
@@ -67,7 +98,16 @@ export function NotificationsPage() {
           </button>
         )}
       </header>
-      <p>Checked while Banime is open. Episode times are estimated from broadcast schedules.</p>
+      <section className="push-control" aria-labelledby="push-title">
+        <span className="push-control__icon"><Smartphone size={19} /></span>
+        <div>
+          <h2 id="push-title">Device notifications</h2>
+          <p>{!configured ? "Device notifications require a Banime account because subscriptions follow your account across devices." : pushCapability === "enabled" ? "This browser receives episode and new-season alerts, even when Banime is closed." : pushCapability === "denied" ? "Browser notifications are blocked for Banime. Change the site permission in your browser settings to enable them." : pushCapability === "unsupported" ? "This browser does not support web push notifications." : "Get release alerts on this browser or installed Banime app, even while it is closed."}</p>
+          {configured && user && pushCapability !== "unsupported" && pushCapability !== "denied" && <button className="button button--compact" type="button" onClick={() => void updatePush()} disabled={pushSaving}>{pushSaving ? "Saving…" : pushCapability === "enabled" ? "Turn off on this device" : "Enable device notifications"}</button>}
+          {pushMessage && <p className="form-message form-message--error" role="alert">{pushMessage}</p>}
+        </div>
+      </section>
+      <p>Episode times are estimated from broadcast schedules. Device alerts follow each title’s episode/finale/dub preference.</p>
       <button className="button button--compact" onClick={() => void refresh()}>Check now</button>
       {error && <p role="alert">{error}</p>}
       {missingSchedules > 0 && <p>{missingSchedules} watching titles have no broadcast schedule available. They cannot generate scheduled episode alerts.</p>}
