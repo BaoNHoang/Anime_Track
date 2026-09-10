@@ -3,6 +3,11 @@ import type { TrackedAnime, TrackingStatus } from "../tracker/types";
 
 const MAX_RELEASES_PER_CHECK = 100;
 
+// A cursor can be absent on a first visit, after browser storage is cleared, or
+// before an account's notification state has been initialized. Recover recent
+// releases in those cases, without flooding the inbox with older episodes.
+const INITIAL_RELEASE_LOOKBACK_MS = 24 * 60 * 60 * 1000;
+
 function isDubbedRelease(item: TrackedAnime) {
   return /\b(?:english\s+)?dub(?:bed)?\b/i.test(
     item.anime.broadcast?.label ?? ""
@@ -87,9 +92,9 @@ export function findReleasedAnime(
   lastCheckedAt: string | undefined,
   now = new Date()
 ): ReleaseNotification[] {
-  if (!lastCheckedAt) return [];
-
-  const previousCheck = new Date(lastCheckedAt);
+  const previousCheck = lastCheckedAt
+    ? new Date(lastCheckedAt)
+    : new Date(now.getTime() - INITIAL_RELEASE_LOOKBACK_MS);
   if (
     Number.isNaN(previousCheck.getTime()) ||
     previousCheck.getTime() >= now.getTime()
