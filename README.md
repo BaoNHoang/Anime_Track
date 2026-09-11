@@ -41,8 +41,7 @@ does not scrape providers or host episodes.
 - **Settings** imports MyAnimeList XML and Banime JSON/CSV, and exports JSON
   or CSV. Banime CSV includes a full `record_json` column to retain checklist
   history, dates, preferences, and custom lists. Its summary columns are for
-  reading in a spreadsheet; importing uses `record_json`. Direct AniList
-  imports are not implemented.
+  reading in a spreadsheet; importing uses `record_json`.
 - After opening the app online, the installed app shell and previously cached
   catalog responses can be used offline. A previously signed-in account can
   reopen its saved library while offline. Local account display data is not an
@@ -184,11 +183,9 @@ to the browser after registration.
   be cleared with a check action, or all alerts can be cleared together.
 - Each tracked title can use Every episode, Finale only, or Dubbed releases
   only. The preference is stored in that title's validated tracker record and
-  follows the same account sync as episode progress. Account-mode episode
-  alerts use AniList's exact airing timestamp and episode number when its
-  schedule is available, matched through the catalog's MyAnimeList ID. The
-  existing weekly broadcast schedule is used only as a fallback. Finale alerts
-  require a known episode total. Dubbed-only mode
+  follows the same account sync as episode progress. Episode alerts use the
+  catalog's weekly broadcast schedule. Finale alerts require a known episode
+  total. Dubbed-only mode
   suppresses original-broadcast alerts and can alert only when the catalog
   explicitly marks a schedule as dubbed.
 - Release checks run when Banime opens, every 20 seconds while it remains open,
@@ -304,11 +301,8 @@ aggregate. Existing records without a preference default to Every episode.
   requests when switching tabs.
 - Search results and anime details are cached for 30 minutes.
 
-Tenrai broadcast times are weekly schedule estimates. For account release
-alerts, Banime prefers AniList's exact broadcast timestamp and episode number;
-the weekly Tenrai slot remains the fallback when AniList has no schedule or is
-temporarily unavailable. Either source can differ from the time an episode
-becomes available on a streaming platform.
+Tenrai broadcast times are weekly schedule estimates and can differ from the
+time an episode becomes available on a streaming platform.
 
 ## Caching at a glance
 

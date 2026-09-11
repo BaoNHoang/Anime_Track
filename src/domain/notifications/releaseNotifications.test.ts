@@ -62,8 +62,29 @@ describe("findReleasedAnime", () => {
     ]);
   });
 
-  it("uses the first check as a baseline instead of creating old alerts", () => {
-    expect(findReleasedAnime([tracked()], undefined)).toEqual([]);
+  it("recovers releases from the last 24 hours when the first-check cursor is missing", () => {
+    const notifications = findReleasedAnime(
+      [tracked()],
+      undefined,
+      new Date("2026-06-11T21:00:00.000Z")
+    );
+
+    expect(notifications).toEqual([
+      expect.objectContaining({
+        animeId: 42,
+        releasedAt: "2026-06-11T13:00:00.000Z"
+      })
+    ]);
+  });
+
+  it("does not recover releases older than the initial 24-hour window", () => {
+    expect(
+      findReleasedAnime(
+        [tracked()],
+        undefined,
+        new Date("2026-06-12T14:00:00.000Z")
+      )
+    ).toEqual([]);
   });
 
   it("ignores titles that are no longer being followed", () => {
