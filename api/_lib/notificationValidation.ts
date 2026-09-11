@@ -36,12 +36,14 @@ function isoDate(value: unknown, field: string, allowFuture = true) {
   const date = new Date(text);
   if (
     Number.isNaN(date.getTime()) ||
-    date.toISOString() !== text ||
     (!allowFuture && date.getTime() > Date.now() + MAX_FUTURE_SKEW_MS)
   ) {
     throw new ApiError(400, `${field} is invalid.`);
   }
-  return text;
+  // PostgreSQL/Supabase may serialize the same UTC timestamp with an explicit
+  // offset (for example `+00:00`) rather than `Z`. Normalize either form so a
+  // notification loaded from the inbox can always be synchronized again.
+  return date.toISOString();
 }
 
 export function notificationId(value: unknown) {
