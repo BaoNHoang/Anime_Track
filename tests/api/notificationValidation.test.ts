@@ -29,6 +29,23 @@ describe("notification API validation", () => {
     });
   });
 
+  it("normalizes equivalent database timestamps before saving the inbox", () => {
+    expect(notificationSync({
+      lastCheckedAt: "2026-08-30T12:01:00+00:00",
+      notifications: [{
+        ...notification,
+        releasedAt: "2026-08-30T12:00:00+00:00"
+      }],
+      seenSeasonIds: []
+    })).toMatchObject({
+      lastCheckedAt: "2026-08-30T12:01:00.000Z",
+      notifications: [{
+        ...notification,
+        releasedAt: "2026-08-30T12:00:00.000Z"
+      }]
+    });
+  });
+
   it("rejects malformed identifiers and untrusted image protocols", () => {
     expect(() => notificationId("../../other-user")).toThrow();
     expect(() => notificationSync({
