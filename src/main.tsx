@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
 import App from "./app/App";
+import PrototypeApp from "./features/prototype/PrototypeApp";
 import {
   APP_UPDATE_INTERVAL_MS,
   recordAppUpdateCheck
@@ -25,6 +26,6 @@ const updateServiceWorker = registerSW({
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    {window.location.pathname === "/" && !new URLSearchParams(window.location.search).has("classic") ? <PrototypeApp /> : <App />}
   </StrictMode>
 );
