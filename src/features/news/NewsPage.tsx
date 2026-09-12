@@ -45,12 +45,19 @@ export function NewsPage() {
           <div className="news-grid">
             {news.articles.map((article) => (
               <article className="news-card" key={article.url}>
-                <img
-                  src={article.imageUrl || article.animeImageUrl}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                />
+                {article.imageUrl ? (
+                  <img
+                    src={article.imageUrl}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : (
+                  <div className="news-card__media-fallback" aria-hidden="true">
+                    <span>News update</span>
+                    <strong>{article.animeTitle}</strong>
+                  </div>
+                )}
                 <div className="news-card__body">
                   <h3>{article.title}</h3>
                   <p>{article.excerpt}</p>

@@ -11,6 +11,37 @@ import { tenraiGet } from "./client";
 import { getCurrentSeason } from "./animeService";
 import type { TenraiNewsResponse } from "./newsDto";
 
+const NEWS_CACHE_MS = 15 * 60 * 1000;
+
+export function prepareLatestNews(
+  articles: AnimeNewsArticle[],
+  limit = 24
+): AnimeNewsArticle[] {
+  const seenUrls = new Set<string>();
+  const seenImages = new Set<string>();
+
+  return [...articles]
+    .filter((article) => {
+      if (seenUrls.has(article.url)) return false;
+      seenUrls.add(article.url);
+      return true;
+    })
+    .sort(
+      (left, right) =>
+        new Date(right.publishedAt).getTime() -
+        new Date(left.publishedAt).getTime()
+    )
+    .slice(0, limit)
+    .map((article) => {
+      const imageUrl = article.imageUrl || article.animeImageUrl;
+      if (!imageUrl || seenImages.has(imageUrl)) {
+        return { ...article, imageUrl: undefined };
+      }
+      seenImages.add(imageUrl);
+      return { ...article, imageUrl };
+    });
+}
+
 export async function getNewsForAnime(
   animeId: number,
   animeTitle: string,
@@ -19,7 +50,7 @@ export async function getNewsForAnime(
 ): Promise<AnimeNewsArticle[]> {
   const response = await tenraiGet<TenraiNewsResponse>(
     `/anime/${animeId}/news`,
-    { signal, cacheMs: 2 * 60 * 60 * 1000 }
+    { signal, cacheMs: NEWS_CACHE_MS }
   );
 
   return response.data

@@ -13,7 +13,11 @@ vi.mock("./client", () => ({
   tenraiGet: tenraiGetMock
 }));
 
-import { getNewsForAnime, getPopularPromos } from "./newsService";
+import {
+  getNewsForAnime,
+  getPopularPromos,
+  prepareLatestNews
+} from "./newsService";
 
 describe("Tenrai news service", () => {
   beforeEach(() => {
@@ -45,7 +49,7 @@ describe("Tenrai news service", () => {
 
     expect(tenraiGetMock).toHaveBeenCalledWith(
       "/anime/1/news",
-      expect.objectContaining({ cacheMs: 2 * 60 * 60 * 1000 })
+      expect.objectContaining({ cacheMs: 15 * 60 * 1000 })
     );
     expect(articles).toEqual([
       expect.objectContaining({
@@ -54,6 +58,29 @@ describe("Tenrai news service", () => {
         title: "Anime announcement",
         author: "editor"
       })
+    ]);
+  });
+
+  it("sorts newest first and replaces repeated artwork with a story marker", () => {
+    const article = (url: string, publishedAt: string, imageUrl?: string) => ({
+      id: Number(url.at(-1)),
+      animeId: 1,
+      animeTitle: "Signal", animeImageUrl: "https://cdn.example.test/poster.jpg",
+      title: url, url, publishedAt, author: "editor", imageUrl,
+      excerpt: "Details", comments: 0
+    });
+    const feed = prepareLatestNews([
+      article("https://news.example/1", "2026-09-01T10:00:00.000Z"),
+      article("https://news.example/2", "2026-09-02T10:00:00.000Z"),
+      article("https://news.example/2", "2026-09-03T10:00:00.000Z"),
+      article("https://news.example/3", "2026-09-04T10:00:00.000Z", "https://cdn.example.test/unique.jpg")
+    ]);
+
+    expect(feed.map((entry) => entry.url)).toEqual([
+      "https://news.example/3", "https://news.example/2", "https://news.example/1"
+    ]);
+    expect(feed.map((entry) => entry.imageUrl)).toEqual([
+      "https://cdn.example.test/unique.jpg", "https://cdn.example.test/poster.jpg", undefined
     ]);
   });
 
