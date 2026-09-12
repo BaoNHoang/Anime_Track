@@ -2,12 +2,15 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import { useCurrentSeason } from "./useAnimeQueries";
 import {
   getNewsForAnime,
-  getPopularPromos
+  getPopularPromos,
+  prepareLatestNews
 } from "../services/tenrai/newsService";
+
+const NEWS_REFRESH_MS = 15 * 60 * 1000;
 
 export function useAnimeNews() {
   const season = useCurrentSeason();
-  const featuredAnime = season.data?.items.slice(0, 4) ?? [];
+  const featuredAnime = season.data?.items.slice(0, 8) ?? [];
   const articleQueries = useQueries({
     queries: featuredAnime.map((anime) => ({
       queryKey: ["anime", "news", "title", anime.id],
@@ -18,9 +21,9 @@ export function useAnimeNews() {
           anime.imageUrl,
           signal
         ),
-      staleTime: 2 * 60 * 60 * 1000,
-      gcTime: 6 * 60 * 60 * 1000,
-      refetchInterval: 2 * 60 * 60 * 1000,
+      staleTime: NEWS_REFRESH_MS,
+      gcTime: 60 * 60 * 1000,
+      refetchInterval: NEWS_REFRESH_MS,
       refetchOnWindowFocus: false
     }))
   });
@@ -34,18 +37,9 @@ export function useAnimeNews() {
     refetchOnWindowFocus: false
   });
 
-  const articles = articleQueries
-    .flatMap((query) => query.data ?? [])
-    .filter(
-      (article, index, all) =>
-        all.findIndex((candidate) => candidate.url === article.url) === index
-    )
-    .sort(
-      (left, right) =>
-        new Date(right.publishedAt).getTime() -
-        new Date(left.publishedAt).getTime()
-    )
-    .slice(0, 24);
+  const articles = prepareLatestNews(
+    articleQueries.flatMap((query) => query.data ?? [])
+  );
   const articleQueriesPending = articleQueries.some(
     (query) => query.isPending
   );

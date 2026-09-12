@@ -3313,6 +3313,37 @@ h3,
   background: var(--surface-muted);
 }
 
+.news-card__media-fallback {
+  display: flex;
+  min-height: 0;
+  aspect-ratio: 1.75;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 5px;
+  padding: 16px;
+  color: var(--text);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), transparent 58%),
+    var(--surface-muted);
+}
+
+.news-card__media-fallback span {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.news-card__media-fallback strong {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .news-card__body {
   display: flex;
   flex: 1;
