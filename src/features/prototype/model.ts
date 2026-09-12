@@ -20,7 +20,11 @@ export function loadPrototype(): PrototypeState {
             return emptyState;
         try {
             const data = JSON.parse(raw);
-            const items = Array.isArray(data.items) && data.items.length === 0 ? [] : parseLibraryImport({ items: data.items });
+            // Prototype progress is sequential; dated logs live in sessions.
+            // Do not let the production checklist importer reinterpret a partial
+            // prototype history as the total number of watched episodes.
+            const source = Array.isArray(data.items) ? data.items.map((entry: unknown) => entry && typeof entry === 'object' ? { ...entry, episodeHistory: undefined } : entry) : data.items;
+            const items = Array.isArray(source) && source.length === 0 ? [] : parseLibraryImport({ items: source });
             const sessions = Array.isArray(data.sessions) ? data.sessions.filter((entry: unknown) => {
                 if (!entry || typeof entry !== 'object')
                     return false;
@@ -51,6 +55,6 @@ export function logEpisode(state: PrototypeState, id: number): PrototypeState {
     const at = new Date().toISOString();
     return { ...state, items: state.items.map((entry) => entry === item ? {
             ...entry, progress, status: progress === item.anime.episodes ? 'completed' : 'watching',
-            episodeHistory: [...(entry.episodeHistory ?? []), { episode: progress, watchedAt: at }], updatedAt: at
+            episodeHistory: undefined, updatedAt: at
         } : entry), sessions: [...state.sessions, { animeId: id, episode: progress, at }].slice(-10000) };
 }
