@@ -31,6 +31,7 @@ export const BadgeCheck = (props: NamedIconProps) => <Icon {...props}><path d="m
 export const Bell = (props: NamedIconProps) => <Icon {...props}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></Icon>;
 export const Check = (props: NamedIconProps) => <Icon {...props}><path d="m5 12.5 4.2 4.2L19 7"/></Icon>;
 export const CheckCircle2 = (props: NamedIconProps) => <Icon {...props}><circle cx="12" cy="12" r="9"/><path d="m7.8 12.2 2.8 2.8 5.8-6"/></Icon>;
+export const CalendarDays = (props: NamedIconProps) => <Icon {...props}><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></Icon>;
 export const ChevronLeft = (props: NamedIconProps) => <Icon {...props}><path d="m14.5 5-7 7 7 7"/></Icon>;
 export const ChevronRight = (props: NamedIconProps) => <Icon {...props}><path d="m9.5 5 7 7-7 7"/></Icon>;
 export const ArrowUp = (props: NamedIconProps) => <Icon {...props}><path d="m6 10 6-6 6 6M12 4v16"/></Icon>;
