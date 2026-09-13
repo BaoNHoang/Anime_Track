@@ -24,9 +24,11 @@ does not scrape providers or host episodes.
 
 ### Calendar, lists, recommendations, and offline use
 
-- Open **Library → Watch calendar** for a 7- or 30-day release agenda in your
-  device timezone. Broadcasts are weekly estimates; premieres require a known
-  date, and delays or special schedules are not confirmed by this calendar.
+- Open **Library → Watch calendar** for a seven-day planner in your device
+  timezone. It groups broadcasts by day, offers a random pick from your active
+  watchlist, and lets you log a next episode. Broadcasts are weekly estimates;
+  premieres require a known date, and delays or special schedules are not
+  confirmed by this planner.
 - Open **Custom lists**, choose a library title, and enter a name to create a
   list. You can add/remove titles and rename lists. Membership syncs with each
   tracked title and is included in backups. Lists need at least one member;
