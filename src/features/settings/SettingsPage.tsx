@@ -12,7 +12,7 @@ import {
   Sun,
   Upload,
 } from "../../components/OwnedIcons";
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import {
   LibraryImportError,
   parseLibraryImport
@@ -27,10 +27,16 @@ import { useTracker } from "../../app/providers/useTracker";
 import { useWatchProvider } from "../../app/providers/useWatchProvider";
 import { getStreamingRegionLabel, STREAMING_REGIONS } from "../../domain/watch/providers";
 import { enrichTrackedAnimeFromTenrai } from "../../services/tenrai/trackerEnrichment";
+import {
+  disablePushNotifications,
+  enablePushNotifications,
+  getPushCapability,
+  type PushCapability
+} from "../../services/push/pushSubscription";
 
 export function SettingsPage() {
   const { items, importItems } = useTracker();
-  const { user, updateScoreStep } = useCloudAuth();
+  const { configured, user, updateScoreStep } = useCloudAuth();
   const { canInstall, installed, install, isIos } = usePwaInstall();
   const { theme, setTheme } = useTheme();
   const { region, setRegion } = useWatchProvider();
@@ -43,7 +49,41 @@ export function SettingsPage() {
   const [importing, setImporting] = useState(false);
   const [scoreSaving, setScoreSaving] = useState(false);
   const [scoreMessage, setScoreMessage] = useState<string>();
+  const [pushCapability, setPushCapability] = useState<PushCapability>("unsupported");
+  const [pushMessage, setPushMessage] = useState<string>();
+  const [pushSaving, setPushSaving] = useState(false);
   const mcpUrl = import.meta.env.VITE_MCP_URL;
+
+  useEffect(() => {
+    void getPushCapability()
+      .then(setPushCapability)
+      .catch(() => setPushCapability("unsupported"));
+  }, []);
+
+  const updatePush = async () => {
+    if (!user) return;
+    setPushSaving(true);
+    setPushMessage(undefined);
+    try {
+      if (pushCapability === "enabled") {
+        await disablePushNotifications(user.id);
+      } else {
+        await enablePushNotifications(user.id);
+      }
+      setPushCapability(await getPushCapability());
+    } catch (failure) {
+      setPushMessage(
+        failure instanceof Error
+          ? failure.message
+          : "Push notifications could not be updated."
+      );
+      setPushCapability(
+        await getPushCapability().catch((): PushCapability => "unsupported")
+      );
+    } finally {
+      setPushSaving(false);
+    }
+  };
 
   const saveScoreStep = async (scoreStep: 0.5 | 1) => {
     if (user?.scoreStep === scoreStep) return;
@@ -235,6 +275,36 @@ export function SettingsPage() {
                   : "Open the deployed HTTPS site in Chrome or Edge, then use Install app or Add to Home Screen."}
               </p>
             )}
+          </div>
+        </article>
+
+        <article className="settings-card">
+          <span className="settings-card__icon">
+            <CheckCircle2 size={22} />
+          </span>
+          <div className="settings-card__content">
+            <h2>Device notifications</h2>
+            <p>
+              {!configured
+                ? "Sign in to receive release alerts on this device."
+                : pushCapability === "enabled"
+                  ? "This browser receives episode-release alerts, even when Banime is closed."
+                  : pushCapability === "denied"
+                    ? "Browser notifications are blocked for Banime. Change the site permission in your browser settings to enable them."
+                    : pushCapability === "unsupported"
+                      ? "This browser does not support web push notifications."
+                      : "Receive episode-release alerts on this browser or installed Banime app, even while it is closed."}
+            </p>
+            {configured && user && pushCapability !== "unsupported" && pushCapability !== "denied" && (
+              <button className="button button--compact" type="button" onClick={() => void updatePush()} disabled={pushSaving}>
+                {pushSaving
+                  ? "Saving…"
+                  : pushCapability === "enabled"
+                    ? "Turn off on this device"
+                    : "Enable device notifications"}
+              </button>
+            )}
+            {pushMessage && <p className="form-message form-message--error" role="alert">{pushMessage}</p>}
           </div>
         </article>
 

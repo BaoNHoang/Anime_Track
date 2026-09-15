@@ -21,8 +21,6 @@ import {
 import { useAnimeDetails } from "../../hooks/useAnimeQueries";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useTracker } from "../../app/providers/useTracker";
-import { useWatchProvider } from "../../app/providers/useWatchProvider";
-import { getStreamingRegionLabel } from "../../domain/watch/providers";
 import { useAuthPrompt } from "../../app/providers/useAuthPrompt";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { useLocalProfile } from "../../hooks/useLocalProfile";
@@ -49,7 +47,6 @@ export function AnimeDetailPanel() {
   const { requestSignIn } = useAuthPrompt();
   const { configured, user, updateFavorites } = useCloudAuth();
   const { profile: localProfile, updateProfile } = useLocalProfile();
-  const { region } = useWatchProvider();
   const tracked = anime ? getTracked(anime.id) : undefined;
   const scoreStep = user?.scoreStep ?? 0.5;
   const [scoreDraft, setScoreDraft] = useState<{
@@ -226,11 +223,7 @@ export function AnimeDetailPanel() {
 
           <section className="streaming-availability" aria-labelledby="streaming-title">
             <div className="streaming-availability__heading">
-              <div>
-                <h3 id="streaming-title">Where to watch</h3>
-                <p>Official provider links for {getStreamingRegionLabel(region)}.</p>
-              </div>
-              <span>Legal sources</span>
+              <h3 id="streaming-title">Where to watch</h3>
             </div>
             {anime.streaming?.length ? (
               <div className="streaming-availability__services">
