@@ -36,4 +36,26 @@ describe("mapTenraiAnime", () => {
     expect(result.genres).toEqual(["Action"]);
     expect(result.studios).toEqual(["Bones"]);
   });
+
+  it("keeps only reviewed streaming-provider destinations", () => {
+    const result = mapTenraiAnime({
+      mal_id: 5114,
+      url: "https://myanimelist.net/anime/5114",
+      title: "Fullmetal Alchemist: Brotherhood",
+      images: { jpg: { image_url: "", large_image_url: "" } },
+      streaming: [
+        { name: "Crunchyroll", url: "http://www.crunchyroll.com/series/abc" },
+        { name: "Unreviewed", url: "https://streaming.example/watch/abc" },
+        { name: "Netflix lookalike", url: "https://www.netflix.com.evil.example/title/1" }
+      ]
+    });
+
+    expect(result.streaming).toEqual([
+      {
+        provider: "Crunchyroll",
+        url: "https://www.crunchyroll.com/series/abc",
+        regionStatus: "catalog"
+      }
+    ]);
+  });
 });

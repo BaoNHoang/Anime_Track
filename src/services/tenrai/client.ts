@@ -216,6 +216,10 @@ export async function tenraiGet<T>(
   options.signal?.throwIfAborted();
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
+    // The API origin is fixed. Failing closed on redirects prevents a
+    // compromised or misconfigured upstream from sending this request to an
+    // unvalidated final destination.
+    redirect: "error",
     signal: options.signal
       ? AbortSignal.any([options.signal, AbortSignal.timeout(15000)])
       : AbortSignal.timeout(15000),

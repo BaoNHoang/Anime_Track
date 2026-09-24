@@ -6,6 +6,7 @@ import {
   safeAnimeImageUrl,
   safeMyAnimeListAnimeUrl,
   safeMyAnimeListNewsUrl,
+  safeStreamingUrl,
   safeTrailerUrl,
   truncateExternalText
 } from "./validation";
@@ -30,6 +31,9 @@ describe("security validation", () => {
     expect(safeAnimeImageUrl("https://tracker.example/pixel.gif")).toBeUndefined();
     expect(safeTrailerUrl("https://www.youtube.com/watch?v=abc")).toBeTruthy();
     expect(safeTrailerUrl("https://video.example/watch/abc")).toBeUndefined();
+    expect(safeStreamingUrl("https://www.crunchyroll.com/series/abc")).toBeTruthy();
+    expect(safeStreamingUrl("https://www.netflix.com.evil.example/title/1")).toBeUndefined();
+    expect(safeStreamingUrl("https://streaming.example/watch/abc")).toBeUndefined();
   });
 
   it("detects or removes unsafe control and direction characters", () => {

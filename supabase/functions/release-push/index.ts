@@ -29,6 +29,7 @@ async function loadTrackedRows(client: ReturnType<typeof createClient>) {
 async function tenrai(path: string) {
   const response = await fetch(`https://api.tenrai.org/v1${path}`, {
     headers: { Accept: "application/json" },
+    redirect: "error",
     signal: AbortSignal.timeout(8_000)
   });
   if (!response.ok) throw new Error(`Tenrai returned ${response.status}`);
