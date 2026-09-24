@@ -58,6 +58,15 @@ const TRAILER_HOSTS = new Set([
   "www.youtube.com",
   "youtu.be"
 ]);
+// These are the reviewed hosts currently emitted by the catalog's streaming
+// availability data. Add providers deliberately rather than accepting any
+// HTTPS destination supplied by an upstream response.
+const STREAMING_HOSTS = new Set([
+  "www.crunchyroll.com",
+  "www.netflix.com",
+  "shahid.mbc.net",
+  "amasian.tv"
+]);
 
 function safeMyAnimeListPath(value: unknown, pathPattern: RegExp) {
   const safe = safeAllowedUrl(value, MAL_HOSTS);
@@ -76,6 +85,9 @@ export const safeAnimeImageUrl = (value: unknown) =>
 
 export const safeTrailerUrl = (value: unknown) =>
   safeAllowedUrl(value, TRAILER_HOSTS);
+
+export const safeStreamingUrl = (value: unknown) =>
+  safeAllowedUrl(value, STREAMING_HOSTS);
 
 export function truncateExternalText(value: string, maxLength: number) {
   const withoutUnsafeControls = [...value]

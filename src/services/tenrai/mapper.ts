@@ -1,8 +1,8 @@
 import type { Anime } from "../../domain/anime/types";
 import {
-  safeExternalUrl,
   safeAnimeImageUrl,
   safeMyAnimeListAnimeUrl,
+  safeStreamingUrl,
   safeTrailerUrl,
   truncateExternalText
 } from "../../domain/security/validation";
@@ -65,7 +65,7 @@ export function mapTenraiAnime(dto: TenraiAnimeDto): Anime {
         provider: truncateExternalText(service.name, 120),
         // The upstream catalog still publishes a few official provider links
         // with an obsolete http scheme. Never render plain-http destinations.
-        url: safeExternalUrl(service.url.replace(/^http:/i, "https:")),
+        url: safeStreamingUrl(service.url.replace(/^http:/i, "https:")),
         regionStatus: "catalog" as const
       }))
       .filter((service): service is { provider: string; url: string; regionStatus: "catalog" } =>

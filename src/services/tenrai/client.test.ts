@@ -38,6 +38,18 @@ describe("Tenrai client response limits", () => {
     );
   });
 
+  it("fails closed instead of following an upstream redirect", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(tenraiGet("/redirect-policy-test")).resolves.toEqual({});
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.tenrai.org/v1/redirect-policy-test",
+      expect.objectContaining({ redirect: "error" })
+    );
+  });
+
   it("skips the request gate when a queued request has been cancelled", async () => {
     const gateResolvers: Array<() => void> = [];
     const gate = vi.fn(
