@@ -13,9 +13,6 @@ import type { Anime } from "../../domain/anime/types";
 import type { AnimePage } from "../../domain/anime/types";
 import { ContinueWatching } from "./ContinueWatching";
 import { Recommendations } from "./Recommendations";
-import { SinceLastVisit } from "./SinceLastVisit";
-import { useCloudAuth } from "../../app/providers/useCloudAuth";
-import { useTracker } from "../../app/providers/useTracker";
 import { useMemo } from "react";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -76,8 +73,6 @@ function HomeShelf({
 }
 
 export function DashboardPage() {
-  const { configured, initialized, user } = useCloudAuth();
-  const { isReady } = useTracker();
   const { openAnime } = useAnimePanel();
   const season = useCurrentSeason();
   const airing = useTopAnime("airing");
@@ -101,16 +96,6 @@ export function DashboardPage() {
       <h1 className="visually-hidden">Home</h1>
 
       <ContinueWatching />
-
-      {initialized && isReady && (!configured || user) && (
-        <SinceLastVisit
-          key={user?.id ?? "local-profile"}
-          owner={user?.id ?? "local-profile"}
-          articles={news.articles}
-          promos={news.promos}
-          promosReady={!news.promosLoading && !news.promosError}
-        />
-      )}
 
       <Recommendations candidates={recommendationCandidates} />
 
