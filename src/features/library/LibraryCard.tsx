@@ -37,6 +37,7 @@ export function LibraryCard({
           <span className="library-card__overlay">
             <strong>{item.anime.titleEnglish || item.anime.title}</strong>
             <span>
+              {item.previousWatches?.length ? `Rewatch ${item.previousWatches.length} | ` : ""}
               {item.progress}
               {item.anime.episodes ? ` / ${item.anime.episodes}` : " episodes"}
               {item.userScore !== undefined ? `  |  ${item.userScore}/10` : ""}

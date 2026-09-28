@@ -11,8 +11,11 @@ import { mergeTrackedAnime } from "../../domain/tracker/merge";
 import { resolveTrackingProgress } from "../../domain/tracker/progress";
 import {
   historyForProgress,
-  updateEpisodeHistory
+  updateEpisodeHistory,
+  watchedEpisodeNumbers
 } from "../../domain/tracker/episodes";
+import { startRewatch as createRewatch } from "../../domain/tracker/rewatch";
+import { undoEpisodeUpdate } from "../../domain/tracker/undoEpisode";
 import { normalizeUserScore } from "../../domain/tracker/score";
 import {
   createProfileSummary,
@@ -47,6 +50,14 @@ export function TrackerProvider({ children }: PropsWithChildren) {
   const [hydratedUserId, setHydratedUserId] = useState<string>();
   const [remoteProfileSummary, setRemoteProfileSummary] =
     useState<ProfileSummary>();
+  const undoToken = useRef(0);
+  const [episodeUndo, setEpisodeUndo] = useState<{
+    token: number;
+    message: string;
+    owner?: string;
+    before: TrackedAnime;
+    after: TrackedAnime;
+  }>();
   const itemsRef = useRef(items);
   const syncedUserRef = useRef<string | undefined>(undefined);
   const { configured, user, initialized } = useCloudAuth();
@@ -202,7 +213,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
         Pick<TrackedAnime, "status" | "progress" | "episodeHistory" | "releaseNotificationMode" | "userScore" | "notes" | "customLists">
       >
     ) => {
-      if (!canManage) return;
+      if (!canManage) return false;
       let updatedItem: TrackedAnime | undefined;
       const next = itemsRef.current.map((item) => {
         if (item.anime.id !== animeId) return item;
@@ -224,15 +235,19 @@ export function TrackerProvider({ children }: PropsWithChildren) {
           ...normalizedUpdates,
           progress,
           episodeHistory,
+          completedAt: (normalizedUpdates.status ?? item.status) === "completed"
+            ? item.status === "completed" ? item.completedAt ?? item.updatedAt : new Date().toISOString()
+            : undefined,
           updatedAt: new Date().toISOString()
         };
         return updatedItem;
       });
-      if (!updatedItem) return;
-      if (!saveItems(next)) return;
+      if (!updatedItem) return false;
+      if (!saveItems(next)) return false;
       if (user) {
         enqueueCloud();
       }
+      return true;
     },
     [canManage, enqueueCloud, saveItems, user]
   );
@@ -241,13 +256,47 @@ export function TrackerProvider({ children }: PropsWithChildren) {
     (animeId: number, episode: number, watched: boolean, watchedAt?: string) => {
       const item = itemsRef.current.find((entry) => entry.anime.id === animeId);
       if (!item) return;
-      updateAnime(
+      const newlyWatched = watched && !watchedEpisodeNumbers(item).has(episode);
+      const saved = updateAnime(
         animeId,
         updateEpisodeHistory(item, episode, watched, watchedAt)
       );
+      if (saved && newlyWatched) {
+        const after = itemsRef.current.find((entry) => entry.anime.id === animeId)!;
+        setEpisodeUndo({
+          token: ++undoToken.current,
+          message: `Episode ${episode} watched · ${item.anime.titleEnglish || item.anime.title}`,
+          owner: activeUserIdRef.current,
+          before: item,
+          after
+        });
+      }
     },
     [updateAnime]
   );
+
+  const startRewatch = useCallback((animeId: number) => {
+    if (!canManage) return;
+    const item = itemsRef.current.find((entry) => entry.anime.id === animeId);
+    if (!item) return;
+    const rewatch = createRewatch(item);
+    if (!saveItems(itemsRef.current.map((entry) => entry === item ? rewatch : entry))) return;
+    setEpisodeUndo(undefined);
+    if (user) enqueueCloud();
+  }, [canManage, enqueueCloud, saveItems, user]);
+
+  const dismissEpisodeUndo = useCallback(() => setEpisodeUndo(undefined), []);
+  const undoEpisode = useCallback(() => {
+    if (!canManage || !episodeUndo || episodeUndo.owner !== activeUserIdRef.current) return;
+    const current = itemsRef.current.find((item) => item.anime.id === episodeUndo.before.anime.id);
+    const restored = current && undoEpisodeUpdate(current, episodeUndo.before, episodeUndo.after);
+    if (current && restored) {
+      const next = { ...current, ...restored, updatedAt: new Date().toISOString() };
+      if (!saveItems(itemsRef.current.map((item) => item === current ? next : item))) return;
+      if (user) enqueueCloud();
+    }
+    setEpisodeUndo(undefined);
+  }, [canManage, enqueueCloud, episodeUndo, saveItems, user]);
 
   const removeAnime = useCallback(
     (animeId: number) => {
@@ -322,6 +371,13 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       addAnime,
       updateAnime,
       setEpisodeWatched,
+      startRewatch,
+      episodeUndo: episodeUndo && episodeUndo.owner === user?.id && canManage &&
+        items.some((item) => item.anime.id === episodeUndo?.before.anime.id &&
+          undoEpisodeUpdate(item, episodeUndo.before, episodeUndo.after))
+        ? { token: episodeUndo.token, message: episodeUndo.message } : undefined,
+      undoEpisode,
+      dismissEpisodeUndo,
       removeAnime,
       importItems
     }),
@@ -337,6 +393,10 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       syncStatus,
       updateAnime,
       setEpisodeWatched,
+      startRewatch,
+      episodeUndo,
+      undoEpisode,
+      dismissEpisodeUndo,
       user
     ]
   );

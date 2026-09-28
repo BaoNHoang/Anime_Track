@@ -13,8 +13,11 @@ import { UserMenu } from "./UserMenu";
 import { useLocalProfile } from "../hooks/useLocalProfile";
 import { HeaderAuthSkeleton } from "./LoadingState";
 import { useOnline } from "../hooks/useOnline";
+import { EpisodeUndoToast } from "./EpisodeUndoToast";
+import { useAnimePanel } from "../app/providers/useAnimePanel";
 
 export function AppShell() {
+  const { selectedAnime } = useAnimePanel();
   const online = useOnline();
   const { configured, initialized, user } = useCloudAuth();
   const { profile: localProfile } = useLocalProfile();
@@ -59,6 +62,7 @@ export function AppShell() {
           <Navigation variant="mobile" />
         </div>
         <AnimeDetailPanel />
+        {!selectedAnime && <EpisodeUndoToast />}
       </div>
     </AuthPromptProvider>
   );

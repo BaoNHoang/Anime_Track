@@ -51,6 +51,10 @@ const router = createBrowserRouter([
         const { CustomListsPage } = await import("../features/library/CustomListsPage");
         return { Component: () => <RequireAuth><CustomListsPage /></RequireAuth> };
       } },
+      { path: "/shared-list", lazy: async () => {
+        const { SharedListPage } = await import("../features/library/SharedListPage");
+        return { Component: SharedListPage };
+      } },
       { path: "/recommendations", lazy: async () => {
         const { RecommendationsPage } = await import("../features/discover/RecommendationsPage");
         return { Component: () => <RequireAuth><RecommendationsPage /></RequireAuth> };

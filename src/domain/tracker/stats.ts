@@ -19,9 +19,10 @@ export function calculateTrackerStats(items: TrackedAnime[]): TrackerStats {
 
   for (const item of items) {
     if (item.status === "watching") watching += 1;
-    if (item.status === "completed") completed += 1;
-    episodesWatched += item.progress;
-    minutesWatched += item.progress * durationMinutes(item.anime.duration);
+    if (item.status === "completed" || item.previousWatches?.length) completed += 1;
+    const lifetimeProgress = item.progress + (item.previousWatches ?? []).reduce((sum, watch) => sum + watch.progress, 0);
+    episodesWatched += lifetimeProgress;
+    minutesWatched += lifetimeProgress * durationMinutes(item.anime.duration);
     if (item.userScore !== undefined) {
       scoredTotal += item.userScore;
       scoredCount += 1;

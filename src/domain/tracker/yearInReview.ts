@@ -37,10 +37,16 @@ export function availableReviewYears(
 ) {
   const years = new Set<number>([currentYear]);
   for (const item of items) {
-    item.episodeHistory?.forEach((entry) => {
+    [...(item.episodeHistory ?? []), ...(item.previousWatches ?? []).flatMap((watch) => watch.episodeHistory ?? [])].forEach((entry) => {
       const year = yearOf(entry.watchedAt);
       if (year) years.add(year);
     });
+    for (const watch of item.previousWatches ?? []) {
+      const year = yearOf(watch.completedAt);
+      if (year) years.add(year);
+    }
+    const completionYear = yearOf(item.completedAt);
+    if (completionYear) years.add(completionYear);
   }
   return [...years].sort((left, right) => right - left);
 }
@@ -57,7 +63,7 @@ export function createYearInReview(
   let completedTitles = 0;
 
   for (const item of items) {
-    const watchedThisYear = (item.episodeHistory ?? []).filter(
+    const watchedThisYear = [...(item.episodeHistory ?? []), ...(item.previousWatches ?? []).flatMap((watch) => watch.episodeHistory ?? [])].filter(
       (entry) => yearOf(entry.watchedAt) === year
     );
     for (const entry of watchedThisYear) {
@@ -71,8 +77,9 @@ export function createYearInReview(
         (right.watchedAt ?? "").localeCompare(left.watchedAt ?? "")
       )[0]?.watchedAt;
     const completedThisYear =
-      item.status === "completed" &&
-      yearOf(latestDatedWatch ?? item.updatedAt) === year;
+      (item.status === "completed" &&
+      yearOf(item.completedAt ?? latestDatedWatch ?? item.updatedAt) === year) ||
+      (item.previousWatches ?? []).some((watch) => yearOf(watch.completedAt) === year);
     if (watchedThisYear.length || completedThisYear) {
       activeAnimeIds.add(item.anime.id);
     }

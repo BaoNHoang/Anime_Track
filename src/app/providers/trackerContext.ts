@@ -27,6 +27,10 @@ export interface TrackerContextValue {
     watched: boolean,
     watchedAt?: string
   ) => void;
+  startRewatch: (animeId: number) => void;
+  episodeUndo?: { token: number; message: string };
+  undoEpisode: () => void;
+  dismissEpisodeUndo: () => void;
   removeAnime: (animeId: number) => void;
   importItems: (
     items: TrackedAnime[],

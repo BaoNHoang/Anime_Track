@@ -33,11 +33,19 @@ export interface EpisodeWatch {
   watchedAt?: string;
 }
 
+export interface CompletedWatch {
+  completedAt: string;
+  progress: number;
+  episodeHistory?: EpisodeWatch[];
+}
+
 export interface TrackedAnime {
   anime: Anime;
   status: TrackingStatus;
   progress: number;
   episodeHistory?: EpisodeWatch[];
+  previousWatches?: CompletedWatch[];
+  completedAt?: string;
   releaseNotificationMode?: ReleaseNotificationMode;
   userScore?: number;
   notes: string;

@@ -4,6 +4,7 @@ import {
   Heart,
   Play,
   Plus,
+  RefreshCw,
   Star,
   Trash2,
   X
@@ -31,6 +32,9 @@ import {
   normalizeUserScore
 } from "../../domain/tracker/score";
 import { watchedEpisodeNumbers } from "../../domain/tracker/episodes";
+import { MAX_PREVIOUS_WATCHES } from "../../domain/tracker/rewatch";
+import { EpisodeUndoToast } from "../../components/EpisodeUndoToast";
+import { ErrorState } from "../../components/ErrorState";
 
 export function AnimeDetailPanel() {
   const { selectedAnime, closeAnime } = useAnimePanel();
@@ -42,7 +46,8 @@ export function AnimeDetailPanel() {
     getTracked,
     updateAnime,
     removeAnime,
-    setEpisodeWatched
+    setEpisodeWatched,
+    startRewatch
   } = useTracker();
   const { requestSignIn } = useAuthPrompt();
   const { configured, user, updateFavorites } = useCloudAuth();
@@ -83,6 +88,7 @@ export function AnimeDetailPanel() {
   const watchedDates = new Map(
     tracked?.episodeHistory?.map((entry) => [entry.episode, entry.watchedAt]) ?? []
   );
+  const [rewatchError, setRewatchError] = useState<{ animeId: number; message: string }>();
 
   const toggleFavorite = () => {
     if (!anime) return;
@@ -253,6 +259,40 @@ export function AnimeDetailPanel() {
                   <Trash2 size={17} />
                 </button>
               </div>
+              {(tracked.status === "completed" || Boolean(tracked.previousWatches?.length)) && (
+                <div className="rewatch-controls">
+                  <strong>{tracked.previousWatches?.length
+                    ? `Watch ${tracked.previousWatches.length + 1}${tracked.status === "completed" ? " completed" : " · rewatching"}`
+                    : "First watch completed"}</strong>
+                  {tracked.status === "completed" && (
+                    <>
+                      <p>Start again from episode 1. Your completed watch and its dates will be kept.</p>
+                      <button type="button" className="button button--ghost"
+                        disabled={(tracked.previousWatches?.length ?? 0) >= MAX_PREVIOUS_WATCHES}
+                        onClick={() => {
+                          try {
+                            startRewatch(anime.id);
+                            setVisibleEpisodes(undefined);
+                            setRewatchError(undefined);
+                          } catch (error) {
+                            setRewatchError({ animeId: anime.id, message: error instanceof Error ? error.message : "Rewatch could not be started." });
+                          }
+                        }}><RefreshCw size={15} /> Start rewatch</button>
+                    </>
+                  )}
+                  {Boolean(tracked.previousWatches?.length) && (
+                    <details>
+                      <summary>Previous completed watches ({tracked.previousWatches!.length})</summary>
+                      <ol>{tracked.previousWatches!.map((watch, index) => (
+                        <li key={`${watch.completedAt}-${index}`}>
+                          Watch {index + 1} · {watch.progress} episodes · completed {new Date(watch.completedAt).toLocaleDateString()}
+                        </li>
+                      ))}</ol>
+                    </details>
+                  )}
+                  {rewatchError?.animeId === anime.id && <p role="alert">{rewatchError.message}</p>}
+                </div>
+              )}
               <label className="field">
                 <span>Status</span>
                 <select
@@ -412,6 +452,7 @@ export function AnimeDetailPanel() {
           ) : (
             <button
               className="button button--full"
+              disabled={selectedAnime.status === "Shared recommendation" && !details.data}
               onClick={() => {
                 if (!canManage) {
                   closeAnime();
@@ -424,8 +465,11 @@ export function AnimeDetailPanel() {
               }}
             >
               <Plus size={18} />
-              Add to library
+              {selectedAnime.status === "Shared recommendation" && details.isPending ? "Loading title details…" : "Add to library"}
             </button>
+          )}
+          {selectedAnime.status === "Shared recommendation" && details.isError && !details.data && (
+            <ErrorState message="Title details could not be loaded." onRetry={() => void details.refetch()} />
           )}
 
           <div className="detail-panel__links">
@@ -441,6 +485,7 @@ export function AnimeDetailPanel() {
             )}
           </div>
         </div>
+        <EpisodeUndoToast />
       </aside>
     </div>
   );

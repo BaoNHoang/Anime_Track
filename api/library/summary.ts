@@ -23,6 +23,7 @@ interface MetricRow {
   progress: number;
   duration?: unknown;
   genres?: unknown;
+  previous_watches?: Array<{ progress: number }> | null;
 }
 
 function rowItems(rows: Array<{ item?: unknown }> | null): TrackedAnime[] {
@@ -50,11 +51,15 @@ function summarizeMetrics(rows: MetricRow[]) {
   let scoredCount = 0;
 
   for (const row of rows) {
+    const previousWatches = row.previous_watches ?? [];
+    const lifetimeProgress = row.progress + previousWatches.reduce(
+      (total, watch) => total + watch.progress, 0
+    );
     if (row.tracking_status === "watching") watching += 1;
-    if (row.tracking_status === "completed") completed += 1;
-    episodesWatched += row.progress;
+    if (row.tracking_status === "completed" || previousWatches.length) completed += 1;
+    episodesWatched += lifetimeProgress;
     minutesWatched +=
-      row.progress *
+      lifetimeProgress *
       durationMinutes(typeof row.duration === "string" ? row.duration : undefined);
     if (typeof row.user_score === "number") {
       scoredTotal += row.user_score;
@@ -98,7 +103,7 @@ export default async function handler(
         const { data, error } = await auth.client
           .from("tracked_anime")
           .select(
-            "tracking_status,user_score,progress,duration:item->anime->>duration,genres:item->anime->genres"
+            "tracking_status,user_score,progress,duration:item->anime->>duration,genres:item->anime->genres,previous_watches:item->previousWatches"
           )
           .eq("user_id", auth.user.id)
           .order("updated_at", { ascending: false })
