@@ -14,6 +14,7 @@ import {
   type TrackingStatus
 } from "./types.js";
 import { MAX_EPISODE_HISTORY } from "./episodes.js";
+import { MAX_PREVIOUS_WATCHES } from "./rewatch.js";
 
 type JsonRecord = Record<string, unknown>;
 export const MAX_LIBRARY_ITEMS = 5000;
@@ -311,9 +312,16 @@ function parseTrackedAnime(value: unknown, index: number): TrackedAnime {
   }
 
   const anime = parseAnime(value.anime, index);
+  const completedAt = optionalString(value.completedAt, `Item ${index + 1} completion timestamp`);
+  if (completedAt && !Number.isFinite(Date.parse(completedAt))) {
+    throw new LibraryImportError(`Item ${index + 1} has an invalid completion timestamp.`);
+  }
   const episodeHistory = value.episodeHistory === undefined
     ? undefined
     : parseEpisodeHistory(value.episodeHistory, index, anime.episodes);
+  const previousWatches = value.previousWatches === undefined
+    ? undefined
+    : parsePreviousWatches(value.previousWatches, index, anime.episodes);
   const releaseNotificationMode = value.releaseNotificationMode;
   if (
     releaseNotificationMode !== undefined &&
@@ -336,6 +344,8 @@ function parseTrackedAnime(value: unknown, index: number): TrackedAnime {
       anime.episodes ?? Number.MAX_SAFE_INTEGER
     ),
     ...(episodeHistory ? { episodeHistory } : {}),
+    ...(previousWatches ? { previousWatches } : {}),
+    ...(completedAt ? { completedAt } : {}),
     releaseNotificationMode:
       releaseNotificationMode as ReleaseNotificationMode | undefined,
     userScore,
@@ -396,6 +406,30 @@ function parseEpisodeHistory(
     }
     return { episode, ...(watchedAt ? { watchedAt } : {}) };
   }).sort((left, right) => left.episode - right.episode);
+}
+
+function parsePreviousWatches(value: unknown, index: number, totalEpisodes?: number) {
+  if (!Array.isArray(value) || value.length > MAX_PREVIOUS_WATCHES) {
+    throw new LibraryImportError(`Item ${index + 1} has invalid previous watches.`);
+  }
+  return value.map((watch) => {
+    if (!isRecord(watch) || typeof watch.completedAt !== "string" ||
+        !isBoundedText(watch.completedAt, 200) || !Number.isFinite(Date.parse(watch.completedAt)) ||
+        !Number.isInteger(watch.progress) || Number(watch.progress) < 0 ||
+        Number(watch.progress) > (totalEpisodes ?? 100_000)) {
+      throw new LibraryImportError(`Item ${index + 1} has invalid previous watches.`);
+    }
+    const episodeHistory = watch.episodeHistory === undefined
+      ? undefined : parseEpisodeHistory(watch.episodeHistory, index, totalEpisodes);
+    if (episodeHistory && episodeHistory.length !== watch.progress) {
+      throw new LibraryImportError(`Item ${index + 1} has inconsistent previous watch progress.`);
+    }
+    return {
+      completedAt: watch.completedAt,
+      progress: Number(watch.progress),
+      ...(episodeHistory ? { episodeHistory } : {})
+    };
+  });
 }
 
 export function parseLibraryImport(value: unknown): TrackedAnime[] {

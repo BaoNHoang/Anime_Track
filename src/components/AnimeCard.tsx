@@ -5,7 +5,7 @@ import { useAnimePanel } from "../app/providers/useAnimePanel";
 import { useTracker } from "../app/providers/useTracker";
 import { useAuthPrompt } from "../app/providers/useAuthPrompt";
 
-export function AnimeCard({ anime }: { anime: Anime }) {
+export function AnimeCard({ anime, quickAdd = true }: { anime: Anime; quickAdd?: boolean }) {
   const { openAnime } = useAnimePanel();
   const { addAnime, canManage, getTracked } = useTracker();
   const { requestSignIn } = useAuthPrompt();
@@ -54,7 +54,7 @@ export function AnimeCard({ anime }: { anime: Anime }) {
                 ? `${anime.episodes} eps`
                 : anime.status}
           </span>
-          <button
+          {quickAdd && <button
             className={`quick-add${tracked ? " is-added" : ""}`}
             onClick={() => {
               if (!canManage) {
@@ -75,7 +75,7 @@ export function AnimeCard({ anime }: { anime: Anime }) {
             }
           >
             {tracked ? <Check size={16} /> : <Plus size={16} />}
-          </button>
+          </button>}
         </div>
       </div>
     </article>

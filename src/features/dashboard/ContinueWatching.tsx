@@ -47,7 +47,7 @@ export function ContinueWatching() {
             <div className="continue-card__copy">
               <button type="button" onClick={() => openAnime(item.anime)}>
                 <strong>{item.anime.titleEnglish || item.anime.title}</strong>
-                <span>Episode {nextEpisode}</span>
+                <span>{item.previousWatches?.length ? `Rewatch ${item.previousWatches.length} · ` : ""}Episode {nextEpisode}</span>
               </button>
               <button
                 className="continue-card__done"

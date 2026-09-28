@@ -35,7 +35,7 @@ function response() {
 }
 
 describe("library profile summary API", () => {
-  it("returns compact stats, recent activity, genres, and tracked airing items", async () => {
+  it.each([{ previousWatches: [] }, { previousWatches: [{ progress: 12 }, { progress: 12 }] }])("returns compact stats including previous watches ($previousWatches)", async ({ previousWatches }) => {
     const trackedItem = {
       anime: {
         id: 42,
@@ -59,6 +59,7 @@ describe("library profile summary API", () => {
                     tracking_status: "watching",
                     user_score: 8,
                     progress: 3,
+                    previous_watches: previousWatches,
                     duration: "24 min",
                     genres: ["Action", "Drama"]
                   }
@@ -116,7 +117,8 @@ describe("library profile summary API", () => {
     expect(body.summary.stats).toMatchObject({
       total: 1,
       watching: 1,
-      episodesWatched: 3,
+      episodesWatched: 3 + previousWatches.reduce((total, watch) => total + watch.progress, 0),
+      completed: previousWatches.length ? 1 : 0,
       averageScore: 8
     });
     expect(body.summary.favoriteGenres).toEqual([

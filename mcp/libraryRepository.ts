@@ -33,6 +33,7 @@ export function applyLibraryUpdates(
       existing.anime.episodes ?? Number.MAX_SAFE_INTEGER
     )
   );
+  const status = updates.status ?? existing.status;
 
   return {
     ...existing,
@@ -42,6 +43,9 @@ export function applyLibraryUpdates(
       ? { userScore: updates.userScore ?? undefined }
       : {}),
     progress,
+    completedAt: status === "completed"
+      ? existing.status === "completed" ? existing.completedAt ?? existing.updatedAt : updatedAt
+      : undefined,
     updatedAt
   };
 }
