@@ -38,7 +38,7 @@ export function SettingsPage() {
   const { items, importItems } = useTracker();
   const { configured, user, updateScoreStep } = useCloudAuth();
   const { canInstall, installed, install, isIos } = usePwaInstall();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, colorScheme, setColorScheme } = useTheme();
   const { region, setRegion } = useWatchProvider();
   const { lastChecked, intervalMinutes } = useAppUpdateStatus();
   const importInput = useRef<HTMLInputElement>(null);
@@ -203,20 +203,40 @@ export function SettingsPage() {
           </span>
           <div className="settings-card__content">
             <h2>Appearance</h2>
-            <p>Choose the theme used on this device.</p>
-            <div className="theme-options" aria-label="Color theme">
+            <p>Choose a brightness and color palette for this device.</p>
+            <div className="theme-options" role="group" aria-label="Brightness">
               <button
+                type="button"
                 className={theme === "light" ? "is-active" : ""}
+                aria-pressed={theme === "light"}
                 onClick={() => setTheme("light")}
               >
                 <Sun size={15} /> Light
               </button>
               <button
+                type="button"
                 className={theme === "dark" ? "is-active" : ""}
+                aria-pressed={theme === "dark"}
                 onClick={() => setTheme("dark")}
               >
                 <Moon size={15} /> Dark
               </button>
+            </div>
+            <div className="palette-options" role="group" aria-label="Color palette">
+              {(["sakura", "ocean", "wisteria"] as const).map((scheme) => (
+                <button
+                  key={scheme}
+                  type="button"
+                  className={`palette-option palette-option--${scheme}${colorScheme === scheme ? " is-active" : ""}`}
+                  aria-pressed={colorScheme === scheme}
+                  onClick={() => setColorScheme(scheme)}
+                >
+                  <span className="palette-option__preview" aria-hidden="true">
+                    <span /><span />
+                  </span>
+                  <strong>{scheme === "sakura" ? "Sakura" : scheme === "ocean" ? "Ocean" : "Wisteria"}</strong>
+                </button>
+              ))}
             </div>
           </div>
         </article>
