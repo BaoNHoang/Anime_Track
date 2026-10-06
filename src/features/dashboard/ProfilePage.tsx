@@ -4,8 +4,9 @@ import { SectionHeader } from "../../components/SectionHeader";
 import { useTopAnime } from "../../hooks/useAnimeQueries";
 import { useTracker } from "../../app/providers/useTracker";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
-import { profileAvatarSrc } from "../../domain/account/avatars";
-import { profileBannerSrc } from "../../domain/account/banners";
+import { profileAvatar, profileAvatarSrc } from "../../domain/account/avatars";
+import { profileBanner, profileBannerSrc } from "../../domain/account/banners";
+import { ImageWithFallback } from "../../components/ImageWithFallback";
 import { RecentActivity } from "./RecentActivity";
 import { AiringSchedule } from "./NextAiring";
 import { useLocalProfile } from "../../hooks/useLocalProfile";
@@ -123,14 +124,15 @@ export function ProfilePage() {
     <div className="dashboard-page">
       {showPersonalTracking && displayProfile ? (
         <header className="profile-hero">
-          <img
+          <ImageWithFallback
             className="profile-hero__banner"
             src={profileBannerSrc(displayProfile)}
-            alt=""
+            fallbackSrc={profileBanner(displayProfile.bannerId).src}
+            fallback={<span className="small-image-fallback" aria-hidden="true" />}
           />
           <div className="profile-hero__shade" />
           <div className="profile-hero__identity">
-            <img src={profileAvatarSrc(displayProfile)} alt="" />
+            <ImageWithFallback src={profileAvatarSrc(displayProfile)} fallbackSrc={profileAvatar(displayProfile.avatarId).src} fallback={<span className="small-image-fallback" aria-hidden="true" />} />
             <div>
               <h1>{displayProfile.username}</h1>
             </div>
@@ -255,11 +257,7 @@ export function ProfilePage() {
                     {favorites[kind].map((item, index) => (
                       <article key={item.id}>
                         <span>{index + 1}</span>
-                        {item.imageUrl ? (
-                          <img src={item.imageUrl} alt="" loading="lazy" />
-                        ) : (
-                          <div aria-hidden="true">{item.name.slice(0, 1)}</div>
-                        )}
+                        <ImageWithFallback src={item.imageUrl} loading="lazy" fallback={<div aria-hidden="true">{item.name.slice(0, 1)}</div>} />
                         <strong title={item.name}>{item.name}</strong>
                       </article>
                     ))}

@@ -3,6 +3,7 @@ import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useNotifications } from "../../app/providers/useNotifications";
 import { useTracker } from "../../app/providers/useTracker";
 import type { ReleaseNotification } from "../../domain/notifications/releaseNotifications";
+import { ImageWithFallback } from "../../components/ImageWithFallback";
 
 const releaseTimeFormatter = new Intl.DateTimeFormat(undefined, {
   weekday: "short",
@@ -74,11 +75,7 @@ export function NotificationsPage() {
                 onClick={() => openNotificationAnime(notification)}
               >
                 <span className="notification-item__poster">
-                  {notification.imageUrl ? (
-                    <img src={notification.imageUrl} alt="" loading="lazy" />
-                  ) : (
-                    <Bell size={20} />
-                  )}
+                  <ImageWithFallback src={notification.imageUrl} loading="lazy" fallback={<Bell size={20} />} />
                 </span>
                 <span className="notification-item__copy">
                   <strong>{notification.title}</strong>

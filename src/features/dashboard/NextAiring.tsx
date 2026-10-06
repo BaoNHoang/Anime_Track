@@ -7,6 +7,7 @@ import {
 } from "../../domain/anime/airing";
 import type { Anime } from "../../domain/anime/types";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
+import { ImageWithFallback } from "../../components/ImageWithFallback";
 
 export function AiringSchedule({
   items,
@@ -65,11 +66,7 @@ export function AiringSchedule({
             key={anime.id}
           >
             <span className="airing-list__poster">
-              {anime.imageUrl ? (
-                <img src={anime.imageUrl} alt="" loading="lazy" />
-              ) : (
-                <span className="poster-placeholder">No image</span>
-              )}
+              <ImageWithFallback src={anime.imageUrl} fallbackSrc={anime.largeImageUrl} loading="lazy" />
             </span>
             <span className="airing-list__content">
               <strong>{anime.titleEnglish || anime.title}</strong>
@@ -98,11 +95,7 @@ export function AiringSchedule({
           key={anime.id}
         >
           <span className="schedule-card__poster">
-            {anime.imageUrl ? (
-              <img src={anime.imageUrl} alt="" loading="lazy" />
-            ) : (
-              <span className="poster-placeholder">No image</span>
-            )}
+            <ImageWithFallback src={anime.imageUrl} fallbackSrc={anime.largeImageUrl} loading="lazy" />
             <span className="schedule-card__timing">
               <strong>{formatAiringRelative(anime, now) ?? "Time TBA"}</strong>
               <small>{formatNextAiring(anime, now)?.split(" - ")[0]}</small>
@@ -143,11 +136,7 @@ export function UpcomingSchedule({ items }: { items: Anime[] }) {
           key={anime.id}
         >
           <span className="schedule-card__poster">
-            {anime.imageUrl ? (
-              <img src={anime.imageUrl} alt="" loading="lazy" />
-            ) : (
-              <span className="poster-placeholder">No image</span>
-            )}
+            <ImageWithFallback src={anime.imageUrl} fallbackSrc={anime.largeImageUrl} loading="lazy" />
             <span className="schedule-card__timing">
               <strong>{formatPremiereDate(anime)}</strong>
               <small>{anime.type}</small>

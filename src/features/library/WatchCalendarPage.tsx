@@ -11,6 +11,7 @@ import {
   Shuffle
 } from "../../components/OwnedIcons";
 import { LibraryTools } from "./LibraryTools";
+import { ImageWithFallback } from "../../components/ImageWithFallback";
 
 const dayHeading = new Intl.DateTimeFormat(undefined, {
   weekday: "short",
@@ -80,7 +81,7 @@ export function WatchCalendarPage() {
 
       {pick && (
         <section className="watch-planner__pick" aria-live="polite">
-          {pick.anime.imageUrl && <img src={pick.anime.imageUrl} alt="" />}
+          <ImageWithFallback src={pick.anime.imageUrl} fallbackSrc={pick.anime.largeImageUrl} fallback={<span className="small-image-fallback" aria-hidden="true" />} />
           <div>
             <span>Tonight&apos;s pick</span>
             <h2>{animeTitle(pick)}</h2>
@@ -134,7 +135,7 @@ export function WatchCalendarPage() {
                     {dayEvents.map(({ item, at, premiere }) => (
                       <article key={`${item.anime.id}-${at.toISOString()}`}>
                         <button onClick={() => openAnime(item.anime)}>
-                          {item.anime.imageUrl ? <img src={item.anime.imageUrl} alt="" loading="lazy" /> : <span className="watch-planner__poster-fallback" />}
+                          <ImageWithFallback src={item.anime.imageUrl} fallbackSrc={item.anime.largeImageUrl} loading="lazy" fallback={<span className="watch-planner__poster-fallback" />} />
                           <span>
                             <strong>{animeTitle(item)}</strong>
                             <small>{premiere ? "Premiere" : "Scheduled broadcast"}</small>
@@ -162,7 +163,7 @@ export function WatchCalendarPage() {
               const complete = Boolean(item.anime.episodes && item.progress >= item.anime.episodes);
               return (
                 <article key={item.anime.id}>
-                  {item.anime.imageUrl && <img src={item.anime.imageUrl} alt="" loading="lazy" />}
+                  <ImageWithFallback src={item.anime.imageUrl} fallbackSrc={item.anime.largeImageUrl} loading="lazy" fallback={<span className="small-image-fallback" aria-hidden="true" />} />
                   <div>
                     <button onClick={() => openAnime(item.anime)}>{animeTitle(item)}</button>
                     <span>{item.progress} / {item.anime.episodes ?? "?"} episodes</span>

@@ -14,6 +14,7 @@ import type { AnimePage } from "../../domain/anime/types";
 import { ContinueWatching } from "./ContinueWatching";
 import { Recommendations } from "./Recommendations";
 import { useMemo } from "react";
+import { ImageWithFallback } from "../../components/ImageWithFallback";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -27,7 +28,7 @@ function SeasonTile({ anime }: { anime: Anime }) {
   return (
     <article className="home-season-tile">
       <button type="button" onClick={() => openAnime(anime)}>
-        <img src={anime.imageUrl} alt="" loading="lazy" />
+        <ImageWithFallback src={anime.imageUrl} fallbackSrc={anime.largeImageUrl} loading="lazy" />
       </button>
       <div>
         <button type="button" onClick={() => openAnime(anime)} title={title}>
@@ -141,9 +142,9 @@ export function DashboardPage() {
               <div className="home-news-list">
                 {news.articles.slice(0, 6).map((article) => (
                   <article key={article.url}>
-                    <img
+                    <ImageWithFallback
                       src={article.imageUrl || article.animeImageUrl}
-                      alt=""
+                      fallbackSrc={article.animeImageUrl}
                       loading="lazy"
                     />
                     <div>
@@ -182,7 +183,7 @@ export function DashboardPage() {
                 <li key={anime.id}>
                   <span>{index + 1}</span>
                   <button type="button" onClick={() => openAnime(anime)}>
-                    <img src={anime.imageUrl} alt="" loading="lazy" />
+                    <ImageWithFallback src={anime.imageUrl} fallbackSrc={anime.largeImageUrl} loading="lazy" />
                   </button>
                   <button type="button" onClick={() => openAnime(anime)}>
                     <strong>{anime.titleEnglish || anime.title}</strong>

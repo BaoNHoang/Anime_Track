@@ -3,6 +3,7 @@ import {
   STATUS_LABELS,
   type TrackedAnime
 } from "../../domain/tracker/types";
+import { ImageWithFallback } from "../../components/ImageWithFallback";
 
 export function LibraryCard({
   item,
@@ -24,11 +25,7 @@ export function LibraryCard({
         aria-label={`Open and edit ${item.anime.titleEnglish || item.anime.title}`}
       >
         <span className="library-card__visual">
-          {item.anime.imageUrl ? (
-            <img src={item.anime.imageUrl} alt="" loading="lazy" />
-          ) : (
-            <span className="poster-placeholder">No image</span>
-          )}
+          <ImageWithFallback src={item.anime.imageUrl} fallbackSrc={item.anime.largeImageUrl} loading="lazy" />
           <span
             className="library-card__status-dot"
             aria-label={STATUS_LABELS[item.status]}

@@ -4,6 +4,7 @@ import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useTracker } from "../../app/providers/useTracker";
 import type { TrackedAnime } from "../../domain/tracker/types";
 import { nextEpisodeNumber } from "../../domain/tracker/episodes";
+import { ImageWithFallback } from "../../components/ImageWithFallback";
 
 function relativeTime(value: string, now: number) {
   const elapsedSeconds = Math.max(0, (now - Date.parse(value)) / 1000);
@@ -44,7 +45,7 @@ function ActivityItem({ item, now }: { item: TrackedAnime; now: number }) {
   return (
     <article className="activity-item">
       <button className="activity-item__poster" onClick={() => openAnime(item.anime)}>
-        {item.anime.imageUrl ? <img src={item.anime.imageUrl} alt="" /> : <span />}
+        <ImageWithFallback src={item.anime.imageUrl} fallbackSrc={item.anime.largeImageUrl} fallback={<span className="small-image-fallback" aria-hidden="true" />} />
       </button>
       <button className="activity-item__copy" onClick={() => openAnime(item.anime)}>
         <strong>{activityText(item)}</strong>

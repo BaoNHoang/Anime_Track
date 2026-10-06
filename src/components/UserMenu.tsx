@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCloudAuth } from "../app/providers/useCloudAuth";
 import { useTheme } from "../app/providers/useTheme";
-import { profileAvatarSrc } from "../domain/account/avatars";
+import { profileAvatar, profileAvatarSrc } from "../domain/account/avatars";
+import { ImageWithFallback } from "./ImageWithFallback";
 import type { AccountUser } from "../services/account/accountApi";
 import type { LocalProfile } from "../services/storage/localProfileRepository";
 import { useNotifications } from "../app/providers/useNotifications";
@@ -60,7 +61,7 @@ export function UserMenu({ user, localProfile }: UserMenuProps) {
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
       >
-        <img src={profileAvatarSrc(profile)} alt="" />
+        <ImageWithFallback src={profileAvatarSrc(profile)} fallbackSrc={profileAvatar(profile.avatarId).src} fallback={<span className="small-image-fallback" aria-hidden="true" />} />
       </button>
       {unreadCount > 0 && (
         <span

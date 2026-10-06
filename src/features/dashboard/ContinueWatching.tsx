@@ -2,6 +2,7 @@ import { Check, Play } from "../../components/OwnedIcons";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useTracker } from "../../app/providers/useTracker";
 import { nextEpisodeNumber } from "../../domain/tracker/episodes";
+import { ImageWithFallback } from "../../components/ImageWithFallback";
 
 function today() {
   const date = new Date();
@@ -41,7 +42,7 @@ export function ContinueWatching() {
               onClick={() => openAnime(item.anime)}
               aria-label={`Open ${item.anime.titleEnglish || item.anime.title}`}
             >
-              {item.anime.imageUrl ? <img src={item.anime.imageUrl} alt="" /> : <span />}
+              <ImageWithFallback src={item.anime.imageUrl} fallbackSrc={item.anime.largeImageUrl} fallback={<span className="small-image-fallback" aria-hidden="true" />} />
               <Play size={18} />
             </button>
             <div className="continue-card__copy">

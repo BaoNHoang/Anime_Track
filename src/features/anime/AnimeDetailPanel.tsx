@@ -35,6 +35,7 @@ import { watchedEpisodeNumbers } from "../../domain/tracker/episodes";
 import { MAX_PREVIOUS_WATCHES } from "../../domain/tracker/rewatch";
 import { EpisodeUndoToast } from "../../components/EpisodeUndoToast";
 import { ErrorState } from "../../components/ErrorState";
+import { ImageWithFallback } from "../../components/ImageWithFallback";
 
 export function AnimeDetailPanel() {
   const { selectedAnime, closeAnime } = useAnimePanel();
@@ -157,11 +158,7 @@ export function AnimeDetailPanel() {
           <X size={20} />
         </button>
         <div className="detail-panel__hero">
-          {anime.largeImageUrl ? (
-            <img src={anime.largeImageUrl} alt="" />
-          ) : (
-            <span className="poster-placeholder">No image</span>
-          )}
+          <ImageWithFallback src={anime.largeImageUrl} fallbackSrc={anime.imageUrl} />
         </div>
 
         <div className="detail-panel__body">

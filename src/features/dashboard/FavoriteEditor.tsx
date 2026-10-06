@@ -11,6 +11,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { CompactListSkeleton } from "../../components/LoadingState";
+import { ImageWithFallback } from "../../components/ImageWithFallback";
 import {
   FAVORITE_KINDS,
   MAX_FAVORITES_PER_KIND,
@@ -128,7 +129,7 @@ export function FavoriteEditor() {
                 onClick={() => updateKind([...selected, item])}
               >
                 <span className="favorite-result-image">
-                  {item.imageUrl ? <img src={item.imageUrl} alt="" /> : item.name.slice(0, 1)}
+                  <ImageWithFallback src={item.imageUrl} fallback={item.name.slice(0, 1)} />
                 </span>
                 <span>{item.name}</span>
                 <Plus size={16} />
@@ -158,7 +159,7 @@ export function FavoriteEditor() {
                 >
                   <GripVertical size={17} />
                   <span className="favorite-result-image">
-                    {item.imageUrl ? <img src={item.imageUrl} alt="" /> : item.name.slice(0, 1)}
+                    <ImageWithFallback src={item.imageUrl} fallback={item.name.slice(0, 1)} />
                   </span>
                   <strong>{item.name}</strong>
                   <button type="button" onClick={() => updateKind(reorder(selected, index, index - 1))} disabled={index === 0} aria-label={`Move ${item.name} up`}><ArrowUp size={15} /></button>
