@@ -4,6 +4,7 @@ import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { useTracker } from "../../app/providers/useTracker";
 import { Sparkles } from "../../components/OwnedIcons";
+import { ImageWithFallback } from "../../components/ImageWithFallback";
 import { SectionHeader } from "../../components/SectionHeader";
 import type { Anime } from "../../domain/anime/types";
 import { rankRecommendations } from "../../domain/recommendations/rankRecommendations";
@@ -37,11 +38,7 @@ export function Recommendations({ candidates }: { candidates: Anime[] }) {
             <article key={anime.id}>
               <button type="button" onClick={() => openAnime(anime)}>
                 <span className="recommendation-strip__poster">
-                  {anime.imageUrl ? (
-                    <img src={anime.imageUrl} alt="" loading="lazy" />
-                  ) : (
-                    <Sparkles size={22} />
-                  )}
+                  <ImageWithFallback src={anime.imageUrl} fallbackSrc={anime.largeImageUrl} loading="lazy" fallback={<Sparkles size={22} />} />
                 </span>
                 <span className="recommendation-strip__copy">
                   <strong>{anime.titleEnglish || anime.title}</strong>

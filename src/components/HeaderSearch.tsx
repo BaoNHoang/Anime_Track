@@ -5,6 +5,7 @@ import { useAnimePanel } from "../app/providers/useAnimePanel";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { useAnimeSearch } from "../hooks/useAnimeQueries";
 import { CompactListSkeleton } from "./LoadingState";
+import { ImageWithFallback } from "./ImageWithFallback";
 
 export function HeaderSearch() {
   const [query, setQuery] = useState("");
@@ -100,7 +101,7 @@ export function HeaderSearch() {
                 setOpen(false);
               }}
             >
-              <img src={anime.imageUrl} alt="" />
+              <ImageWithFallback src={anime.imageUrl} fallbackSrc={anime.largeImageUrl} fallback={<span className="small-image-fallback" aria-hidden="true" />} />
               <span>{anime.titleEnglish || anime.title}</span>
               {anime.year && <small>{anime.year}</small>}
             </button>

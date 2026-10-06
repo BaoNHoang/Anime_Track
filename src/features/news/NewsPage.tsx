@@ -7,6 +7,7 @@ import {
 import { ErrorState } from "../../components/ErrorState";
 import { useAnimeNews } from "../../hooks/useAnimeNews";
 import { NewsGridSkeleton, PromoGridSkeleton } from "../../components/LoadingState";
+import { ImageWithFallback } from "../../components/ImageWithFallback";
 
 const publishedAtFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -57,11 +58,12 @@ export function NewsPage() {
 
           <section className="news-lead-grid" aria-label="Latest anime stories">
             <article className="news-lead">
-              {leadStory.imageUrl ? (
-                <img src={leadStory.imageUrl} alt="" decoding="async" />
-              ) : (
-                <div className="news-lead__fallback" aria-hidden="true" />
-              )}
+              <ImageWithFallback
+                src={leadStory.imageUrl}
+                fallbackSrc={leadStory.animeImageUrl}
+                decoding="async"
+                fallback={<div className="news-lead__fallback" aria-hidden="true" />}
+              />
               <div className="news-lead__body">
                 <span className="news-label">Lead story · {leadStory.animeTitle}</span>
                 <h3>{leadStory.title}</h3>
@@ -157,11 +159,11 @@ export function NewsPage() {
                 rel="noreferrer"
                 key={`${promo.animeId}-${promo.promoTitle}`}
               >
-                <img
+                <ImageWithFallback
                   src={promo.imageUrl}
-                  alt=""
                   loading="lazy"
                   decoding="async"
+                  fallback={<span className="promo-card__image-fallback" aria-hidden="true"><PlayCircle size={28} /></span>}
                 />
                 <div>
                   <span className="promo-card__play">

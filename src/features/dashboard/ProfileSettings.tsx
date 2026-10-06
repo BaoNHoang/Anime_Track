@@ -10,7 +10,8 @@ import {
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
-import { PROFILE_AVATARS, profileAvatarSrc } from "../../domain/account/avatars";
+import { PROFILE_AVATARS, profileAvatar, profileAvatarSrc } from "../../domain/account/avatars";
+import { ImageWithFallback } from "../../components/ImageWithFallback";
 import { PROFILE_BANNERS } from "../../domain/account/banners";
 import {
   sanitizeProfileImage,
@@ -292,7 +293,7 @@ export function ProfileSettings() {
       </header>
       <section className="account-profile">
         <div className="account-profile__identity">
-          <span className="account-avatar"><img src={profileAvatarSrc(activeProfile)} alt="" /></span>
+          <span className="account-avatar"><ImageWithFallback src={profileAvatarSrc(activeProfile)} fallbackSrc={profileAvatar(activeProfile.avatarId).src} fallback={<span className="small-image-fallback" aria-hidden="true" />} /></span>
           <div><h2>{activeProfile.username}</h2><p>{user?.email ?? "Stored only on this device"}</p></div>
         </div>
         {message && <p className={`form-message form-message--${message.tone}`} role={message.tone === "error" ? "alert" : "status"}>{message.text}</p>}

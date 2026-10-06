@@ -4,6 +4,7 @@ import type { Anime } from "../domain/anime/types";
 import { useAnimePanel } from "../app/providers/useAnimePanel";
 import { useTracker } from "../app/providers/useTracker";
 import { useAuthPrompt } from "../app/providers/useAuthPrompt";
+import { ImageWithFallback } from "./ImageWithFallback";
 
 export function AnimeCard({ anime, quickAdd = true }: { anime: Anime; quickAdd?: boolean }) {
   const { openAnime } = useAnimePanel();
@@ -19,16 +20,12 @@ export function AnimeCard({ anime, quickAdd = true }: { anime: Anime; quickAdd?:
         onClick={() => openAnime(anime)}
         aria-label={`View ${anime.title}`}
       >
-        {anime.imageUrl ? (
-          <img
-            className="anime-card__poster"
-            src={anime.imageUrl}
-            alt=""
-            loading="lazy"
-          />
-        ) : (
-          <span className="poster-placeholder">No image</span>
-        )}
+        <ImageWithFallback
+          className="anime-card__poster"
+          src={anime.imageUrl}
+          fallbackSrc={anime.largeImageUrl}
+          loading="lazy"
+        />
       </button>
       <div className="anime-card__body">
         <div className="anime-card__topline">
