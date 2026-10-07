@@ -20,7 +20,7 @@ export function ContinueWatching() {
       entry.nextEpisode !== undefined
     )
     .sort((left, right) => right.item.updatedAt.localeCompare(left.item.updatedAt))
-    .slice(0, 6);
+    .slice(0, 4);
 
   if (!queue.length) return null;
 
@@ -31,9 +31,9 @@ export function ContinueWatching() {
           <span>Up next</span>
           <h2 id="continue-watching-title">Continue watching</h2>
         </div>
-        <p>Pick up where you left off.</p>
+        <p>Your most recently updated shows.</p>
       </header>
-      <div className="continue-watching__rail">
+      <div className="continue-watching__grid">
         {queue.map(({ item, nextEpisode }) => (
           <article className="continue-card" key={item.anime.id}>
             <button
