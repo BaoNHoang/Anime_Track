@@ -1,5 +1,5 @@
-import { ChevronLeft, ChevronRight, Search, X } from "../../components/OwnedIcons";
-import { useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Compass, Search, X } from "../../components/OwnedIcons";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnimeCard } from "../../components/AnimeCard";
 import { ErrorState } from "../../components/ErrorState";
@@ -9,6 +9,10 @@ import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { useTracker } from "../../app/providers/useTracker";
 import { LibraryTools } from "../library/LibraryTools";
 import type { AnimeBrowsePreset } from "../../services/tenrai/animeService";
+
+const AnimeConnectionMap = lazy(() => import("./AnimeConnectionMap").then((module) => ({
+  default: module.AnimeConnectionMap
+})));
 
 type Sort = "default" | "score" | "popularity" | "title" | "year";
 
@@ -24,6 +28,7 @@ const feeds: Array<{ value: AnimeBrowsePreset; label: string }> = [
 ];
 
 export function DiscoverPage() {
+  const [view, setView] = useState<"list" | "map">("list");
   const [searchParams] = useSearchParams();
   const urlQuery = searchParams.get("q") ?? "";
   const [queryState, setQueryState] = useState(() => ({
@@ -137,6 +142,13 @@ export function DiscoverPage() {
     <div className="page-stack">
       <h1 className="visually-hidden">Discover anime</h1>
       <LibraryTools />
+
+      <div className="discover-view-switch" role="group" aria-label="Discover view">
+        <button type="button" className={view === "list" ? "is-active" : ""} aria-pressed={view === "list"} onClick={() => setView("list")}>Browse list</button>
+        <button type="button" className={view === "map" ? "is-active" : ""} aria-pressed={view === "map"} onClick={() => setView("map")}><Compass size={16} /> Anime map</button>
+      </div>
+
+      {view === "map" ? <Suspense fallback={<div className="anime-map__message" role="status">Opening the anime map…</div>}><AnimeConnectionMap currentResults={result.data?.items} /></Suspense> : <>
 
       <section className="query-panel">
         <div className="search-box">
@@ -283,6 +295,8 @@ export function DiscoverPage() {
           </nav>
         )}
       </section>
+
+      </>}
 
     </div>
   );
