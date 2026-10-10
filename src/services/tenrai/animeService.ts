@@ -7,9 +7,18 @@ import type {
   TenraiRelationResponse
 } from "./dto";
 import { mapTenraiAnime } from "./mapper";
+import type { ConnectionFacet } from "../../domain/anime/connectionMap";
 
 const SHORT_LIST_CACHE_MS = 15 * 60 * 1000;
 const POPULAR_LIST_CACHE_MS = 6 * 60 * 60 * 1000;
+
+interface CatalogFacetResponse {
+  data: Array<{
+    mal_id: number;
+    name?: string;
+    titles?: Array<{ type?: string; title?: string }>;
+  }>;
+}
 
 export type AnimeBrowsePreset =
   | "airing"
@@ -148,6 +157,46 @@ export async function browseAnime(
     `/anime?${params.toString()}`,
     { signal, cacheMs: POPULAR_LIST_CACHE_MS, cacheStorage: "local" }
   );
+  return mapPage(response);
+}
+
+export async function browseAnimeByFacet(
+  facet: Pick<ConnectionFacet, "kind" | "label">,
+  page = 1,
+  signal?: AbortSignal
+): Promise<AnimePage> {
+  const name = facet.label.trim();
+  if (!name || !Number.isSafeInteger(page) || page < 1 || page > 1000) {
+    throw new Error("Invalid anime map request.");
+  }
+  const lookup = facet.kind === "genre"
+    ? "/genres/anime"
+    : `/producers?${new URLSearchParams({ q: name, limit: "10" })}`;
+  const list = await tenraiGet<CatalogFacetResponse>(lookup, {
+    signal,
+    cacheMs: 24 * 60 * 60 * 1000,
+    cacheStorage: "local"
+  });
+  const match = list.data.find((item) =>
+    Number.isSafeInteger(item.mal_id) && item.mal_id > 0 &&
+    (item.name ?? item.titles?.find((title) => title.type === "Default")?.title ??
+      item.titles?.[0]?.title)?.toLocaleLowerCase() === name.toLocaleLowerCase()
+  );
+  if (!match) throw new Error("This studio or genre is not available in the catalog.");
+
+  const params = new URLSearchParams({
+    [facet.kind === "genre" ? "genres" : "producers"]: String(match.mal_id),
+    limit: "24",
+    sfw: "true",
+    order_by: "popularity",
+    sort: "asc",
+    page: String(page)
+  });
+  const response = await tenraiGet<TenraiListResponse>(`/anime?${params}`, {
+    signal,
+    cacheMs: POPULAR_LIST_CACHE_MS,
+    cacheStorage: "local"
+  });
   return mapPage(response);
 }
 

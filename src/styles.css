@@ -2852,7 +2852,30 @@ h3,
 .anime-map__library span { color: var(--muted); font-size: 10px; font-weight: 750; }
 .anime-map__library select { min-height: 42px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: 7px; color: var(--ink); background: var(--surface-raised); font: inherit; font-size: 12px; }
 
+.anime-map__shuffle,
+.anime-map__all-links {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--ink);
+  background: var(--surface-raised);
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.anime-map__shuffle { margin-left: auto; }
+.anime-map__shuffle:hover:not(:disabled),
+.anime-map__all-links:hover { border-color: var(--accent); color: var(--accent); }
+.anime-map__shuffle:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .anime-map__message { padding: 36px 28px; color: var(--muted); font-size: 13px; }
+.anime-map__facet-status { margin: 0; padding: 0 28px 12px; color: var(--muted); font-size: 11px; }
 .anime-map__pan-hint { display: none; margin: 0; padding: 0 18px 10px; color: var(--muted); font-size: 11px; }
 
 .anime-map__viewport {
@@ -2979,13 +3002,16 @@ h3,
   .anime-map__intro { align-items: start; flex-direction: column; gap: 14px; padding: 20px 18px 16px; }
   .anime-map__tools { align-items: stretch; flex-direction: column; padding: 0 18px 18px; }
   .anime-map__search, .anime-map__library { width: 100%; max-width: none; }
+  .anime-map__shuffle { justify-self: start; margin-left: 0; }
+  .anime-map__facet-status { padding: 0 18px 10px; }
   .anime-map__pan-hint { display: block; }
   .anime-map__footer { align-items: start; flex-direction: column; padding: 15px 18px; }
   .anime-map__footer > span { max-width: none; text-align: left; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .anime-map__neighbor-image, .anime-map__facet { transition: box-shadow 150ms ease, transform 150ms ease, opacity 150ms ease; }
+  .anime-map__neighbor-image, .anime-map__facet { transition: box-shadow 150ms ease, transform 150ms ease, opacity 150ms ease, left 220ms ease, top 220ms ease; }
+  .anime-map__neighbor { transition: left 220ms ease, top 220ms ease; }
   .anime-map__neighbor:hover .anime-map__neighbor-image { transform: scale(1.06); }
 }
 

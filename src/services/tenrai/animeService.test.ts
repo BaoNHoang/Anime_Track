@@ -10,6 +10,7 @@ vi.mock("./client", () => ({
 
 import {
   browseAnime,
+  browseAnimeByFacet,
   getAnimeSequels,
   getTopAnime,
   searchAnime
@@ -71,6 +72,37 @@ describe("getTopAnime", () => {
     expect(tenraiGetMock).toHaveBeenCalledWith(
       "/anime?start_date=2010-01-01&end_date=2019-12-31&order_by=score&sort=desc&limit=24&sfw=true&page=2",
       expect.objectContaining({ cacheStorage: "local" })
+    );
+  });
+
+  it("looks up a genre ID before browsing more matching anime", async () => {
+    tenraiGetMock.mockResolvedValueOnce({ data: [{ mal_id: 10, name: "Fantasy" }] });
+    tenraiGetMock.mockResolvedValueOnce({ data: [], pagination: { current_page: 4, has_next_page: true } });
+
+    await browseAnimeByFacet({ kind: "genre", label: "Fantasy" }, 4);
+
+    expect(tenraiGetMock).toHaveBeenNthCalledWith(1, "/genres/anime", expect.any(Object));
+    expect(tenraiGetMock).toHaveBeenNthCalledWith(2,
+      "/anime?genres=10&limit=24&sfw=true&order_by=popularity&sort=asc&page=4",
+      expect.objectContaining({ cacheStorage: "local" })
+    );
+  });
+
+  it("uses an exact studio match rather than a similarly named producer", async () => {
+    tenraiGetMock.mockResolvedValueOnce({ data: [
+      { mal_id: 100, titles: [{ type: "Default", title: "Studio Bones" }] },
+      { mal_id: 4, titles: [{ type: "Default", title: "Bones" }] }
+    ] });
+    tenraiGetMock.mockResolvedValueOnce({ data: [], pagination: { current_page: 1, has_next_page: false } });
+
+    await browseAnimeByFacet({ kind: "studio", label: "Bones" });
+
+    expect(tenraiGetMock).toHaveBeenNthCalledWith(1,
+      "/producers?q=Bones&limit=10", expect.any(Object)
+    );
+    expect(tenraiGetMock).toHaveBeenNthCalledWith(2,
+      "/anime?producers=4&limit=24&sfw=true&order_by=popularity&sort=asc&page=1",
+      expect.any(Object)
     );
   });
 
