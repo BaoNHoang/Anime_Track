@@ -2,12 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getAnimeById,
   browseAnime,
+  browseAnimeByFacet,
   getCurrentSeason,
   getTopAnimeCacheMs,
   getTopAnime,
   searchAnime,
   type AnimeBrowsePreset
 } from "../services/tenrai/animeService";
+import type { ConnectionFacet } from "../domain/anime/connectionMap";
 
 const DISCOVERY_QUERY_GC_MS = 30 * 60 * 1000;
 
@@ -53,6 +55,16 @@ export function useAnimeBrowse(preset: AnimeBrowsePreset, page = 1) {
     staleTime: 6 * 60 * 60 * 1000,
     gcTime: DISCOVERY_QUERY_GC_MS,
     placeholderData: (previousData) => previousData
+  });
+}
+
+export function useAnimeFacet(facet?: ConnectionFacet, page = 1) {
+  return useQuery({
+    queryKey: ["anime", "facet", facet?.key, page],
+    queryFn: ({ signal }) => browseAnimeByFacet(facet as ConnectionFacet, page, signal),
+    enabled: Boolean(facet),
+    staleTime: 6 * 60 * 60 * 1000,
+    gcTime: DISCOVERY_QUERY_GC_MS
   });
 }
 
