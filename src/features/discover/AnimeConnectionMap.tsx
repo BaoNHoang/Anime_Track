@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Compass, Search, Shuffle, X } from "../../components/OwnedIcons";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useTracker } from "../../app/providers/useTracker";
 import { buildAnimeConnections, type ConnectionFacet } from "../../domain/anime/connectionMap";
 import { layoutAnimeConnections, type MapPoint } from "../../domain/anime/connectionMapLayout";
+import { mapFacetParam, readConnectionMapUrl } from "../../domain/anime/connectionMapUrl";
 import type { Anime } from "../../domain/anime/types";
-import { useAnimeBrowse, useAnimeFacet, useAnimeSearch } from "../../hooks/useAnimeQueries";
+import { useAnimeBrowse, useAnimeDetails, useAnimeFacet, useAnimeSearch } from "../../hooks/useAnimeQueries";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 
 const EMPTY_ANIME: Anime[] = [];
@@ -16,20 +18,17 @@ function positionStyle(position: MapPoint): CSSProperties {
 }
 
 export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentResults?: Anime[] }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const mapUrl = useMemo(() => readConnectionMapUrl(searchParams), [searchParams]);
+  const { animeId, facet: activeFacet, bridgeGenre, page: facetPage, seed: shuffleSeed } = mapUrl;
   const { openAnime } = useAnimePanel();
   const { items: library } = useTracker();
   const popular = useAnimeBrowse("popular");
-  const classics = useAnimeBrowse("classics");
-  const airing = useAnimeBrowse("airing");
   const [searchText, setSearchText] = useState("");
   const debouncedSearch = useDebouncedValue(searchText.trim(), 350);
   const search = useAnimeSearch(debouncedSearch);
-  const [selectedAnime, setSelectedAnime] = useState<Anime | null>(null);
-  const [activeFacet, setActiveFacet] = useState<ConnectionFacet | null>(null);
-  const [bridgeGenre, setBridgeGenre] = useState<ConnectionFacet | null>(null);
-  const [facetPage, setFacetPage] = useState(1);
-  const [shuffleSeed, setShuffleSeed] = useState(() => Math.floor(Math.random() * 1_000_000));
   const [discoveredAnime, setDiscoveredAnime] = useState<Anime[]>([]);
+  const [shareStatus, setShareStatus] = useState("");
   const viewportRef = useRef<HTMLDivElement>(null);
 
   const librarySeeds = useMemo(() => library
@@ -40,23 +39,26 @@ export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentRe
     ...library.map((item) => item.anime),
     ...currentResults,
     ...(popular.data?.items ?? []),
-    ...(classics.data?.items ?? []),
-    ...(airing.data?.items ?? []),
     ...(search.data?.items ?? []),
     ...discoveredAnime
   ].map((anime) => [anime.id, anime])).values()], [
-    currentResults, popular.data, classics.data, airing.data, search.data, library, discoveredAnime
+    currentResults, popular.data, search.data, library, discoveredAnime
   ]);
-  const center = selectedAnime ?? librarySeeds[0] ?? starterCatalog[0];
+  const knownAnime = animeId ? starterCatalog.find((anime) => anime.id === animeId) : undefined;
+  const details = useAnimeDetails(animeId && !knownAnime ? animeId : undefined);
   const facetBrowse = useAnimeFacet(activeFacet ?? undefined, facetPage);
   const catalog = useMemo(() => [...new Map([
     ...starterCatalog,
+    ...(details.data ? [details.data] : []),
     ...(facetBrowse.data?.items ?? [])
-  ].map((anime) => [anime.id, anime])).values()], [starterCatalog, facetBrowse.data]);
+  ].map((anime) => [anime.id, anime])).values()], [starterCatalog, details.data, facetBrowse.data]);
+  const center = animeId
+    ? catalog.find((anime) => anime.id === animeId)
+    : librarySeeds[0] ?? catalog[0];
   const connections = useMemo(() => center
     ? buildAnimeConnections(center, catalog, {
-      facet: activeFacet ?? undefined,
-      bridgeGenre: bridgeGenre ?? undefined,
+      facet: activeFacet,
+      bridgeGenre,
       seed: shuffleSeed
     })
     : { facets: [], neighbors: [] }, [center, catalog, activeFacet, bridgeGenre, shuffleSeed]);
@@ -84,45 +86,73 @@ export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentRe
       ...anime
     ].map((item) => [item.id, item])).values()].slice(-240));
   };
+  const updateMapUrl = (update: (next: URLSearchParams) => void, replace = false) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("view", "map");
+    update(next);
+    setSearchParams(next, { replace });
+  };
   const chooseAnime = (anime: Anime) => {
-    rememberAnime([...(search.data?.items ?? []), ...(facetBrowse.data?.items ?? [])]);
-    setSelectedAnime(anime);
-    setActiveFacet(null);
-    setBridgeGenre(null);
-    setFacetPage(1);
-    setShuffleSeed((seed) => seed + 1);
+    rememberAnime([anime, ...(search.data?.items ?? []), ...(facetBrowse.data?.items ?? [])]);
+    updateMapUrl((next) => {
+      next.set("anime", String(anime.id));
+      next.delete("facet");
+      next.delete("bridge");
+      next.delete("mapPage");
+      next.set("mapSeed", String(shuffleSeed + 1));
+    });
     setSearchText("");
   };
   const shuffleConnections = () => {
-    setShuffleSeed((seed) => seed + 1);
-    if (!activeFacet) return;
-    rememberAnime(facetBrowse.data?.items ?? []);
-    const lastPage = Math.min(
-      facetBrowse.data?.lastPage ?? (facetBrowse.data?.hasNextPage ? facetPage + 1 : 1),
-      50
-    );
-    if (lastPage > 1) {
-      const offset = 1 + (shuffleSeed % (lastPage - 1));
-      setFacetPage((current) => ((current - 1 + offset) % lastPage) + 1);
-    }
+    if (activeFacet) rememberAnime(facetBrowse.data?.items ?? []);
+    updateMapUrl((next) => {
+      next.set("mapSeed", String(shuffleSeed + 1));
+      if (!activeFacet) return;
+      const lastPage = Math.min(
+        facetBrowse.data?.lastPage ?? (facetBrowse.data?.hasNextPage ? facetPage + 1 : 1), 50
+      );
+      if (lastPage > 1) {
+        const offset = 1 + (shuffleSeed % (lastPage - 1));
+        next.set("mapPage", String(((facetPage - 1 + offset) % lastPage) + 1));
+      }
+    }, true);
   };
   const chooseFacet = (facet: ConnectionFacet) => {
+    if (!center) return;
     if (activeFacet?.key === facet.key) {
       shuffleConnections();
       return;
     }
     rememberAnime(facetBrowse.data?.items ?? []);
-    setBridgeGenre(activeFacet?.kind === "genre" && facet.kind === "studio" ? activeFacet : null);
-    setActiveFacet(facet);
-    setFacetPage(1);
-    setShuffleSeed((seed) => seed + 1);
+    updateMapUrl((next) => {
+      next.set("anime", String(center.id));
+      next.set("facet", mapFacetParam(facet));
+      if (activeFacet?.kind === "genre" && facet.kind === "studio") {
+        next.set("bridge", mapFacetParam(activeFacet));
+      } else next.delete("bridge");
+      next.delete("mapPage");
+      next.set("mapSeed", String(shuffleSeed + 1));
+    });
   };
   const surprise = () => {
     const choices = catalog.filter((anime) => anime.id !== center?.id && (anime.genres.length || anime.studios.length));
     if (choices.length) chooseAnime(choices[Math.floor(Math.random() * choices.length)]);
   };
-  const isLoading = popular.isPending || classics.isPending || airing.isPending;
-  const allFailed = popular.isError && classics.isError && airing.isError && !catalog.length;
+  const isLoading = popular.isPending || (Boolean(animeId) && details.isPending);
+  const allFailed = !center && (animeId ? details.isError : popular.isError);
+  const shareMap = async () => {
+    if (!center) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("view", "map");
+    url.searchParams.set("anime", String(center.id));
+    url.searchParams.set("mapSeed", String(shuffleSeed));
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      setShareStatus("Map link copied.");
+    } catch {
+      setShareStatus("Could not copy the link. Copy this page's URL instead.");
+    }
+  };
 
   return (
     <section className="anime-map" aria-labelledby="anime-map-title">
@@ -174,7 +204,9 @@ export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentRe
         <button className="anime-map__shuffle" type="button" onClick={shuffleConnections} disabled={!center}>
           <Shuffle size={15} /> Shuffle links
         </button>
+        <button className="anime-map__share" type="button" onClick={shareMap} disabled={!center}>Share map</button>
       </div>
+      {shareStatus ? <p className="anime-map__facet-status" role="status">{shareStatus}</p> : null}
 
       {allFailed ? <div className="anime-map__message">The map could not load anime. Try opening it again in a moment.</div> : null}
       {!center && isLoading ? <div className="anime-map__message" role="status">Finding anime to map…</div> : null}
@@ -239,8 +271,11 @@ export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentRe
             {activeFacet ? (
               <button className="anime-map__all-links" type="button" onClick={() => {
                 rememberAnime(facetBrowse.data?.items ?? []);
-                setActiveFacet(null);
-                setBridgeGenre(null);
+                updateMapUrl((next) => {
+                  next.delete("facet");
+                  next.delete("bridge");
+                  next.delete("mapPage");
+                });
               }}>Show all connections</button>
             ) : <span>Select a genre or studio to explore more of the catalog.</span>}
           </div>

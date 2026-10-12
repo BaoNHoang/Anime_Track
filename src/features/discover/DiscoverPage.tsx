@@ -28,8 +28,19 @@ const feeds: Array<{ value: AnimeBrowsePreset; label: string }> = [
 ];
 
 export function DiscoverPage() {
-  const [view, setView] = useState<"list" | "map">("list");
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = searchParams.get("view") === "map" ? "map" : "list";
+  const changeView = (nextView: "list" | "map") => {
+    if (nextView === view) return;
+    const next = new URLSearchParams(searchParams);
+    if (nextView === "map") {
+      next.set("view", "map");
+      next.set("mapSeed", String(Math.floor(Math.random() * 1_000_000) + 1));
+    } else {
+      for (const key of ["view", "anime", "facet", "bridge", "mapPage", "mapSeed"]) next.delete(key);
+    }
+    setSearchParams(next);
+  };
   const urlQuery = searchParams.get("q") ?? "";
   const [queryState, setQueryState] = useState(() => ({
     source: urlQuery,
@@ -50,8 +61,8 @@ export function DiscoverPage() {
   const [pageState, setPageState] = useState(() => ({ source: urlQuery, value: 1 }));
   const page = pageState.source === urlQuery ? pageState.value : 1;
   const debouncedQuery = useDebouncedValue(query.trim(), 500);
-  const search = useAnimeSearch(debouncedQuery, page);
-  const browse = useAnimeBrowse(feed, page);
+  const search = useAnimeSearch(debouncedQuery, page, view === "list");
+  const browse = useAnimeBrowse(feed, page, view === "list");
   const isSearching = debouncedQuery.length >= 2;
   const result = isSearching ? search : browse;
 
@@ -144,8 +155,8 @@ export function DiscoverPage() {
       <LibraryTools />
 
       <div className="discover-view-switch" role="group" aria-label="Discover view">
-        <button type="button" className={view === "list" ? "is-active" : ""} aria-pressed={view === "list"} onClick={() => setView("list")}>Browse list</button>
-        <button type="button" className={view === "map" ? "is-active" : ""} aria-pressed={view === "map"} onClick={() => setView("map")}><Compass size={16} /> Anime map</button>
+        <button type="button" className={view === "list" ? "is-active" : ""} aria-pressed={view === "list"} onClick={() => changeView("list")}>Browse list</button>
+        <button type="button" className={view === "map" ? "is-active" : ""} aria-pressed={view === "map"} onClick={() => changeView("map")}><Compass size={16} /> Anime map</button>
       </div>
 
       {view === "map" ? <Suspense fallback={<div className="anime-map__message" role="status">Opening the anime map…</div>}><AnimeConnectionMap currentResults={result.data?.items} /></Suspense> : <>

@@ -2853,6 +2853,7 @@ h3,
 .anime-map__library select { min-height: 42px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: 7px; color: var(--ink); background: var(--surface-raised); font: inherit; font-size: 12px; }
 
 .anime-map__shuffle,
+.anime-map__share,
 .anime-map__all-links {
   display: inline-flex;
   align-items: center;
@@ -2871,8 +2872,9 @@ h3,
 
 .anime-map__shuffle { margin-left: auto; }
 .anime-map__shuffle:hover:not(:disabled),
+.anime-map__share:hover:not(:disabled),
 .anime-map__all-links:hover { border-color: var(--accent); color: var(--accent); }
-.anime-map__shuffle:disabled { opacity: 0.5; cursor: not-allowed; }
+.anime-map__shuffle:disabled, .anime-map__share:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .anime-map__message { padding: 36px 28px; color: var(--muted); font-size: 13px; }
 .anime-map__facet-status { margin: 0; padding: 0 28px 12px; color: var(--muted); font-size: 11px; }
@@ -3001,6 +3003,7 @@ h3,
   .anime-map__tools { align-items: stretch; flex-direction: column; padding: 0 18px 18px; }
   .anime-map__search, .anime-map__library { width: 100%; max-width: none; }
   .anime-map__shuffle { justify-self: start; margin-left: 0; }
+  .anime-map__share { align-self: start; }
   .anime-map__facet-status { padding: 0 18px 10px; }
   .anime-map__pan-hint { display: block; }
   .anime-map__footer { align-items: start; flex-direction: column; padding: 15px 18px; }

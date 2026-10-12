@@ -37,21 +37,22 @@ export function useTopAnime(
   });
 }
 
-export function useAnimeSearch(query: string, page = 1) {
+export function useAnimeSearch(query: string, page = 1, enabled = true) {
   return useQuery({
     queryKey: ["anime", "search", query, page],
     queryFn: ({ signal }) => searchAnime(query, page, signal),
-    enabled: query.trim().length >= 2,
+    enabled: enabled && query.trim().length >= 2,
     staleTime: 30 * 60 * 1000,
     gcTime: DISCOVERY_QUERY_GC_MS,
     placeholderData: (previousData) => previousData
   });
 }
 
-export function useAnimeBrowse(preset: AnimeBrowsePreset, page = 1) {
+export function useAnimeBrowse(preset: AnimeBrowsePreset, page = 1, enabled = true) {
   return useQuery({
     queryKey: ["anime", "browse", preset, page],
     queryFn: ({ signal }) => browseAnime(preset, page, signal),
+    enabled,
     staleTime: 6 * 60 * 60 * 1000,
     gcTime: DISCOVERY_QUERY_GC_MS,
     placeholderData: (previousData) => previousData
