@@ -28,20 +28,25 @@ export function layoutAnimeConnections(
   const anime = new Map<number, MapPoint>();
   const animeBends = new Map<number, MapPoint>();
   const children = new Map<string, ConnectionFacet[]>();
-  const byKey = new Map(facets.map((facet) => [facet.key, facet]));
+  const facetKeys = new Set(facets.map((facet) => facet.key));
   const roots: ConnectionFacet[] = [];
   for (const facet of facets) {
-    const parent = facet.parentKey && byKey.has(facet.parentKey) ? facet.parentKey : undefined;
-    if (parent) children.set(parent, [...(children.get(parent) ?? []), facet]);
-    else roots.push(facet);
+    const parent = facet.parentKey && facetKeys.has(facet.parentKey) ? facet.parentKey : undefined;
+    if (!parent) {
+      roots.push(facet);
+      continue;
+    }
+    if (!children.has(parent)) children.set(parent, []);
+    children.get(parent)!.push(facet);
   }
 
   const animeByFacet = new Map<string, ConnectedAnime[]>();
   for (const entry of neighbors) {
-    animeByFacet.set(entry.via, [...(animeByFacet.get(entry.via) ?? []), entry]);
+    if (!animeByFacet.has(entry.via)) animeByFacet.set(entry.via, []);
+    animeByFacet.get(entry.via)!.push(entry);
   }
   let nextSlot = 0;
-  const placeFacet = (facet: ConnectionFacet, depth: number): number => {
+  const placeFacet = (facet: ConnectionFacet, depth: number): void => {
     const start = nextSlot;
     for (const child of shuffleMapItems(children.get(facet.key) ?? [], seed + depth)) placeFacet(child, depth + 1);
     for (const entry of animeByFacet.get(facet.key) ?? []) {
@@ -53,7 +58,6 @@ export function layoutAnimeConnections(
     const first = SIDE_PADDING + start * LEAF_SPACING;
     const last = SIDE_PADDING + (nextSlot - 1) * LEAF_SPACING;
     positions.set(facet.key, { x: (first + last) / 2, y: depth ? CHILD_Y : ROOT_Y });
-    return nextSlot;
   };
   for (const root of shuffleMapItems(roots, seed)) placeFacet(root, 0);
 

@@ -53,10 +53,6 @@ export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentRe
     ...starterCatalog,
     ...(facetBrowse.data?.items ?? [])
   ].map((anime) => [anime.id, anime])).values()], [starterCatalog, facetBrowse.data]);
-  useEffect(() => {
-    const viewport = viewportRef.current;
-    if (viewport) viewport.scrollLeft = (viewport.scrollWidth - viewport.clientWidth) / 2;
-  }, [center?.id]);
   const connections = useMemo(() => center
     ? buildAnimeConnections(center, catalog, {
       facet: activeFacet ?? undefined,
@@ -67,6 +63,10 @@ export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentRe
   const layout = useMemo(() => layoutAnimeConnections(
     connections.facets, connections.neighbors, shuffleSeed
   ), [connections, shuffleSeed]);
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (viewport) viewport.scrollLeft = (viewport.scrollWidth - viewport.clientWidth) / 2;
+  }, [center?.id, layout.width]);
   const suggestions = useMemo(() => {
     const needle = searchText.trim().toLocaleLowerCase();
     if (!needle) return [];

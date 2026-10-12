@@ -2887,9 +2887,6 @@ h3,
 
 .anime-map__canvas {
   position: relative;
-  width: 100%;
-  min-width: 860px;
-  height: 620px;
   margin-inline: auto;
   overflow: hidden;
   background-color: color-mix(in srgb, var(--surface-muted) 30%, var(--surface));
