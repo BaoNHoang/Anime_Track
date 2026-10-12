@@ -1,17 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
-import { DashboardPage } from "../features/dashboard/DashboardPage";
-import { ProfilePage } from "../features/dashboard/ProfilePage";
-import { DiscoverPage } from "../features/discover/DiscoverPage";
-import { LibraryPage } from "../features/library/LibraryPage";
-import { NewsPage } from "../features/news/NewsPage";
-import { SettingsPage } from "../features/settings/SettingsPage";
-import { AccountRoute } from "../features/account/AccountPage";
-import { PrivacyPage } from "../features/legal/PrivacyPage";
-import { AccessibilityPage } from "../features/legal/AccessibilityPage";
-import { SiteMapPage } from "../features/legal/SiteMapPage";
-import { TermsPage } from "../features/legal/TermsPage";
 import { RequireAuth } from "../components/RequireAuth";
 import { RouteSkeleton } from "../components/LoadingState";
 import { AnimePanelProvider } from "./providers/AnimePanelProvider";
@@ -20,8 +9,6 @@ import { TrackerProvider } from "./providers/TrackerProvider";
 import { ThemeProvider } from "./providers/ThemeProvider";
 import { WatchProvider } from "./providers/WatchProvider";
 import { NotificationProvider } from "./providers/NotificationProvider";
-import { NotificationsPage } from "../features/notifications/NotificationsPage";
-import { YearInReviewPage } from "../features/stats/YearInReviewPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,12 +24,21 @@ const router = createBrowserRouter([
     element: <AppShell />,
     HydrateFallback: () => <RouteSkeleton label="Loading Banime" />,
     children: [
-      { path: "/", element: <DashboardPage /> },
+      { path: "/", lazy: async () => {
+        const { DashboardPage } = await import("../features/dashboard/DashboardPage");
+        return { Component: DashboardPage };
+      } },
       {
         path: "/profile",
-        element: <RequireAuth><ProfilePage /></RequireAuth>
+        lazy: async () => {
+          const { ProfilePage } = await import("../features/dashboard/ProfilePage");
+          return { Component: () => <RequireAuth><ProfilePage /></RequireAuth> };
+        }
       },
-      { path: "/discover", element: <DiscoverPage /> },
+      { path: "/discover", lazy: async () => {
+        const { DiscoverPage } = await import("../features/discover/DiscoverPage");
+        return { Component: DiscoverPage };
+      } },
       { path: "/calendar", lazy: async () => {
         const { WatchCalendarPage } = await import("../features/library/WatchCalendarPage");
         return { Component: () => <RequireAuth><WatchCalendarPage /></RequireAuth> };
@@ -59,25 +55,55 @@ const router = createBrowserRouter([
         const { RecommendationsPage } = await import("../features/discover/RecommendationsPage");
         return { Component: () => <RequireAuth><RecommendationsPage /></RequireAuth> };
       } },
-      { path: "/news", element: <NewsPage /> },
+      { path: "/news", lazy: async () => {
+        const { NewsPage } = await import("../features/news/NewsPage");
+        return { Component: NewsPage };
+      } },
       {
         path: "/library",
-        element: <RequireAuth><LibraryPage /></RequireAuth>
+        lazy: async () => {
+          const { LibraryPage } = await import("../features/library/LibraryPage");
+          return { Component: () => <RequireAuth><LibraryPage /></RequireAuth> };
+        }
       },
       {
         path: "/settings",
-        element: <RequireAuth><SettingsPage /></RequireAuth>
+        lazy: async () => {
+          const { SettingsPage } = await import("../features/settings/SettingsPage");
+          return { Component: () => <RequireAuth><SettingsPage /></RequireAuth> };
+        }
       },
       {
         path: "/notifications",
-        element: <RequireAuth><NotificationsPage /></RequireAuth>
+        lazy: async () => {
+          const { NotificationsPage } = await import("../features/notifications/NotificationsPage");
+          return { Component: () => <RequireAuth><NotificationsPage /></RequireAuth> };
+        }
       },
-      { path: "/year-in-review", element: <YearInReviewPage /> },
-      { path: "/account", element: <AccountRoute /> },
-      { path: "/privacy", element: <PrivacyPage /> },
-      { path: "/accessibility", element: <AccessibilityPage /> },
-      { path: "/terms", element: <TermsPage /> },
-      { path: "/sitemap", element: <SiteMapPage /> }
+      { path: "/year-in-review", lazy: async () => {
+        const { YearInReviewPage } = await import("../features/stats/YearInReviewPage");
+        return { Component: YearInReviewPage };
+      } },
+      { path: "/account", lazy: async () => {
+        const { AccountRoute } = await import("../features/account/AccountPage");
+        return { Component: AccountRoute };
+      } },
+      { path: "/privacy", lazy: async () => {
+        const { PrivacyPage } = await import("../features/legal/PrivacyPage");
+        return { Component: PrivacyPage };
+      } },
+      { path: "/accessibility", lazy: async () => {
+        const { AccessibilityPage } = await import("../features/legal/AccessibilityPage");
+        return { Component: AccessibilityPage };
+      } },
+      { path: "/terms", lazy: async () => {
+        const { TermsPage } = await import("../features/legal/TermsPage");
+        return { Component: TermsPage };
+      } },
+      { path: "/sitemap", lazy: async () => {
+        const { SiteMapPage } = await import("../features/legal/SiteMapPage");
+        return { Component: SiteMapPage };
+      } }
     ]
   }
 ]);
