@@ -2890,6 +2890,7 @@ h3,
   width: 100%;
   min-width: 860px;
   height: 620px;
+  margin-inline: auto;
   overflow: hidden;
   background-color: color-mix(in srgb, var(--surface-muted) 30%, var(--surface));
   background-image: radial-gradient(color-mix(in srgb, var(--border-strong) 65%, transparent) 1px, transparent 1px);
@@ -2906,7 +2907,7 @@ h3,
 }
 
 .anime-map__lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.anime-map__lines line { stroke: color-mix(in srgb, var(--accent) 53%, var(--border-strong)); stroke-width: 1.5; }
+.anime-map__lines line, .anime-map__lines path { fill: none; stroke: color-mix(in srgb, var(--accent) 53%, var(--border-strong)); stroke-width: 1.5; }
 .anime-map__lines .anime-map__link { stroke: color-mix(in srgb, var(--info) 50%, var(--border-strong)); }
 .anime-map__lines .is-muted { opacity: 0.18; }
 

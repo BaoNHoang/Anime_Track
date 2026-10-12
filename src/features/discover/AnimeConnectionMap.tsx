@@ -3,30 +3,16 @@ import { Compass, Search, Shuffle, X } from "../../components/OwnedIcons";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useTracker } from "../../app/providers/useTracker";
-import { buildAnimeConnections, shuffleMapItems, type ConnectionFacet } from "../../domain/anime/connectionMap";
+import { buildAnimeConnections, type ConnectionFacet } from "../../domain/anime/connectionMap";
+import { layoutAnimeConnections, type MapPoint } from "../../domain/anime/connectionMapLayout";
 import type { Anime } from "../../domain/anime/types";
 import { useAnimeBrowse, useAnimeFacet, useAnimeSearch } from "../../hooks/useAnimeQueries";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 
-const facetPositions = [
-  { x: 500, y: 108 },
-  { x: 285, y: 293 },
-  { x: 715, y: 293 },
-  { x: 500, y: 480 }
-];
-const animePositions = [
-  { x: 155, y: 104 },
-  { x: 845, y: 104 },
-  { x: 90, y: 305 },
-  { x: 910, y: 305 },
-  { x: 155, y: 510 },
-  { x: 845, y: 510 }
-];
-const centerPosition = { x: 500, y: 293 };
 const EMPTY_ANIME: Anime[] = [];
 
-function positionStyle(position: { x: number; y: number }): CSSProperties {
-  return { left: `${position.x / 10}%`, top: `${position.y / 6.2}%` };
+function positionStyle(position: MapPoint): CSSProperties {
+  return { left: position.x, top: position.y };
 }
 
 export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentResults?: Anime[] }) {
@@ -78,14 +64,9 @@ export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentRe
       seed: shuffleSeed
     })
     : { facets: [], neighbors: [] }, [center, catalog, activeFacet, bridgeGenre, shuffleSeed]);
-  const placedFacets = useMemo(() => shuffleMapItems(facetPositions, shuffleSeed), [shuffleSeed]);
-  const placedNeighbors = useMemo(() => {
-    const positions = shuffleMapItems(animePositions, shuffleSeed + 17);
-    return connections.neighbors.map((entry, index) => ({
-      ...entry,
-      position: positions[index]
-    }));
-  }, [connections.neighbors, shuffleSeed]);
+  const layout = useMemo(() => layoutAnimeConnections(
+    connections.facets, connections.neighbors, shuffleSeed
+  ), [connections, shuffleSeed]);
   const suggestions = useMemo(() => {
     const needle = searchText.trim().toLocaleLowerCase();
     if (!needle) return [];
@@ -203,31 +184,34 @@ export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentRe
           {activeFacet && facetBrowse.isError ? <p className="anime-map__facet-status" role="status">More {activeFacet.label} anime could not load. Showing available connections.</p> : null}
           <p className="anime-map__pan-hint">Swipe the map to see more connections.</p>
           <div className="anime-map__viewport" ref={viewportRef} tabIndex={0} aria-label="Anime connection map. Scroll horizontally to explore on smaller screens.">
-            <div className="anime-map__canvas">
-              <svg className="anime-map__lines" viewBox="0 0 1000 620" preserveAspectRatio="none" aria-hidden="true">
-                {connections.facets.map((facet, index) => {
-                  const parentIndex = connections.facets.findIndex((item) => item.key === facet.parentKey);
-                  const from = placedFacets[parentIndex] ?? centerPosition;
+            <div className="anime-map__canvas" style={{ width: layout.width, height: layout.height }}>
+              <svg className="anime-map__lines" viewBox={`0 0 ${layout.width} ${layout.height}`} aria-hidden="true">
+                {connections.facets.map((facet) => {
+                  const to = layout.facets.get(facet.key);
+                  if (!to) return null;
+                  const from = layout.facets.get(facet.parentKey ?? "") ?? layout.center;
                   const onPath = !activeFacet || facet.key === activeFacet.key ||
                     facet.parentKey === activeFacet.key || facet.key === bridgeGenre?.key;
-                  return <line key={facet.key} x1={from.x} y1={from.y} x2={placedFacets[index].x} y2={placedFacets[index].y} className={onPath ? "" : "is-muted"} />;
+                  return <line key={facet.key} x1={from.x} y1={from.y} x2={to.x} y2={to.y} className={onPath ? "" : "is-muted"} />;
                 })}
-                {placedNeighbors.map((entry) => {
-                  const index = connections.facets.findIndex((facet) => facet.key === entry.via);
-                  const from = placedFacets[index] ?? centerPosition;
-                  return <line key={entry.anime.id} x1={from.x} y1={from.y} x2={entry.position.x} y2={entry.position.y} className="anime-map__link" />;
+                {connections.neighbors.map((entry) => {
+                  const to = layout.anime.get(entry.anime.id);
+                  if (!to) return null;
+                  const from = layout.facets.get(entry.via) ?? layout.center;
+                  const bend = layout.animeBends.get(entry.anime.id);
+                  return <path key={entry.anime.id} d={`M ${from.x} ${from.y} ${bend ? `L ${bend.x} ${bend.y} ` : ""}L ${to.x} ${to.y}`} className="anime-map__link" />;
                 })}
               </svg>
-              <button className="anime-map__center" type="button" style={positionStyle(centerPosition)} onClick={() => openAnime(center)} aria-label={`Open details for ${center.titleEnglish || center.title}`}>
+              <button className="anime-map__center" type="button" style={positionStyle(layout.center)} onClick={() => openAnime(center)} aria-label={`Open details for ${center.titleEnglish || center.title}`}>
                 <span className="anime-map__center-image"><ImageWithFallback src={center.imageUrl} fallbackSrc={center.largeImageUrl} alt="" loading="lazy" /></span>
                 <span className="anime-map__center-title">{center.titleEnglish || center.title}</span>
               </button>
-              {connections.facets.map((facet, index) => (
+              {connections.facets.map((facet) => (
                 <button
                   className={`anime-map__facet anime-map__facet--${facet.kind}${activeFacet?.key === facet.key ? " is-active" : ""}${activeFacet && activeFacet.key !== facet.key && facet.parentKey !== activeFacet.key && facet.key !== bridgeGenre?.key ? " is-muted" : ""}`}
                   key={facet.key}
                   type="button"
-                  style={positionStyle(placedFacets[index])}
+                  style={positionStyle(layout.facets.get(facet.key)!)}
                   aria-pressed={activeFacet?.key === facet.key}
                   title={`${facet.kind === "studio" ? "Studio" : "Genre"}: ${facet.label}. Select again for new anime.`}
                   onClick={() => chooseFacet(facet)}
@@ -235,8 +219,8 @@ export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentRe
                   <small>{facet.kind}</small><strong>{facet.label}</strong>
                 </button>
               ))}
-              {placedNeighbors.map((entry) => (
-                <button className="anime-map__neighbor" key={entry.anime.id} type="button" style={positionStyle(entry.position)} onClick={() => chooseAnime(entry.anime)} aria-label={`Explore connections for ${entry.anime.titleEnglish || entry.anime.title}`}>
+              {connections.neighbors.map((entry) => (
+                <button className="anime-map__neighbor" key={entry.anime.id} type="button" style={positionStyle(layout.anime.get(entry.anime.id)!)} onClick={() => chooseAnime(entry.anime)} aria-label={`Explore connections for ${entry.anime.titleEnglish || entry.anime.title}`}>
                   <span className="anime-map__neighbor-image"><ImageWithFallback src={entry.anime.imageUrl} fallbackSrc={entry.anime.largeImageUrl} alt="" loading="lazy" /></span>
                   <span>{entry.anime.titleEnglish || entry.anime.title}</span>
                 </button>
