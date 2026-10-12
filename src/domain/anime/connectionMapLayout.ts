@@ -13,9 +13,10 @@ export interface ConnectionMapLayout {
 
 const LEAF_SPACING = 150;
 const SIDE_PADDING = 100;
-const ROOT_Y = 250;
-const CHILD_Y = 410;
-const ANIME_Y = 610;
+const TOP_INSET = 64;
+const ROOT_Y = 250 + TOP_INSET;
+const CHILD_Y = 410 + TOP_INSET;
+const ANIME_Y = 610 + TOP_INSET;
 
 // Each branch owns a consecutive run of leaf slots. Edges between layers can
 // therefore meet at their parent, but cannot cross another branch's edges.
@@ -75,8 +76,8 @@ export function layoutAnimeConnections(
   for (const point of animeBends.values()) point.x += offset;
   return {
     width,
-    height: 760,
-    center: { x: width / 2, y: 90 },
+    height: 760 + TOP_INSET,
+    center: { x: width / 2, y: 90 + TOP_INSET },
     facets: positions,
     anime,
     animeBends

@@ -60,6 +60,9 @@ describe("layoutAnimeConnections", () => {
       }
       expect(new Set(neighbors.map((item) => layout.anime.get(item.anime.id)?.x)).size).toBe(neighbors.length);
       expect(layout.width).toBeGreaterThanOrEqual(1000);
+      // The center poster and two-line title need roughly 100px above their anchor.
+      expect(layout.center.y - 100).toBeGreaterThanOrEqual(40);
+      expect(layout.height - Math.max(...[...layout.anime.values()].map((point) => point.y + 90))).toBeGreaterThanOrEqual(40);
     }
   });
 });
