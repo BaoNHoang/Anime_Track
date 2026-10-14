@@ -27,7 +27,7 @@ import type {
 } from "../../domain/tracker/types";
 import { trackerRepository } from "../../services/storage/trackerRepository";
 import { trackerCloudRepository } from "../../services/supabase/trackerCloudRepository";
-import { cloudLibraryCache } from "../../services/storage/cloudLibraryCache";
+import { cloudLibraryCache, isFreshCloudLibrary } from "../../services/storage/cloudLibraryCache";
 import { useCloudAuth } from "./useCloudAuth";
 import {
   TrackerContext,
@@ -70,7 +70,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
     activeUserIdRef.current = user?.id;
   }, [user?.id]);
 
-  const saveItems = useCallback((next: TrackedAnime[], trackChanges = true) => {
+  const saveItems = useCallback((next: TrackedAnime[], trackChanges = true, verifiedAt?: number) => {
     const owner = activeUserIdRef.current;
     if (owner && trackChanges) {
       try { libraryOutbox.record(owner, itemsRef.current, next); }
@@ -85,7 +85,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
     setRemoteProfileSummary(undefined);
     const activeUserId = activeUserIdRef.current;
     if (activeUserId) {
-      void cloudLibraryCache.save(activeUserId, next);
+      void cloudLibraryCache.save(activeUserId, next, verifiedAt);
     } else {
       trackerRepository.save(next);
     }
@@ -145,10 +145,14 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       const cachedLibrary = await cloudLibraryCache.get(user.id);
       if (cancelled) return;
       if (cachedLibrary) {
-        const restored = libraryOutbox.overlay(user.id, cachedLibrary);
+        const restored = libraryOutbox.overlay(user.id, cachedLibrary.items);
         itemsRef.current = restored;
         setItems(restored);
         setHydratedUserId(user.id);
+        if (navigator.onLine && isFreshCloudLibrary(cachedLibrary)) {
+          enqueueCloud();
+          return;
+        }
       }
 
       let libraryFinished = false;
@@ -171,7 +175,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
         // A response started before a local edit must not undo that edit,
         // including a deletion already acknowledged while this read was pending.
         if (itemsRef.current === libraryAtRequest) {
-          saveItems(libraryOutbox.overlay(user.id, cloudItems), false);
+          saveItems(libraryOutbox.overlay(user.id, cloudItems), false, Date.now());
         }
         setHydratedUserId(user.id);
         enqueueCloud();
