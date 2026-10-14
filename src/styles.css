@@ -6616,3 +6616,5 @@ h3,
     transition-duration: 0.01ms !important;
   }
 }
+.library-sync { display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; }
+.library-sync [role="alert"] { color: var(--danger); font-size: 0.82rem; }

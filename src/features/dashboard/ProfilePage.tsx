@@ -16,6 +16,7 @@ import { FavoriteEditor } from "./FavoriteEditor";
 import { ProfileSettings } from "./ProfileSettings";
 import type { FavoriteKind } from "../../domain/account/favorites";
 import type { TrackedAnime } from "../../domain/tracker/types";
+import { LibrarySyncControl } from "../library/LibrarySyncControl";
 
 const GENRE_COLORS = [
   "var(--genre-1)",
@@ -122,6 +123,7 @@ export function ProfilePage() {
 
   return (
     <div className="dashboard-page">
+      <LibrarySyncControl />
       {showPersonalTracking && displayProfile ? (
         <header className="profile-hero">
           <ImageWithFallback

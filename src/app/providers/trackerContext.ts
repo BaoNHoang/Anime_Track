@@ -13,6 +13,7 @@ export interface TrackerContextValue {
   profileSummary?: ProfileSummary;
   syncStatus: "local" | "syncing" | "synced" | "error";
   syncError?: string;
+  refreshLibrary: () => Promise<boolean>;
   getTracked: (animeId: number) => TrackedAnime | undefined;
   addAnime: (anime: Anime, status?: TrackingStatus) => void;
   updateAnime: (

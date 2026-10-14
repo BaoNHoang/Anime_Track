@@ -18,6 +18,7 @@ import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { LibraryCard } from "./LibraryCard";
 import { RouteSkeleton } from "../../components/LoadingState";
 import { ErrorState } from "../../components/ErrorState";
+import { LibrarySyncControl } from "./LibrarySyncControl";
 
 type Filter = "all" | TrackingStatus;
 type Sort = "updated" | "title" | "score" | "progress" | "added";
@@ -209,6 +210,7 @@ export function LibraryPage() {
   return (
     <div className="page-stack">
       <LibraryTools />
+      <LibrarySyncControl />
       <h1 className="visually-hidden">Library</h1>
 
       <section className="query-panel" id="library-results">
