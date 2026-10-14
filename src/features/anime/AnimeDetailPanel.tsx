@@ -16,6 +16,7 @@ import {
   RELEASE_NOTIFICATION_MODES,
   STATUS_LABELS,
   TRACKING_STATUSES,
+  MAX_TRACKER_NOTES_LENGTH,
   type ReleaseNotificationMode,
   type TrackingStatus
 } from "../../domain/tracker/types";
@@ -36,6 +37,7 @@ import { MAX_PREVIOUS_WATCHES } from "../../domain/tracker/rewatch";
 import { EpisodeUndoToast } from "../../components/EpisodeUndoToast";
 import { ErrorState } from "../../components/ErrorState";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
+import { isBoundedText } from "../../domain/security/validation";
 
 export function AnimeDetailPanel() {
   const { selectedAnime, closeAnime } = useAnimePanel();
@@ -59,6 +61,8 @@ export function AnimeDetailPanel() {
     animeId: number;
     value: string;
   }>();
+  const [notesDraft, setNotesDraft] = useState<{ animeId: number; value: string }>();
+  const [notesMessage, setNotesMessage] = useState<{ animeId: number; text: string }>();
   const [visibleEpisodes, setVisibleEpisodes] = useState<{
     animeId: number;
     count: number;
@@ -67,6 +71,10 @@ export function AnimeDetailPanel() {
     scoreDraft && scoreDraft.animeId === anime?.id
       ? scoreDraft.value
       : tracked?.userScore?.toString() ?? "";
+  const notesValue = anime && notesDraft?.animeId === anime.id
+    ? notesDraft.value
+    : tracked?.notes ?? "";
+  const notesChanged = Boolean(tracked && notesValue !== tracked.notes);
   const nextAiring = anime ? formatNextAiring(anime) : undefined;
   const favorites = user?.favorites ?? localProfile.favorites;
   const isFavorite = anime
@@ -120,6 +128,19 @@ export function AnimeDetailPanel() {
     setScoreDraft(undefined);
     if (nextScore === tracked.userScore) return;
     updateAnime(anime.id, { userScore: nextScore });
+  };
+
+  const saveNotes = () => {
+    if (!anime || !tracked || !notesChanged) return;
+    const nextNotes = notesValue.trim();
+    if (!isBoundedText(nextNotes, MAX_TRACKER_NOTES_LENGTH)) {
+      setNotesMessage({ animeId: anime.id, text: "Notes must be under 2,000 characters and cannot include control characters." });
+      return;
+    }
+    if (updateAnime(anime.id, { notes: nextNotes })) {
+      setNotesDraft(undefined);
+      setNotesMessage({ animeId: anime.id, text: "Notes saved." });
+    }
   };
 
   useEffect(() => {
@@ -445,6 +466,31 @@ export function AnimeDetailPanel() {
                   }}
                 />
               </label>
+              <div className="tracking-notes">
+                <label className="field">
+                  <span>Private notes</span>
+                  <textarea value={notesValue} maxLength={MAX_TRACKER_NOTES_LENGTH} rows={4}
+                    placeholder="What stood out? Keep a thought for your next watch."
+                    onChange={(event) => {
+                      setNotesDraft({ animeId: anime.id, value: event.target.value });
+                      setNotesMessage(undefined);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") {
+                        event.stopPropagation();
+                        setNotesDraft(undefined);
+                      }
+                    }} />
+                </label>
+                <div className="tracking-notes__actions">
+                  <small>{notesValue.length}/{MAX_TRACKER_NOTES_LENGTH}</small>
+                  {notesChanged ? <button className="button button--ghost button--compact" type="button"
+                    onClick={() => setNotesDraft(undefined)}>Cancel</button> : null}
+                  <button className="button button--compact" type="button" disabled={!notesChanged}
+                    onClick={saveNotes}>Save notes</button>
+                </div>
+                {notesMessage?.animeId === anime.id ? <p role="status">{notesMessage.text}</p> : null}
+              </div>
             </section>
           ) : (
             <button

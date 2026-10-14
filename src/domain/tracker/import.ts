@@ -8,6 +8,7 @@ import {
 import { mergeTrackedAnime } from "./merge.js";
 import {
   RELEASE_NOTIFICATION_MODES,
+  MAX_TRACKER_NOTES_LENGTH,
   TRACKING_STATUSES,
   type ReleaseNotificationMode,
   type TrackedAnime,
@@ -21,7 +22,6 @@ export const MAX_LIBRARY_ITEMS = 5000;
 const MAX_TITLE_LENGTH = 500;
 const MAX_SHORT_TEXT_LENGTH = 200;
 const MAX_SYNOPSIS_LENGTH = 20_000;
-const MAX_NOTES_LENGTH = 2000;
 const MAX_LIST_ITEMS = 50;
 
 export class LibraryImportError extends Error {
@@ -356,7 +356,7 @@ function parseTrackedAnime(value: unknown, index: number): TrackedAnime {
       value.notes,
       `Item ${index + 1} notes`,
       true,
-      MAX_NOTES_LENGTH
+      MAX_TRACKER_NOTES_LENGTH
     ),
     addedAt,
     updatedAt

@@ -21,7 +21,7 @@ export interface TrackerContextValue {
     updates: Partial<
       Pick<TrackedAnime, "status" | "progress" | "episodeHistory" | "releaseNotificationMode" | "userScore" | "notes" | "customLists">
     >
-  ) => void;
+  ) => boolean;
   setEpisodeWatched: (
     animeId: number,
     episode: number,
