@@ -6623,3 +6623,4 @@ h3,
 .tracking-notes__actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .tracking-notes__actions small { margin-right: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
 .tracking-notes p { margin: 8px 0 0; color: var(--muted); font-size: 11px; }
+.recommendation-source { color: var(--muted); font-size: 12px; }
