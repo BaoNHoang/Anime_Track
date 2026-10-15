@@ -1,17 +1,21 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Compass, Search, Shuffle, X } from "../../components/OwnedIcons";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useTracker } from "../../app/providers/useTracker";
+import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { buildAnimeConnections, type ConnectionFacet } from "../../domain/anime/connectionMap";
 import { layoutAnimeConnections, type MapPoint } from "../../domain/anime/connectionMapLayout";
 import { mapFacetParam, readConnectionMapUrl } from "../../domain/anime/connectionMapUrl";
+import { filterMapCatalog, type MapFilter } from "../../domain/anime/mapFilters";
+import { mapHistory } from "../../services/storage/mapHistory";
 import type { Anime } from "../../domain/anime/types";
 import { useAnimeBrowse, useAnimeDetails, useAnimeFacet, useAnimeSearch } from "../../hooks/useAnimeQueries";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 
 const EMPTY_ANIME: Anime[] = [];
+const EMPTY_HISTORY: ReturnType<typeof mapHistory.read> = [];
 
 function positionStyle(position: MapPoint): CSSProperties {
   return { left: position.x, top: position.y };
@@ -20,9 +24,14 @@ function positionStyle(position: MapPoint): CSSProperties {
 export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentResults?: Anime[] }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const mapUrl = useMemo(() => readConnectionMapUrl(searchParams), [searchParams]);
-  const { animeId, facet: activeFacet, bridgeGenre, page: facetPage, seed: shuffleSeed } = mapUrl;
+  const { animeId, facet: activeFacet, bridgeGenre, page: facetPage, seed: shuffleSeed, filter } = mapUrl;
   const { openAnime } = useAnimePanel();
   const { items: library } = useTracker();
+  const { configured, user } = useCloudAuth();
+  const historyOwner = configured ? user?.id ?? "guest" : "local";
+  const subscribeHistory = useCallback((listener: () => void) => mapHistory.subscribe(historyOwner, listener), [historyOwner]);
+  const getHistory = useCallback(() => mapHistory.read(historyOwner), [historyOwner]);
+  const recentHistory = useSyncExternalStore(subscribeHistory, getHistory, () => EMPTY_HISTORY);
   const popular = useAnimeBrowse("popular");
   const [searchText, setSearchText] = useState("");
   const debouncedSearch = useDebouncedValue(searchText.trim(), 350);
@@ -55,13 +64,14 @@ export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentRe
   const center = animeId
     ? catalog.find((anime) => anime.id === animeId)
     : librarySeeds[0] ?? catalog[0];
+  const filteredCatalog = useMemo(() => filterMapCatalog(catalog, library, filter), [catalog, library, filter]);
   const connections = useMemo(() => center
-    ? buildAnimeConnections(center, catalog, {
+    ? buildAnimeConnections(center, filteredCatalog, {
       facet: activeFacet,
       bridgeGenre,
       seed: shuffleSeed
     })
-    : { facets: [], neighbors: [] }, [center, catalog, activeFacet, bridgeGenre, shuffleSeed]);
+    : { facets: [], neighbors: [] }, [center, filteredCatalog, activeFacet, bridgeGenre, shuffleSeed]);
   const layout = useMemo(() => layoutAnimeConnections(
     connections.facets, connections.neighbors, shuffleSeed
   ), [connections, shuffleSeed]);
@@ -69,6 +79,10 @@ export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentRe
     const viewport = viewportRef.current;
     if (viewport) viewport.scrollLeft = (viewport.scrollWidth - viewport.clientWidth) / 2;
   }, [center?.id, layout.width]);
+  useEffect(() => {
+    if (!center) return;
+    mapHistory.add(historyOwner, center);
+  }, [center, historyOwner]);
   const suggestions = useMemo(() => {
     const needle = searchText.trim().toLocaleLowerCase();
     if (!needle) return [];
@@ -92,16 +106,19 @@ export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentRe
     update(next);
     setSearchParams(next, { replace });
   };
-  const chooseAnime = (anime: Anime) => {
-    rememberAnime([anime, ...(search.data?.items ?? []), ...(facetBrowse.data?.items ?? [])]);
+  const selectAnimeId = (id: number) => {
     updateMapUrl((next) => {
-      next.set("anime", String(anime.id));
+      next.set("anime", String(id));
       next.delete("facet");
       next.delete("bridge");
       next.delete("mapPage");
       next.set("mapSeed", String(shuffleSeed + 1));
     });
     setSearchText("");
+  };
+  const chooseAnime = (anime: Anime) => {
+    rememberAnime([anime, ...(search.data?.items ?? []), ...(facetBrowse.data?.items ?? [])]);
+    selectAnimeId(anime.id);
   };
   const shuffleConnections = () => {
     if (activeFacet) rememberAnime(facetBrowse.data?.items ?? []);
@@ -135,7 +152,7 @@ export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentRe
     });
   };
   const surprise = () => {
-    const choices = catalog.filter((anime) => anime.id !== center?.id && (anime.genres.length || anime.studios.length));
+    const choices = filteredCatalog.filter((anime) => anime.id !== center?.id && (anime.genres.length || anime.studios.length));
     if (choices.length) chooseAnime(choices[Math.floor(Math.random() * choices.length)]);
   };
   const isLoading = popular.isPending || (Boolean(animeId) && details.isPending);
@@ -162,9 +179,30 @@ export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentRe
           <h2 id="anime-map-title">Follow the connections</h2>
           <p>Pick a genre to uncover other studios, then follow a show that catches your eye.</p>
         </div>
-        <button className="anime-map__surprise" type="button" onClick={surprise} disabled={catalog.length < 2}>
+        <button className="anime-map__surprise" type="button" onClick={surprise} disabled={!filteredCatalog.some((anime) => anime.id !== center?.id)}>
           <Shuffle size={16} /> Surprise me
         </button>
+      </div>
+      <div className="anime-map__discovery-controls">
+        <div className="anime-map__filter" role="group" aria-label="Map anime filter">
+          {([ ["all", "All connections"], ["untracked", "Not in my library"], ["unwatched", "Unwatched only"] ] as Array<[MapFilter, string]>).map(([value, label]) =>
+            <button type="button" key={value} aria-pressed={filter === value}
+              onClick={() => updateMapUrl((next) => {
+                if (value === "all") next.delete("mapFilter");
+                else next.set("mapFilter", value);
+              })}>{label}</button>
+          )}
+        </div>
+        {recentHistory.length > 0 ? <div className="anime-map__history" aria-label="Recently explored anime">
+          <strong>Recent trail</strong>
+          {recentHistory.map((entry) => <button key={entry.id} type="button"
+            className={entry.id === center?.id ? "is-current" : ""}
+            disabled={entry.id === center?.id}
+            onClick={() => selectAnimeId(entry.id)}>{entry.title}</button>)}
+          <button type="button" className="anime-map__history-clear" onClick={() => {
+            mapHistory.clear(historyOwner);
+          }}>Clear trail</button>
+        </div> : null}
       </div>
 
       <div className="anime-map__tools">
