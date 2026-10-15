@@ -1,4 +1,5 @@
 import type { ConnectionFacet } from "./connectionMap";
+import type { MapFilter } from "./mapFilters";
 
 export interface ConnectionMapUrlState {
   animeId?: number;
@@ -6,6 +7,7 @@ export interface ConnectionMapUrlState {
   bridgeGenre?: ConnectionFacet;
   page: number;
   seed: number;
+  filter: MapFilter;
 }
 
 const MAX_ANIME_ID = 10_000_000;
@@ -39,6 +41,8 @@ export function readConnectionMapUrl(params: URLSearchParams): ConnectionMapUrlS
     facet,
     bridgeGenre: facet?.kind === "studio" && bridge?.kind === "genre" ? bridge : undefined,
     page: positiveInteger(params.get("mapPage"), MAX_PAGE) ?? 1,
-    seed: positiveInteger(params.get("mapSeed"), 0xffffffff) ?? 1
+    seed: positiveInteger(params.get("mapSeed"), 0xffffffff) ?? 1,
+    filter: (["untracked", "unwatched"] as MapFilter[]).includes(params.get("mapFilter") as MapFilter)
+      ? params.get("mapFilter") as MapFilter : "all"
   };
 }

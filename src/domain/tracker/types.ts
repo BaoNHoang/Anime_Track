@@ -1,5 +1,7 @@
 import type { Anime } from "../anime/types.js";
 
+export const MAX_TRACKER_NOTES_LENGTH = 2000;
+
 export const TRACKING_STATUSES = [
   "watching",
   "completed",

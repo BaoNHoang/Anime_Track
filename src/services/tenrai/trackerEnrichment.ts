@@ -37,8 +37,10 @@ export async function enrichTrackedAnimeFromTenrai(
   const delayMs = options.delayMs ?? TENRAI_BULK_DETAIL_DELAY_MS;
 
   for (let index = 0; index < items.length; index += 1) {
+    options.signal?.throwIfAborted();
     if (index > 0) {
       await wait(delayMs);
+      options.signal?.throwIfAborted();
     }
 
     const item = items[index];
@@ -54,6 +56,7 @@ export async function enrichTrackedAnimeFromTenrai(
       });
       enriched += 1;
     } catch {
+      options.signal?.throwIfAborted();
       enrichedItems.push(item);
       failed += 1;
     }

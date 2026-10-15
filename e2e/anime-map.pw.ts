@@ -100,3 +100,18 @@ test("restores anime and connection from a link and browser Back", async ({ page
   await expect.poll(() => new URL(page.url()).searchParams.get("anime")).toBe("1");
   await expect(page.getByRole("button", { name: "genre Comedy" })).toHaveAttribute("aria-pressed", "true");
 });
+
+test("keeps filter links and a recent exploration trail", async ({ page }) => {
+  await page.goto("/discover?view=map&anime=1", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("button", { name: "Explore connections for Comedy Story One" })).toBeVisible();
+  await page.getByRole("button", { name: "Explore connections for Comedy Story One" }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("anime")).toBe("2");
+  await page.getByRole("button", { name: "The Disastrous Life of Saiki K.", exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("anime")).toBe("1");
+  await page.getByRole("button", { name: "Not in my library" }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("mapFilter")).toBe("untracked");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("button", { name: "Not in my library" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Clear trail" }).click();
+  await expect(page.getByRole("button", { name: "Clear trail" })).toHaveCount(0);
+});

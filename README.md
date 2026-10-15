@@ -121,9 +121,8 @@ to the browser after registration.
 - Users can check off individual episodes, optionally record their watch dates,
   and resume from the next unwatched episode in the Continue watching queue on
   Home. They can also record a personal score from 1 through 10. Score controls
-  can use whole-number or half-point increments. Notes imported
-  from MyAnimeList or Banime backups are preserved and searchable, but Banime
-  does not currently provide a notes editor.
+  can use whole-number or half-point increments. Private notes can be edited
+  on each tracked title and remain searchable in the library.
 - Marking a title Completed automatically fills its known episode count.
   Progress and scores are validated and cannot exceed their allowed ranges.
 - The library can be searched across titles, studios, genres, and notes. It can
@@ -146,6 +145,8 @@ to the browser after registration.
 - Recommendation ranking runs locally over the synchronized library and public
   catalog candidates. Private watch history is not sent to Tenrai or a separate
   recommendation service.
+- The dedicated recommendations page also samples a relevant genre feed, and
+  **Show me something different** reshuffles suggestions and explores another genre.
 
 ### Profile and activity
 
@@ -236,6 +237,8 @@ to the browser after registration.
 - Tracking writes are local-first for responsive interaction. Authenticated
   libraries are also synchronized to Supabase and cached per account in
   IndexedDB, while compact profile summaries load before the entire library.
+- Library and profile offer **Sync now**. When the app returns to the foreground,
+  it refreshes cloud library data if the previous check is stale.
 - Account-specific browser caches are separated by owner and cleared during
   sign-out. Row-level security limits database records to their authenticated
   owner.
@@ -248,8 +251,11 @@ to the browser after registration.
 - MyAnimeList XML exports can be imported. Banime checkpoints the parsed list
   before enriching it with current Tenrai posters and metadata, so a partial
   catalog failure does not discard the base import.
-- Banime JSON backups can be imported or exported. Imports are limited to 5 MB
-  and 5,000 records, and all imported values are validated before storage.
+- Banime JSON/CSV backups can be imported or exported. Import previews show new,
+  updated, and unchanged titles before confirmation. The last import can be
+  undone in the same session until another library change. Imports are limited
+  to 5 MB and a combined library of 5,000 titles, and imported values are
+  validated before storage.
 - Banime is an installable Progressive Web App. Its application shell remains
   available offline, deployed updates are detected automatically, and loading
   regions use layout-matched skeletons instead of temporary zero-value content.

@@ -37,7 +37,7 @@ export function DiscoverPage() {
       next.set("view", "map");
       next.set("mapSeed", String(Math.floor(Math.random() * 1_000_000) + 1));
     } else {
-      for (const key of ["view", "anime", "facet", "bridge", "mapPage", "mapSeed"]) next.delete(key);
+      for (const key of ["view", "anime", "facet", "bridge", "mapPage", "mapSeed", "mapFilter"]) next.delete(key);
     }
     setSearchParams(next);
   };

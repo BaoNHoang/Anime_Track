@@ -18,11 +18,16 @@ describe("connection map URL", () => {
     const state = readConnectionMapUrl(new URLSearchParams(
       `anime=-2&facet=genre%3A${"x".repeat(300)}&bridge=genre%3AComedy&mapPage=999&mapSeed=0`
     ));
-    expect(state).toEqual({ animeId: undefined, facet: undefined, bridgeGenre: undefined, page: 1, seed: 1 });
+    expect(state).toEqual({ animeId: undefined, facet: undefined, bridgeGenre: undefined, page: 1, seed: 1, filter: "all" });
   });
 
   it("only accepts a genre bridge for a studio facet", () => {
     const state = readConnectionMapUrl(new URLSearchParams("facet=genre%3ARomance&bridge=genre%3AComedy"));
     expect(state.bridgeGenre).toBeUndefined();
+  });
+
+  it("restores a supported catalog filter", () => {
+    expect(readConnectionMapUrl(new URLSearchParams("mapFilter=untracked")).filter).toBe("untracked");
+    expect(readConnectionMapUrl(new URLSearchParams("mapFilter=anything")).filter).toBe("all");
   });
 });
