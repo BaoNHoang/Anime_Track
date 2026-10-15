@@ -41,7 +41,7 @@ export function SettingsPage() {
   const { items, canManage, importItems, undoImport } = useTracker();
   const { configured, user, updateScoreStep } = useCloudAuth();
   const { canInstall, installed, install, isIos } = usePwaInstall();
-  const { theme, setTheme, colorScheme, setColorScheme } = useTheme();
+  const { theme, setTheme, colorScheme, setColorScheme, animeTheme, setAnimeTheme } = useTheme();
   const { region, setRegion } = useWatchProvider();
   const { lastChecked, intervalMinutes } = useAppUpdateStatus();
   const importInput = useRef<HTMLInputElement>(null);
@@ -258,7 +258,7 @@ export function SettingsPage() {
           </span>
           <div className="settings-card__content">
             <h2>Appearance</h2>
-            <p>Choose a brightness and color palette for this device.</p>
+            <p>Choose a brightness and look for this device.</p>
             <div className="theme-options" role="group" aria-label="Brightness">
               <button
                 type="button"
@@ -282,14 +282,35 @@ export function SettingsPage() {
                 <button
                   key={scheme}
                   type="button"
-                  className={`palette-option palette-option--${scheme}${colorScheme === scheme ? " is-active" : ""}`}
-                  aria-pressed={colorScheme === scheme}
-                  onClick={() => setColorScheme(scheme)}
+                  className={`palette-option palette-option--${scheme}${animeTheme === "seasonal" && colorScheme === scheme ? " is-active" : ""}`}
+                  aria-pressed={animeTheme === "seasonal" && colorScheme === scheme}
+                  onClick={() => { setColorScheme(scheme); setAnimeTheme("seasonal"); }}
                 >
                   <span className="palette-option__preview" aria-hidden="true">
                     <span /><span />
                   </span>
                   <strong>{scheme === "sakura" ? "Sakura" : scheme === "ocean" ? "Ocean" : "Wisteria"}</strong>
+                </button>
+              ))}
+            </div>
+            <h3 className="appearance-subtitle">Anime-inspired backgrounds</h3>
+            <p>Original scenery inspired by favorite worlds. Seasonal keeps the rotating anime posters.</p>
+            <div className="anime-theme-options" role="group" aria-label="Anime-inspired background">
+              {([
+                { id: "seasonal", name: "Seasonal", detail: "Rotating posters" },
+                { id: "aot", name: "Attack on Titan", detail: "Walls at dusk" },
+                { id: "one-piece", name: "One Piece", detail: "Open sea" },
+                { id: "demon-slayer", name: "Demon Slayer", detail: "Wisteria night" }
+              ] as const).map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={`anime-theme-option anime-theme-option--${option.id}${animeTheme === option.id ? " is-active" : ""}`}
+                  aria-pressed={animeTheme === option.id}
+                  onClick={() => setAnimeTheme(option.id)}
+                >
+                  <span className="anime-theme-option__scene" aria-hidden="true" />
+                  <span className="anime-theme-option__label"><strong>{option.name}</strong><small>{option.detail}</small></span>
                 </button>
               ))}
             </div>

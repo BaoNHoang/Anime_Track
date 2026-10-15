@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCurrentSeason } from "../hooks/useAnimeQueries";
+import { useTheme } from "../app/providers/useTheme";
 
 const ROTATION_MS = 12_000;
 const BACKDROP_COUNT = 2;
 
 export function AmbientBackdrop() {
-  const season = useCurrentSeason();
+  const { animeTheme } = useTheme();
+  const season = useCurrentSeason(animeTheme === "seasonal");
   const [activeIndex, setActiveIndex] = useState(0);
   const [failedImages, setFailedImages] = useState<string[]>([]);
   const images = useMemo(() => {
@@ -21,7 +23,7 @@ export function AmbientBackdrop() {
   const availableImages = images.filter((url) => !failedImages.includes(url));
 
   useEffect(() => {
-    if (availableImages.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (animeTheme !== "seasonal" || availableImages.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       return;
     }
 
@@ -30,7 +32,9 @@ export function AmbientBackdrop() {
     }, ROTATION_MS);
 
     return () => window.clearInterval(interval);
-  }, [availableImages.length]);
+  }, [animeTheme, availableImages.length]);
+
+  if (animeTheme !== "seasonal") return <div className="ambient-backdrop ambient-backdrop--anime" aria-hidden="true" />;
 
   if (availableImages.length === 0) {
     return null;

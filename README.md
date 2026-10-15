@@ -262,6 +262,9 @@ to the browser after registration.
 - Light and dark themes persist on the current device. Motion respects the
   operating system's reduced-motion preference, and desktop/mobile navigation
   adapt to the available screen size.
+- Anime-inspired background presets for Attack on Titan, One Piece, and Demon
+  Slayer replace the rotating seasonal backdrop with original scenery and a
+  matching palette. The chosen look persists on this device.
 - The separate MCP server can let an approved ChatGPT connection search anime,
   load details and news, read or update the authenticated library, and produce
   recommendation candidates. MCP library access uses the caller's Supabase

@@ -135,6 +135,102 @@
   --focus: #c7a5f4;
 }
 
+:root[data-anime-theme="aot"] {
+  --canvas: #eee9dc;
+  --surface: #f9f7ef;
+  --surface-raised: #fffdf7;
+  --surface-muted: #e5e4d7;
+  --ink: #262d27;
+  --muted: #5d685f;
+  --border: #cbd0c2;
+  --border-strong: #aab6a3;
+  --accent: #697a4e;
+  --accent-hover: #4f603b;
+  --accent-soft: #e0e8d0;
+  --chrome: #273128;
+  --focus: #596d48;
+}
+
+:root[data-theme="dark"][data-anime-theme="aot"] {
+  --canvas: #151b19;
+  --surface: #202824;
+  --surface-raised: #28322c;
+  --surface-muted: #303c34;
+  --ink: #f2f0e4;
+  --muted: #b9c4b2;
+  --border: #3c4b41;
+  --border-strong: #607164;
+  --accent: #b8c98e;
+  --accent-hover: #d1dfad;
+  --accent-soft: #394932;
+  --chrome: #101814;
+  --focus: #b8c98e;
+}
+
+:root[data-anime-theme="one-piece"] {
+  --canvas: #e7f3f4;
+  --surface: #f8fcfb;
+  --surface-raised: #ffffff;
+  --surface-muted: #dcecee;
+  --ink: #173447;
+  --muted: #4e6d79;
+  --border: #bfd8dc;
+  --border-strong: #8fbac3;
+  --accent: #087f9d;
+  --accent-hover: #06647f;
+  --accent-soft: #ccecf1;
+  --chrome: #12364c;
+  --focus: #087f9d;
+}
+
+:root[data-theme="dark"][data-anime-theme="one-piece"] {
+  --canvas: #0b1e2b;
+  --surface: #142b38;
+  --surface-raised: #1b3745;
+  --surface-muted: #244351;
+  --ink: #f2f9f7;
+  --muted: #b1cdd0;
+  --border: #31505c;
+  --border-strong: #4d7885;
+  --accent: #65d1df;
+  --accent-hover: #9be8ed;
+  --accent-soft: #204b5b;
+  --chrome: #081722;
+  --focus: #65d1df;
+}
+
+:root[data-anime-theme="demon-slayer"] {
+  --canvas: #f1edf4;
+  --surface: #fcf9fd;
+  --surface-raised: #ffffff;
+  --surface-muted: #e9e1ee;
+  --ink: #30283c;
+  --muted: #695d76;
+  --border: #d8cde1;
+  --border-strong: #bda9cc;
+  --accent: #80569c;
+  --accent-hover: #633d81;
+  --accent-soft: #eee0f4;
+  --chrome: #241d32;
+  --focus: #80569c;
+}
+
+:root[data-theme="dark"][data-anime-theme="demon-slayer"] {
+  --canvas: #171423;
+  --surface: #211c30;
+  --surface-raised: #2b253d;
+  --surface-muted: #382e4a;
+  --ink: #f7f0fb;
+  --muted: #c9bad5;
+  --border: #483c59;
+  --border-strong: #705c82;
+  --accent: #d8a9e8;
+  --accent-hover: #ecc9f3;
+  --accent-soft: #46324f;
+  --chrome: #100e1b;
+  --focus: #d8a9e8;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -254,6 +350,25 @@ h3,
 .ambient-backdrop img.is-active {
   opacity: 1;
   transform: scale(1);
+}
+
+.ambient-backdrop--anime { background-size: cover; background-position: center; }
+
+:root[data-anime-theme="aot"] .ambient-backdrop--anime {
+  background-image: url("/themes/aot-walls.webp");
+}
+
+:root[data-anime-theme="one-piece"] .ambient-backdrop--anime {
+  background-image: url("/themes/one-piece-sea.webp");
+}
+
+:root[data-anime-theme="demon-slayer"] .ambient-backdrop--anime {
+  background-image: url("/themes/demon-slayer-wisteria.webp");
+}
+
+:root .ambient-backdrop--anime::after,
+:root[data-theme="dark"] .ambient-backdrop--anime::after {
+  background: color-mix(in srgb, var(--canvas) 34%, transparent);
 }
 
 .brand {
@@ -3156,6 +3271,52 @@ h3,
 .palette-option--sakura { --palette-light: #f0f1f6; --palette-dark: #0f1017; --palette-light-accent: #ff4f70; --palette-dark-accent: #ff6682; }
 .palette-option--ocean { --palette-light: #edf5f7; --palette-dark: #0c1920; --palette-light-accent: #08728a; --palette-dark-accent: #6acddd; }
 .palette-option--wisteria { --palette-light: #f2eff8; --palette-dark: #15111e; --palette-light-accent: #7049a5; --palette-dark-accent: #c7a5f4; }
+
+.appearance-subtitle {
+  margin: 22px 0 4px;
+  font-size: 12px;
+}
+
+.anime-theme-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 13px;
+}
+
+.anime-theme-option {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--surface);
+  text-align: left;
+}
+
+.anime-theme-option:hover { border-color: var(--border-strong); }
+.anime-theme-option.is-active { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent); }
+.anime-theme-option__scene { display: block; height: 64px; }
+.anime-theme-option__label { display: grid; gap: 1px; padding: 8px 9px 9px; }
+.anime-theme-option__label strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.anime-theme-option__label small { color: var(--muted); font-size: 9px; }
+.anime-theme-option--seasonal .anime-theme-option__scene {
+  background: linear-gradient(135deg, #2d3546 0 35%, #e86f85 35% 57%, #f5c873 57% 73%, #496c9c 73%);
+}
+.anime-theme-option--aot .anime-theme-option__scene {
+  background: url("/themes/aot-walls.webp") center/cover;
+}
+.anime-theme-option--one-piece .anime-theme-option__scene {
+  background: url("/themes/one-piece-sea.webp") center/cover;
+}
+.anime-theme-option--demon-slayer .anime-theme-option__scene {
+  background: url("/themes/demon-slayer-wisteria.webp") center/cover;
+}
+
+@media (max-width: 700px) {
+  .anime-theme-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 .query-controls {
   display: grid;
