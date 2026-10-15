@@ -1,6 +1,7 @@
 import { createContext } from "react";
 import type { Anime } from "../../domain/anime/types";
 import type { ProfileSummary } from "../../domain/tracker/profileSummary";
+import type { ImportPreview } from "../../domain/tracker/importPreview";
 import type {
   TrackedAnime,
   TrackingStatus
@@ -35,12 +36,9 @@ export interface TrackerContextValue {
   removeAnime: (animeId: number) => void;
   importItems: (
     items: TrackedAnime[],
-    options?: { replaceOnEqualUpdatedAt?: boolean }
-  ) => {
-    added: number;
-    updated: number;
-    total: number;
-  };
+    options?: { replaceOnEqualUpdatedAt?: boolean; continueUndoToken?: number }
+  ) => ImportPreview & { applied: boolean; undoToken?: number };
+  undoImport: (token: number) => boolean;
 }
 
 export const TrackerContext = createContext<TrackerContextValue | undefined>(

@@ -12,13 +12,16 @@ import {
   Sun,
   Upload,
 } from "../../components/OwnedIcons";
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import {
   LibraryImportError,
+  MAX_LIBRARY_ITEMS,
   parseLibraryImport
 } from "../../domain/tracker/import";
 import { exportLibraryCsv, parseLibraryCsv } from "../../domain/tracker/csv";
 import { parseMyAnimeListXml } from "../../domain/tracker/xml";
+import { previewLibraryImport } from "../../domain/tracker/importPreview";
+import type { TrackedAnime } from "../../domain/tracker/types";
 import { useAppUpdateStatus } from "../../hooks/useAppUpdateStatus";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { usePwaInstall } from "../../hooks/usePwaInstall";
@@ -35,13 +38,21 @@ import {
 } from "../../services/push/pushSubscription";
 
 export function SettingsPage() {
-  const { items, importItems } = useTracker();
+  const { items, canManage, importItems, undoImport } = useTracker();
   const { configured, user, updateScoreStep } = useCloudAuth();
   const { canInstall, installed, install, isIos } = usePwaInstall();
   const { theme, setTheme, colorScheme, setColorScheme } = useTheme();
   const { region, setRegion } = useWatchProvider();
   const { lastChecked, intervalMinutes } = useAppUpdateStatus();
   const importInput = useRef<HTMLInputElement>(null);
+  const importAbort = useRef<AbortController | undefined>(undefined);
+  const [pendingImport, setPendingImport] = useState<{
+    name: string; format: "mal" | "banime"; items: TrackedAnime[];
+  }>();
+  const preview = useMemo(() => pendingImport
+    ? previewLibraryImport(items, pendingImport.items)
+    : undefined, [items, pendingImport]);
+  const [importUndoToken, setImportUndoToken] = useState<number>();
   const [importMessage, setImportMessage] = useState<{
     tone: "success" | "error";
     text: string;
@@ -130,6 +141,8 @@ export function SettingsPage() {
       return;
     }
 
+    setPendingImport(undefined);
+    setImportMessage(undefined);
     setImporting(true);
     try {
       const text = await file.text();
@@ -137,47 +150,10 @@ export function SettingsPage() {
 
       if (file.name.toLowerCase().endsWith(".csv") || trimmedText.startsWith("{") || trimmedText.startsWith("[")) {
         const imported = file.name.toLowerCase().endsWith(".csv") ? parseLibraryCsv(text) : parseLibraryImport(JSON.parse(text) as unknown);
-        const result = importItems(imported);
-        setImportMessage({
-          tone: "success",
-          text: `Imported ${result.added} new and ${result.updated} newer title${
-            result.added + result.updated === 1 ? "" : "s"
-          }. Your library now has ${result.total}.`
-        });
+        setPendingImport({ name: file.name, format: "banime", items: imported });
       } else {
         const parsedMalItems = parseMyAnimeListXml(text);
-        const savedResult = importItems(parsedMalItems);
-        setImportMessage({
-          tone: "success",
-          text: `Saved ${savedResult.added} new and ${savedResult.updated} newer MyAnimeList title${
-            savedResult.added + savedResult.updated === 1 ? "" : "s"
-          } locally. Checking Tenrai for posters and details for ${parsedMalItems.length} title${
-            parsedMalItems.length === 1 ? "" : "s"
-          }...`
-        });
-
-        const enrichment = await enrichTrackedAnimeFromTenrai(parsedMalItems, {
-          onProgress: ({ completed, total, enriched, failed }) => {
-            if (completed === 1 || completed % 10 === 0 || completed === total) {
-              setImportMessage({
-                tone: "success",
-                text: `Checking Tenrai ${completed}/${total}. Updated ${enriched}; ${failed} kept from MyAnimeList only.`
-              });
-            }
-          }
-        });
-        const enrichedResult = importItems(enrichment.items, {
-          replaceOnEqualUpdatedAt: true
-        });
-        const enrichmentMessage = `Checked Tenrai for ${enrichment.enriched + enrichment.failed} title${
-          enrichment.enriched + enrichment.failed === 1 ? "" : "s"
-        }; updated ${enrichment.enriched} with current catalog details${
-          enrichment.failed ? ` and kept ${enrichment.failed} from MyAnimeList only` : ""
-        }.`;
-        setImportMessage({
-          tone: "success",
-          text: `${enrichmentMessage} Your library now has ${enrichedResult.total}.`
-        });
+        setPendingImport({ name: file.name, format: "mal", items: parsedMalItems });
       }
     } catch (error) {
       setImportMessage({
@@ -190,6 +166,85 @@ export function SettingsPage() {
     } finally {
       setImporting(false);
     }
+  };
+
+  const confirmImport = async () => {
+    if (!pendingImport || !canManage || !preview || preview.total > MAX_LIBRARY_ITEMS) return;
+    const selection = pendingImport;
+    setPendingImport(undefined);
+    setImporting(true);
+    let saved: ReturnType<typeof importItems>;
+    try {
+      saved = importItems(selection.items);
+    } catch {
+      setImportMessage({ tone: "error", text: "The import could not be saved. Check available device storage and try again." });
+      setImporting(false);
+      return;
+    }
+    if (!saved.applied || saved.undoToken === undefined) {
+      setImportMessage({ tone: "error", text: "The import could not be saved. Review your library and try again." });
+      setImporting(false);
+      return;
+    }
+    const undoToken = saved.undoToken;
+    setImportUndoToken(undoToken);
+    if (selection.format === "banime") {
+      setImportMessage({
+        tone: "success",
+        text: `Imported ${saved.added} new and ${saved.updated} newer titles. Your library now has ${saved.total}.`
+      });
+      setImporting(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    importAbort.current = controller;
+    setImportMessage({
+      tone: "success",
+      text: `Saved ${saved.added} new and ${saved.updated} newer titles. Checking catalog posters and details…`
+    });
+    try {
+      const enrichment = await enrichTrackedAnimeFromTenrai(selection.items, {
+        signal: controller.signal,
+        onProgress: ({ completed, total, enriched, failed }) => {
+          if (completed === 1 || completed % 10 === 0 || completed === total) {
+            setImportMessage({
+              tone: "success",
+              text: `Checking catalog ${completed}/${total}. Updated ${enriched}; ${failed} kept from MyAnimeList.`
+            });
+          }
+        }
+      });
+      if (controller.signal.aborted) return;
+      const enriched = importItems(enrichment.items, {
+        replaceOnEqualUpdatedAt: true,
+        continueUndoToken: undoToken
+      });
+      setImportMessage({
+        tone: "success",
+        text: enriched.applied
+          ? `Catalog check complete: ${enrichment.enriched} updated, ${enrichment.failed} kept from MyAnimeList. Undo is still available.`
+          : "Import saved. Catalog details were not applied because the library changed or no new details were available."
+      });
+    } catch {
+      if (!controller.signal.aborted) {
+        setImportMessage({ tone: "error", text: "Imported titles are saved, but catalog details could not finish loading." });
+      }
+    } finally {
+      if (importAbort.current === controller) importAbort.current = undefined;
+      setImporting(false);
+    }
+  };
+
+  const rollBackImport = () => {
+    if (importUndoToken === undefined) return;
+    importAbort.current?.abort();
+    let restored = false;
+    try { restored = undoImport(importUndoToken); } catch { /* Keep the error visible below. */ }
+    setImportUndoToken(undefined);
+    setImportMessage(restored
+      ? { tone: "success", text: "Import undone. Your previous library has been restored." }
+      : { tone: "error", text: "This import cannot be undone after other library changes. Restore an earlier export if needed." });
   };
 
   return (
@@ -403,9 +458,8 @@ export function SettingsPage() {
           <div className="settings-card__content">
             <h2>Import or export library</h2>
             <p>
-              Import a MyAnimeList XML export. Banime will check Tenrai for
-              posters and details before saving. You can still export your
-              Banime library as JSON.
+              Review changes before importing a MyAnimeList XML or Banime JSON/CSV file.
+              MyAnimeList titles are saved first, then checked for catalog details.
             </p>
             <div className="settings-actions">
               <input
@@ -421,7 +475,7 @@ export function SettingsPage() {
                 disabled={importing}
               >
                 <Upload size={15} />
-                {importing ? "Importing..." : "Import MAL XML"}
+                {importing ? "Working…" : "Choose import file"}
               </button>
               <button
                 className="button button--ghost button--compact"
@@ -433,6 +487,19 @@ export function SettingsPage() {
             </div>
             <button className="button button--compact" disabled={!items.length} onClick={() => exportLibrary("csv")}>Export CSV</button>
             <p>Import MyAnimeList XML or Banime JSON/CSV. JSON and CSV retain episode history, custom lists, and preferences.</p>
+            {pendingImport && preview ? <div className="import-preview" role="region" aria-label="Review library import">
+              <h3>Review {pendingImport.name}</h3>
+              <p><strong>{preview.added}</strong> new · <strong>{preview.updated}</strong> newer · <strong>{preview.unchanged}</strong> unchanged</p>
+              <p>Your library would contain {preview.total} titles. Nothing changes until you confirm. Undo is available in this session until another library edit.</p>
+              {preview.total > MAX_LIBRARY_ITEMS ? <p className="form-message form-message--error">The combined library would exceed the {MAX_LIBRARY_ITEMS}-title limit. Remove titles before importing.</p> : null}
+              {preview.examples.length ? <p className="import-preview__examples">Including {preview.examples.join(", ")}{preview.added + preview.updated > preview.examples.length ? "…" : ""}</p> : null}
+              <div className="settings-actions">
+                <button className="button button--compact" type="button" disabled={importing || !canManage || !(preview.added + preview.updated) || preview.total > MAX_LIBRARY_ITEMS} onClick={() => void confirmImport()}>Confirm import</button>
+                <button className="button button--ghost button--compact" type="button" onClick={() => setPendingImport(undefined)}>Cancel</button>
+              </div>
+            </div> : null}
+            {importUndoToken !== undefined ? <button className="button button--ghost button--compact" type="button"
+              onClick={rollBackImport}>Undo last import</button> : null}
             {importMessage && (
               <p
                 className={`form-message form-message--${importMessage.tone}`}

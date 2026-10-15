@@ -8,6 +8,8 @@ import {
 } from "react";
 import type { Anime } from "../../domain/anime/types";
 import { mergeTrackedAnime } from "../../domain/tracker/merge";
+import { previewLibraryImport } from "../../domain/tracker/importPreview";
+import { MAX_LIBRARY_ITEMS } from "../../domain/tracker/import";
 import { resolveTrackingProgress } from "../../domain/tracker/progress";
 import {
   historyForProgress,
@@ -51,6 +53,10 @@ export function TrackerProvider({ children }: PropsWithChildren) {
   const [remoteProfileSummary, setRemoteProfileSummary] =
     useState<ProfileSummary>();
   const undoToken = useRef(0);
+  const importUndoToken = useRef(0);
+  const importUndoRef = useRef<{
+    token: number; owner?: string; before: TrackedAnime[]; after: TrackedAnime[];
+  } | undefined>(undefined);
   const [episodeUndo, setEpisodeUndo] = useState<{
     token: number;
     message: string;
@@ -166,6 +172,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       const previousUserId = syncedUserRef.current;
       syncedUserRef.current = undefined;
       lastCloudReadRef.current = 0;
+      importUndoRef.current = undefined;
       if (previousUserId) void cloudLibraryCache.clear(previousUserId);
       trackerRepository.clear();
       void Promise.resolve().then(() => {
@@ -178,7 +185,10 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       });
       return;
     }
-    if (syncedUserRef.current !== userId) lastCloudReadRef.current = 0;
+    if (syncedUserRef.current !== userId) {
+      lastCloudReadRef.current = 0;
+      importUndoRef.current = undefined;
+    }
     syncedUserRef.current = userId;
 
     let cancelled = false;
@@ -371,42 +381,45 @@ export function TrackerProvider({ children }: PropsWithChildren) {
   const importItems = useCallback(
     (
       importedItems: TrackedAnime[],
-      options: { replaceOnEqualUpdatedAt?: boolean } = {}
+      options: { replaceOnEqualUpdatedAt?: boolean; continueUndoToken?: number } = {}
     ) => {
-      if (!canManage) {
-        return { added: 0, updated: 0, total: itemsRef.current.length };
+      const preview = previewLibraryImport(itemsRef.current, importedItems, options);
+      if (!canManage || preview.total > MAX_LIBRARY_ITEMS) {
+        return { ...preview, applied: false };
       }
-      const currentById = new Map(
-        itemsRef.current.map((item) => [item.anime.id, item])
-      );
-      let added = 0;
-      let updated = 0;
-
-      for (const item of importedItems) {
-        const existing = currentById.get(item.anime.id);
-        if (!existing) {
-          added += 1;
-        } else if (
-          item.updatedAt > existing.updatedAt ||
-          (options.replaceOnEqualUpdatedAt &&
-            item.updatedAt === existing.updatedAt)
-        ) {
-          updated += 1;
-        }
+      const previousUndo = importUndoRef.current;
+      if (options.continueUndoToken &&
+        (previousUndo?.token !== options.continueUndoToken ||
+          previousUndo.after !== itemsRef.current || previousUndo.owner !== activeUserIdRef.current)) {
+        return { ...preview, applied: false };
       }
+      if (!preview.added && !preview.updated) return { ...preview, applied: false };
 
       const merged = mergeTrackedAnime(itemsRef.current, importedItems, {
         replaceOnEqualUpdatedAt: options.replaceOnEqualUpdatedAt
       });
-      if (!saveItems(merged)) return { added: 0, updated: 0, total: itemsRef.current.length };
+      const before = options.continueUndoToken ? previousUndo!.before : itemsRef.current;
+      if (!saveItems(merged)) return { ...preview, applied: false };
+      const token = options.continueUndoToken ?? ++importUndoToken.current;
+      importUndoRef.current = { token, owner: activeUserIdRef.current, before, after: merged };
       if (user) {
         enqueueCloud();
       }
 
-      return { added, updated, total: merged.length };
+      return { ...preview, total: merged.length, applied: true, undoToken: token };
     },
     [canManage, enqueueCloud, saveItems, user]
   );
+
+  const undoImport = useCallback((token: number) => {
+    const undo = importUndoRef.current;
+    if (!canManage || !undo || undo.token !== token || undo.owner !== activeUserIdRef.current ||
+      undo.after !== itemsRef.current) return false;
+    if (!saveItems(undo.before)) return false;
+    importUndoRef.current = undefined;
+    if (user) enqueueCloud();
+    return true;
+  }, [canManage, enqueueCloud, saveItems, user]);
 
   const profileSummary = useMemo(
     () =>
@@ -437,12 +450,14 @@ export function TrackerProvider({ children }: PropsWithChildren) {
       undoEpisode,
       dismissEpisodeUndo,
       removeAnime,
-      importItems
+      importItems,
+      undoImport
     }),
     [
       addAnime,
       canManage,
       importItems,
+      undoImport,
       isReady,
       items,
       profileSummary,
