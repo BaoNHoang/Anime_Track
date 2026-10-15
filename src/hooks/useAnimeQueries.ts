@@ -13,10 +13,11 @@ import type { ConnectionFacet } from "../domain/anime/connectionMap";
 
 const DISCOVERY_QUERY_GC_MS = 30 * 60 * 1000;
 
-export function useCurrentSeason() {
+export function useCurrentSeason(enabled = true) {
   return useQuery({
     queryKey: ["anime", "season", "now"],
     queryFn: ({ signal }) => getCurrentSeason(signal),
+    enabled,
     staleTime: 15 * 60 * 1000,
     refetchInterval: 15 * 60 * 1000
   });
