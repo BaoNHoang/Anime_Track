@@ -36,9 +36,10 @@ create table if not exists public.profiles (
   constraint profiles_avatar_id_check check (
     avatar_id in (
       'male-01', 'male-02', 'male-03', 'male-04', 'male-05',
-      'female-01', 'female-02', 'female-03', 'female-04', 'female-05'
+      'female-01', 'female-02', 'female-03', 'female-04', 'female-05',
+      'aot-eren', 'aot-mikasa', 'aot-levi', 'aot-armin'
     )
-    ),
+  ),
   constraint profiles_score_step_check check (score_step in (0.5, 1.0)),
   constraint profiles_favorites_check check (
     jsonb_typeof(favorites) = 'object' and octet_length(favorites::text) <= 30000
@@ -62,21 +63,19 @@ alter table public.profiles
   add column if not exists score_step numeric(2, 1) not null default 0.5,
   add column if not exists favorites jsonb not null default '{"anime":[],"studios":[],"directors":[],"characters":[]}'::jsonb;
 
+-- Replace the existing constraint as well as defining it for new projects.
+alter table public.profiles
+  drop constraint if exists profiles_avatar_id_check,
+  add constraint profiles_avatar_id_check check (
+    avatar_id in (
+      'male-01', 'male-02', 'male-03', 'male-04', 'male-05',
+      'female-01', 'female-02', 'female-03', 'female-04', 'female-05',
+      'aot-eren', 'aot-mikasa', 'aot-levi', 'aot-armin'
+    )
+  );
+
 do $$
 begin
-  if not exists (
-    select 1 from pg_constraint
-    where conname = 'profiles_avatar_id_check'
-      and conrelid = 'public.profiles'::regclass
-  ) then
-    alter table public.profiles add constraint profiles_avatar_id_check check (
-      avatar_id in (
-        'male-01', 'male-02', 'male-03', 'male-04', 'male-05',
-        'female-01', 'female-02', 'female-03', 'female-04', 'female-05'
-      )
-    );
-  end if;
-
   if not exists (
     select 1 from pg_constraint
     where conname = 'profiles_favorites_check'

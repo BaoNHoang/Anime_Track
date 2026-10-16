@@ -1,4 +1,5 @@
 import { ApiError } from "./http.js";
+import { PROFILE_AVATARS } from "../../src/domain/account/avatars.js";
 import {
   FAVORITE_KINDS,
   MAX_FAVORITES_PER_KIND,
@@ -13,18 +14,7 @@ import {
 type JsonRecord = Record<string, unknown>;
 export const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,24}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PROFILE_AVATAR_IDS = new Set([
-  "male-01",
-  "male-02",
-  "male-03",
-  "male-04",
-  "male-05",
-  "female-01",
-  "female-02",
-  "female-03",
-  "female-04",
-  "female-05"
-]);
+const PROFILE_AVATAR_IDS = new Set<string>(PROFILE_AVATARS.map((avatar) => avatar.id));
 const PROFILE_BANNER_IDS = new Set([
   "banner-01",
   "banner-02",

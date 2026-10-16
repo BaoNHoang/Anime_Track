@@ -161,9 +161,9 @@ to the browser after registration.
 - Users can search for and maintain ordered favorites for anime, studios,
   directors, and characters. Favorite anime can also be toggled from the anime
   detail drawer.
-- Accounts include ten built-in anime profile pictures and five built-in anime
-  banners. Users may instead upload their own 512 x 512 profile picture or
-  1600 x 500 banner.
+- Accounts include ten original anime profile pictures, four Attack on Titan
+  character portraits, and five built-in anime banners. Users may instead
+  upload their own 512 x 512 profile picture or 1600 x 500 banner.
 - Uploaded profile media is decoded, resized, re-encoded as WebP, stripped of
   original metadata, bounded by output size, stored in a private bucket, and
   served through short-lived signed URLs.
@@ -426,6 +426,8 @@ interactions responsive.
 
 1. Create a Supabase project at <https://supabase.com>.
 2. Open the SQL editor and run [`supabase/schema.sql`](supabase/schema.sql).
+   For an existing project, rerun it before deploying avatar-set updates so
+   the database accepts the new profile-picture IDs.
 3. In Supabase Auth, require email confirmation.
 4. Replace the **Confirm signup** and **Reset password** email templates with
    [`supabase/templates/confirmation.html`](supabase/templates/confirmation.html)

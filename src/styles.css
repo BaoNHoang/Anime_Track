@@ -4926,6 +4926,14 @@ h3,
   gap: 10px;
 }
 
+.avatar-collection + .avatar-collection { margin-top: 20px; }
+.avatar-collection h4 { margin: 0 0 9px; color: var(--muted); font-size: 11px; font-weight: 700; }
+.avatar-collection--aot .avatar-picker { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+@media (max-width: 580px) {
+  .avatar-collection--aot .avatar-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 .avatar-picker button {
   position: relative;
   overflow: hidden;
