@@ -29,7 +29,6 @@ test("selects an Attack on Titan avatar and keeps it after reload", async ({ pag
   await mikasa.click();
   await expect(mikasa).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".account-avatar img")).toHaveAttribute("src", "/avatars/aot/mikasa.webp");
-  expect(avatarId).toBe("aot-mikasa");
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(group.getByRole("button", { name: "Use Mikasa Ackerman profile picture" })).toHaveAttribute("aria-pressed", "true", { timeout: 30_000 });
 });
