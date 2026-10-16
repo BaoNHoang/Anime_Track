@@ -426,6 +426,8 @@ interactions responsive.
 
 1. Create a Supabase project at <https://supabase.com>.
 2. Open the SQL editor and run [`supabase/schema.sql`](supabase/schema.sql).
+   For an existing project, rerun it before deploying avatar-set updates so
+   the database accepts the new profile-picture IDs.
 3. In Supabase Auth, require email confirmation.
 4. Replace the **Confirm signup** and **Reset password** email templates with
    [`supabase/templates/confirmation.html`](supabase/templates/confirmation.html)
