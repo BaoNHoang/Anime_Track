@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  accountAvatarId,
   accountFavorites,
   passkeyCredential,
   passkeyUuid
@@ -26,6 +27,18 @@ describe("accountFavorites", () => {
       ...emptyFavorites,
       anime: [{ id: 20, name: "Naruto", imageUrl: "javascript:alert(1)" }]
     })).toThrow();
+  });
+});
+
+describe("profile picture validation", () => {
+  it("accepts the Attack on Titan presets for signed-in accounts", () => {
+    for (const id of ["aot-eren", "aot-mikasa", "aot-levi", "aot-armin"]) {
+      expect(accountAvatarId(id)).toBe(id);
+    }
+  });
+
+  it("rejects unknown profile pictures", () => {
+    expect(() => accountAvatarId("aot-unknown")).toThrow("Profile picture is invalid.");
   });
 });
 

@@ -10,7 +10,7 @@ import {
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
-import { PROFILE_AVATARS, profileAvatar, profileAvatarSrc } from "../../domain/account/avatars";
+import { PROFILE_AVATAR_GROUPS, profileAvatar, profileAvatarSrc } from "../../domain/account/avatars";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
 import { PROFILE_BANNERS } from "../../domain/account/banners";
 import {
@@ -65,25 +65,30 @@ function ProfileMediaControls({
             />
           </label>
         </div>
-        <div className="avatar-picker" aria-label="Profile picture choices">
-          {PROFILE_AVATARS.map((option) => {
-            const selected = option.id === profile.avatarId && !profile.avatarUrl && !profile.avatarDataUrl;
-            return (
-              <button
-                type="button"
-                className={selected ? "is-selected" : ""}
-                key={option.id}
-                aria-label={`Use ${option.label} profile picture`}
-                aria-pressed={selected}
-                disabled={disabled}
-                onClick={() => onAvatar(option.id)}
-              >
-                <img src={option.src} alt="" loading="lazy" />
-                {selected && <span aria-hidden="true"><Check size={15} /></span>}
-              </button>
-            );
-          })}
-        </div>
+        {PROFILE_AVATAR_GROUPS.map((group) => (
+          <div className={`avatar-collection avatar-collection--${group.id}`} key={group.id}>
+            <h4>{group.label}</h4>
+            <div className="avatar-picker" role="group" aria-label={`${group.label} profile pictures`}>
+              {group.avatars.map((option) => {
+                const selected = option.id === profile.avatarId && !profile.avatarUrl && !profile.avatarDataUrl;
+                return (
+                  <button
+                    type="button"
+                    className={selected ? "is-selected" : ""}
+                    key={option.id}
+                    aria-label={`Use ${option.label} profile picture`}
+                    aria-pressed={selected}
+                    disabled={disabled}
+                    onClick={() => onAvatar(option.id)}
+                  >
+                    <img src={option.src} alt="" loading="lazy" />
+                    {selected && <span aria-hidden="true"><Check size={15} /></span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </section>
 
       <section className="account-profile__section">
