@@ -742,8 +742,8 @@ create event trigger ensure_rls
   on ddl_command_end
   execute function public.rls_auto_enable();
 
--- Web Push subscriptions are per-account and per-browser endpoint. Subscription
--- secrets are deliberately never exposed through a public table policy.
+-- Web Push subscriptions are per-account and per-browser endpoint. Their
+-- encryption keys are readable by the owner under the SELECT policy below.
 create table if not exists public.push_subscriptions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,

@@ -93,8 +93,9 @@ minutes. Large libraries can take multiple visits to scan completely.
 The existing notification schema from the prior release is still required.
 Custom lists live inside the existing validated tracked-anime JSON records.
 Account-mode push adds an owner-scoped subscription table plus private server
-VAPID and scheduler records; subscription encryption keys are never returned
-to the browser after registration.
+VAPID and scheduler records. The push API does not return subscription keys
+after registration, but an authenticated account can read its own subscription
+rows through Supabase's Data API under the current RLS policy.
 
 ### Home and anime discovery
 
