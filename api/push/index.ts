@@ -11,6 +11,7 @@ import {
   type ApiRequest
 } from "../_lib/http.js";
 import { authenticateRequest } from "../_lib/supabase.js";
+import { isTrustedPushEndpoint } from "../../supabase/functions/_shared/pushSafety.js";
 
 type SubscriptionInput = { endpoint?: unknown; expirationTime?: unknown; keys?: unknown };
 
@@ -54,6 +55,9 @@ export default async function handler(request: ApiRequest, response: ServerRespo
       if (error) throw new ApiError(502, "The device could not be removed.");
       sendJson(response, 200, { removed: true });
       return;
+    }
+    if (!isTrustedPushEndpoint(input.endpoint)) {
+      throw new ApiError(400, "The push subscription endpoint is not supported.");
     }
     const { error } = await auth.client.from("push_subscriptions").upsert({
       user_id: auth.user.id, endpoint: input.endpoint, expiration_time: input.expirationTime, p256dh: input.p256dh, auth: input.auth, updated_at: new Date().toISOString()
