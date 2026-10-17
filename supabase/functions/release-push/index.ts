@@ -1,11 +1,22 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
+import {
+  boundedReleaseWindow,
+  isStorableEpisode,
+  isTrustedPushEndpoint,
+  remainingPushAttempts,
+  PUSH_PROVIDER_FILTER,
+  MAX_PUSH_CONCURRENCY,
+  MAX_PUSH_SUBSCRIPTIONS_PER_RELEASE,
+  PUSH_SEND_TIMEOUT_MS
+} from "../_shared/pushSafety.ts";
 
 type TrackedRow = { user_id: string; item: Record<string, unknown>; tracking_status: string };
 type Cursor = { user_id: string; last_checked_at: string; seen_season_ids?: unknown };
 type Subscription = { endpoint: string; p256dh: string; auth: string };
 type Delivery = { userId: string; id: string; title: string; body: string; animeId: number };
+const RELEASE_UPSERT_BATCH_SIZE = 100;
 
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });
 const titleOf = (anime: Record<string, unknown>) => String(anime.titleEnglish || anime.title || "Anime");
@@ -186,39 +197,87 @@ Deno.serve(async (request) => {
     const cursorByUser = new Map((cursors.data as Cursor[]).map((cursor) => [cursor.user_id, cursor]));
     const created: Delivery[] = [];
     const failedUsers = new Set<string>();
+    const releaseWindows = new Map<string, ReturnType<typeof boundedReleaseWindow>>();
     let checkedRows = 0;
     let scheduledRows = 0;
-    const activeRows = trackedRows.filter((row) => row.tracking_status === "watching" || row.tracking_status === "plan_to_watch");
+    const pendingEpisodes: Array<{ userId: string; trackingStatus: string; episode: ReturnType<typeof releasedEpisodes>[number] }> = [];
     for (const row of trackedRows) {
       const cursor = cursorByUser.get(row.user_id); if (!cursor) continue;
-      const last = cursor.last_checked_at;
       checkedRows += 1;
-      const episodes = releasedEpisodes(row, new Date(last), now);
+      const window = releaseWindows.get(row.user_id) ?? boundedReleaseWindow(cursor.last_checked_at, now);
+      releaseWindows.set(row.user_id, window);
+      const episodes = releasedEpisodes(row, window.start, window.end);
       if (episodes.length) scheduledRows += 1;
       for (const episode of episodes) {
-        const inserted = await client.from("release_notifications").upsert({ user_id: row.user_id, anime_id: episode.animeId, notification_id: episode.id, notification_type: "episode", title: episode.title, image_url: episode.imageUrl, released_at: episode.releasedAt, tracking_status: row.tracking_status, episode_number: episode.episode ?? null }, { onConflict: "user_id,notification_id", ignoreDuplicates: true }).select("notification_id");
-        if (inserted.error) {
-          failedUsers.add(row.user_id);
-          console.error("release notification upsert failed", { userId: row.user_id, code: inserted.error.code });
-        } else if (inserted.data?.length) created.push({ userId: row.user_id, id: episode.id, title: episode.title, body: episode.episode ? `Episode ${episode.episode} has aired.` : "A new episode has aired.", animeId: episode.animeId });
+        if (isStorableEpisode({ ...episode, trackingStatus: row.tracking_status })) {
+          pendingEpisodes.push({ userId: row.user_id, trackingStatus: row.tracking_status, episode });
+        } else {
+          console.error("release notification skipped: invalid tracked anime metadata", { userId: row.user_id, animeId: episode.animeId });
+        }
+      }
+    }
+    for (let start = 0; start < pendingEpisodes.length; start += RELEASE_UPSERT_BATCH_SIZE) {
+      const batch = pendingEpisodes.slice(start, start + RELEASE_UPSERT_BATCH_SIZE);
+      const inserted = await client.from("release_notifications").upsert(batch.map(({ userId, trackingStatus, episode }) => ({
+        user_id: userId, anime_id: episode.animeId, notification_id: episode.id,
+        notification_type: "episode", title: episode.title, image_url: episode.imageUrl,
+        released_at: episode.releasedAt, tracking_status: trackingStatus,
+        episode_number: episode.episode ?? null
+      })), { onConflict: "user_id,notification_id", ignoreDuplicates: true }).select("user_id,notification_id");
+      if (inserted.error) {
+        for (const { userId } of batch) failedUsers.add(userId);
+        console.error("release notification upsert failed", { code: inserted.error.code });
+        continue;
+      }
+      const createdKeys = new Set((inserted.data ?? []).map((item) => `${item.user_id}:${item.notification_id}`));
+      for (const { userId, episode } of batch) {
+        if (createdKeys.has(`${userId}:${episode.id}`)) {
+          created.push({ userId, id: episode.id, title: episode.title, body: episode.episode ? `Episode ${episode.episode} has aired.` : "A new episode has aired.", animeId: episode.animeId });
+        }
       }
     }
     const seasons = await createSeasonNotifications(client, trackedRows, cursorByUser, now);
     created.push(...seasons.deliveries);
     for (const userId of new Set(trackedRows.map((row) => row.user_id))) {
       if (failedUsers.has(userId)) continue;
-      const saved = await client.from("release_notification_cursors").upsert({ user_id: userId, last_checked_at: now.toISOString(), seen_season_ids: seasons.seenUpdates.get(userId) ?? cursorByUser.get(userId)?.seen_season_ids ?? [], updated_at: now.toISOString() });
+      const saved = await client.from("release_notification_cursors").upsert({ user_id: userId, last_checked_at: releaseWindows.get(userId)?.end.toISOString() ?? now.toISOString(), seen_season_ids: seasons.seenUpdates.get(userId) ?? cursorByUser.get(userId)?.seen_season_ids ?? [], updated_at: now.toISOString() });
       if (saved.error) {
         failedUsers.add(userId);
         console.error("release cursor update failed", { userId, code: saved.error.code });
       }
     }
+    let pushAttempts = 0;
+    const userPushAttempts = new Map<string, number>();
     for (const release of created) {
-      const subscriptions = await client.from("push_subscriptions").select("endpoint,p256dh,auth").eq("user_id", release.userId);
-      await Promise.all((subscriptions.data as Subscription[] ?? []).map(async (subscription) => {
-        try { await webpush.sendNotification({ endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } }, JSON.stringify({ title: release.title, body: release.body, url: `/notifications`, tag: release.id })); }
-        catch (error) { const status = (error as { statusCode?: number }).statusCode; if (status === 404 || status === 410) await client.from("push_subscriptions").delete().eq("endpoint", subscription.endpoint); }
-      }));
+      const allowance = remainingPushAttempts(pushAttempts, userPushAttempts.get(release.userId) ?? 0);
+      if (!allowance) continue;
+      const subscriptions = await client.from("push_subscriptions")
+        .select("endpoint,p256dh,auth").eq("user_id", release.userId)
+        .or(PUSH_PROVIDER_FILTER)
+        .order("updated_at", { ascending: false })
+        .limit(MAX_PUSH_SUBSCRIPTIONS_PER_RELEASE * 4);
+      if (subscriptions.error) {
+        console.error("push subscription lookup failed", { userId: release.userId, code: subscriptions.error.code });
+        continue;
+      }
+      const selected = (subscriptions.data as Subscription[] ?? [])
+        .filter((entry) => isTrustedPushEndpoint(entry.endpoint)).slice(0, allowance);
+      pushAttempts += selected.length;
+      userPushAttempts.set(release.userId, (userPushAttempts.get(release.userId) ?? 0) + selected.length);
+      for (let start = 0; start < selected.length; start += MAX_PUSH_CONCURRENCY) {
+        await Promise.all(selected.slice(start, start + MAX_PUSH_CONCURRENCY).map(async (subscription) => {
+          try {
+            await webpush.sendNotification(
+              { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
+              JSON.stringify({ title: release.title, body: release.body, url: "/notifications", tag: release.id }),
+              { timeout: PUSH_SEND_TIMEOUT_MS }
+            );
+          } catch (error) {
+            const status = (error as { statusCode?: number }).statusCode;
+            if (status === 404 || status === 410) await client.from("push_subscriptions").delete().eq("endpoint", subscription.endpoint);
+          }
+        }));
+      }
     }
     return json({ delivered: created.length, checkedRows, scheduledRows, seasonAlerts: seasons.deliveries.length, failedUsers: failedUsers.size });
   } catch (error) { console.error("release-push failed", error instanceof Error ? error.message : "unknown"); return json({ error: "Push delivery failed." }, 500); }
