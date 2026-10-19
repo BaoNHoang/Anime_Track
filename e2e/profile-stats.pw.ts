@@ -23,7 +23,7 @@ test("profile counts open matching library filters", async ({ page }) => {
     user: {
       id: "profile-stats-user", email: "profile@example.test", username: "Profile test",
       provider: "email", avatarId: "", bannerId: "", scoreStep: 1,
-      favorites: { anime: [], characters: [], studios: [], directors: [] }
+      favorites: { anime: [{ id: 901, name: "Currently watching" }], characters: [], studios: [], directors: [] }
     }
   } }));
   await page.route("**/api/library/summary", (route) => route.fulfill({ json: { summary: {
@@ -38,6 +38,9 @@ test("profile counts open matching library filters", async ({ page }) => {
   await expect(summary.getByRole("progressbar")).toHaveAttribute("aria-valuetext", "1 of 2 anime completed");
   await expect(summary).toContainText("1 / 2 completed");
   await expect(summary).toContainText("50%");
+  await expect(page.locator(".watch-journal__details strong").first()).toHaveCSS("font-size", "13px");
+  await expect(page.locator(".activity-item__copy strong").first()).toHaveCSS("font-size", "13px");
+  await expect(page.locator(".profile-favorites__items strong").first()).toHaveCSS("font-size", "12px");
 
   await summary.getByRole("link", { name: "1 Completed" }).click();
   await expect(page).toHaveURL(/\/library\?status=completed$/);
