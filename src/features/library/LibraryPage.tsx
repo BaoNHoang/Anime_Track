@@ -6,7 +6,7 @@ import {
   X
 } from "../../components/OwnedIcons";
 import { useDeferredValue, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { LibraryTools } from "./LibraryTools";
 import {
   STATUS_LABELS,
@@ -27,15 +27,28 @@ const LIBRARY_PAGE_SIZE = 60;
 export function LibraryPage() {
   const { isReady, items, syncError, syncStatus } = useTracker();
   const { configured, initialized, user } = useCloudAuth();
-  const [filter, setFilter] = useState<Filter>("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusParam = searchParams.get("status");
+  const filter: Filter = TRACKING_STATUSES.find((status) => status === statusParam) ?? "all";
   const [query, setQuery] = useState("");
   const [type, setType] = useState("all");
   const [genre, setGenre] = useState("all");
   const [minimumScore, setMinimumScore] = useState("0");
   const [sort, setSort] = useState<Sort>("updated");
-  const [page, setPage] = useState(1);
+  const [pageState, setPageState] = useState({ filter, page: 1 });
+  const page = pageState.filter === filter ? pageState.page : 1;
+  const setPage = (nextPage: number) => setPageState({ filter, page: nextPage });
   const [frozenRecentOrder, setFrozenRecentOrder] = useState<number[]>();
   const deferredQuery = useDeferredValue(query);
+  const setFilter = (next: Filter) => {
+    setSearchParams((current) => {
+      const updated = new URLSearchParams(current);
+      if (next === "all") updated.delete("status");
+      else updated.set("status", next);
+      return updated;
+    });
+    setPage(1);
+  };
   const frozenRecentPositions = useMemo(
     () =>
       frozenRecentOrder
