@@ -19,6 +19,13 @@ const items = [
 ];
 
 test("profile counts open matching library filters", async ({ page }) => {
+  await page.addInitScript((seedItems) => {
+    window.localStorage.setItem("banime:library:v1", JSON.stringify(seedItems));
+    window.localStorage.setItem("banime.local-profile.v1", JSON.stringify({
+      username: "Profile test", avatarId: "", bannerId: "banner-01",
+      favorites: { anime: [{ id: 901, name: "Currently watching" }], characters: [], studios: [], directors: [] }
+    }));
+  }, items);
   await page.route("**/api/auth/session", (route) => route.fulfill({ json: {
     user: {
       id: "profile-stats-user", email: "profile@example.test", username: "Profile test",
