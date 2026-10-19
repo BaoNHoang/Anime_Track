@@ -8,6 +8,7 @@ import { profileAvatar, profileAvatarSrc } from "../../domain/account/avatars";
 import { profileBanner, profileBannerSrc } from "../../domain/account/banners";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
 import { RecentActivity } from "./RecentActivity";
+import { WatchJournal } from "./WatchJournal";
 import { AiringSchedule } from "./NextAiring";
 import { useLocalProfile } from "../../hooks/useLocalProfile";
 import { useMemo, type CSSProperties } from "react";
@@ -30,7 +31,7 @@ const EMPTY_TRACKED_ITEMS: TrackedAnime[] = [];
 export function ProfilePage() {
   const [searchParams] = useSearchParams();
   const editMode = searchParams.get("edit");
-  const { profileSummary, syncError, syncStatus } = useTracker();
+  const { items, profileSummary, syncError, syncStatus } = useTracker();
   const { configured, initialized, user } = useCloudAuth();
   const { profile: localProfile } = useLocalProfile();
   const airing = useTopAnime("airing");
@@ -44,25 +45,31 @@ export function ProfilePage() {
     daysWatched: 0,
     averageScore: undefined
   };
+  const completedCount = items.filter((item) => item.status === "completed").length;
+  const plannedCount = items.filter((item) => item.status === "plan_to_watch").length;
   const completionPercent = stats.total
-    ? Math.round((stats.completed / stats.total) * 100)
+    ? Math.round((completedCount / stats.total) * 100)
     : 0;
   const statCards = [
     {
       label: "Total anime",
-      value: stats.total
+      value: stats.total,
+      to: "/library"
     },
     {
-      label: "Days watched",
-      value: stats.daysWatched.toFixed(1)
+      label: "Watching",
+      value: stats.watching,
+      to: "/library?status=watching"
     },
     {
-      label: "Episodes",
-      value: stats.episodesWatched
+      label: "Completed",
+      value: completedCount,
+      to: "/library?status=completed"
     },
     {
-      label: "Mean score",
-      value: stats.averageScore?.toFixed(1) ?? "-"
+      label: "Plan to watch",
+      value: plannedCount,
+      to: "/library?status=plan_to_watch"
     }
   ];
   const favoriteGenres = profileSummary?.favoriteGenres ?? [];
@@ -148,17 +155,17 @@ export function ProfilePage() {
       {showPersonalTracking && (
         <section className="watch-summary" aria-label="Library summary">
           <div className="watch-summary__stats">
-            {statCards.map(({ label, value }) => (
-              <div className="watch-summary__item" key={label}>
+            {statCards.map(({ label, value, to }) => (
+              <Link className="watch-summary__item" key={label} to={to}>
                 <strong>{value}</strong>
                 <span>{label}</span>
-              </div>
+              </Link>
             ))}
           </div>
           <div className="watch-summary__progress">
             <div>
-              <span>{stats.completed} completed</span>
-              <span>{stats.watching} watching</span>
+              <strong>{completedCount} / {stats.total} completed</strong>
+              <span>{completionPercent}%</span>
             </div>
             <div
               className="watch-summary__track"
@@ -167,9 +174,13 @@ export function ProfilePage() {
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={completionPercent}
+              aria-valuetext={`${completedCount} of ${stats.total} anime completed`}
             >
               <span style={{ width: `${completionPercent}%` }} />
             </div>
+            <p className="watch-summary__lifetime">
+              {stats.episodesWatched} episodes watched · {stats.daysWatched.toFixed(1)} days · {stats.averageScore?.toFixed(1) ?? "—"} mean score
+            </p>
             <Link className="watch-summary__review" to="/year-in-review">
               View year in review
             </Link>
@@ -185,10 +196,14 @@ export function ProfilePage() {
         {showPersonalTracking && (
           <section className="dashboard-section dashboard-activity">
             <SectionHeader
-              title="My activity"
+              title="Watch journal"
               action={{ label: "Open library", to: "/library" }}
             />
-            <RecentActivity items={profileSummary?.recentItems} />
+            <WatchJournal />
+            <div className="profile-recent">
+              <h3>Recently updated</h3>
+              <RecentActivity items={profileSummary?.recentItems} />
+            </div>
           </section>
         )}
         <section className="dashboard-section dashboard-airing">

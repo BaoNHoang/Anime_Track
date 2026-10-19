@@ -26,13 +26,13 @@ function relativeTime(value: string, now: number) {
 
 function activityText(item: TrackedAnime) {
   const title = item.anime.titleEnglish || item.anime.title;
-  if (item.status === "completed") return `Completed ${title}`;
-  if (item.status === "plan_to_watch") return `Plans to watch ${title}`;
-  if (item.status === "on_hold") return `Paused ${title}`;
-  if (item.status === "dropped") return `Dropped ${title}`;
+  if (item.status === "completed") return `Completed · ${title}`;
+  if (item.status === "plan_to_watch") return `Plan to watch · ${title}`;
+  if (item.status === "on_hold") return `On hold · ${title}`;
+  if (item.status === "dropped") return `Dropped · ${title}`;
   return item.progress > 0
-    ? `Watched episode ${item.progress} of ${title}`
-    : `Started watching ${title}`;
+    ? `Watching · ${title} · ${item.progress} episodes logged`
+    : `Watching · ${title}`;
 }
 
 function ActivityItem({ item, now }: { item: TrackedAnime; now: number }) {
@@ -82,7 +82,7 @@ export function RecentActivity({ items }: { items?: TrackedAnime[] }) {
       items ??
       [...trackedItems]
         .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-        .slice(0, 12),
+        .slice(0, 4),
     [items, trackedItems]
   );
 
@@ -99,7 +99,7 @@ export function RecentActivity({ items }: { items?: TrackedAnime[] }) {
 
   return (
     <div className="activity-grid">
-      {recent.map((item) => <ActivityItem item={item} now={now} key={item.anime.id} />)}
+      {recent.slice(0, 4).map((item) => <ActivityItem item={item} now={now} key={item.anime.id} />)}
     </div>
   );
 }
