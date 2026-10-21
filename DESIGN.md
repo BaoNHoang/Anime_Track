@@ -26,7 +26,8 @@ implementation decisions and history in `docs/engineering-history.md`.
   five-item bottom navigation for the primary destinations.
 - Home puts a compact Continue watching rail first when active titles exist,
   then personalized recommendations, current-season anime, and a small upcoming
-  shelf. A single Explore classics link leads to older titles in Discover.
+  shelf. Four decade shelves reuse the current-season tile grid, with ten
+  shuffled picks from each decade's top 50 and controls to reshuffle or browse.
   Profile owns the tracking summary, activity, airing schedule, genre
   distribution, and ordered favorites.
 - Catalog pages use poster grids. The library uses dense poster-only tiles;

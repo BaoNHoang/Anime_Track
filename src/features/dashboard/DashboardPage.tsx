@@ -1,4 +1,4 @@
-import { ChevronRight, Star } from "../../components/OwnedIcons";
+import { ChevronRight, Shuffle, Star } from "../../components/OwnedIcons";
 import { ErrorState } from "../../components/ErrorState";
 import { LoadingState } from "../../components/LoadingState";
 import { SectionHeader } from "../../components/SectionHeader";
@@ -6,13 +6,16 @@ import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import {
   useAnimeBrowse,
   useCurrentSeason,
+  useTopDecadeAnime,
   useTopAnime
 } from "../../hooks/useAnimeQueries";
+import { ANIME_DECADES, type AnimeDecade } from "../../services/tenrai/animeService";
+import { sampleTopAnime } from "../../domain/anime/sampleTopAnime";
 import type { Anime } from "../../domain/anime/types";
 import type { AnimePage } from "../../domain/anime/types";
 import { ContinueWatching } from "./ContinueWatching";
 import { Recommendations } from "./Recommendations";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
 
@@ -68,6 +71,59 @@ function HomeShelf({
   );
 }
 
+function DecadeShelf({ decade }: { decade: AnimeDecade }) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [enabled, setEnabled] = useState(() =>
+    typeof IntersectionObserver === "undefined"
+  );
+  const [seed, setSeed] = useState(() => Math.floor(Math.random() * 2 ** 32));
+  const result = useTopDecadeAnime(decade, enabled);
+  const picks = useMemo(
+    () => sampleTopAnime(result.data ?? [], 10, seed),
+    [result.data, seed]
+  );
+
+  useEffect(() => {
+    if (enabled || !sectionRef.current) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setEnabled(true);
+        observer.disconnect();
+      }
+    }, { rootMargin: "600px 0px" });
+    observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, [enabled]);
+
+  return (
+    <section className="home-section home-decade" ref={sectionRef}>
+      <SectionHeader
+        title={`Top anime of the ${decade}`}
+        trailing={<div className="home-decade__actions">
+          <button type="button" onClick={() => setSeed((current) => current + 1)} disabled={picks.length < 2}>
+            <Shuffle size={16} aria-hidden="true" /> Shuffle
+          </button>
+          <Link className="text-link" to={`/discover?feed=${decade}`}>
+            Browse <ChevronRight size={16} aria-hidden="true" />
+          </Link>
+        </div>}
+      />
+      {(!enabled || result.isPending) && (
+        <LoadingState cards={10} layout="season" label={`Loading top anime of the ${decade}`} />
+      )}
+      {result.isError && <ErrorState onRetry={() => void result.refetch()} />}
+      {result.data && picks.length === 0 && (
+        <p className="home-decade__empty">No anime are available for this decade right now.</p>
+      )}
+      {picks.length > 0 && (
+        <div className="home-season-grid">
+          {picks.map((anime) => <SeasonTile anime={anime} key={anime.id} />)}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function DashboardPage() {
   const season = useCurrentSeason();
   const airing = useTopAnime("airing");
@@ -107,13 +163,7 @@ export function DashboardPage() {
 
       <HomeShelf title="Coming soon" result={upcoming} />
 
-      <Link className="home-classics-link" to="/discover?feed=classics">
-        <span>
-          <strong>Explore classics</strong>
-          <small>Find something from an earlier era.</small>
-        </span>
-        <ChevronRight size={18} aria-hidden="true" />
-      </Link>
+      {ANIME_DECADES.map((decade) => <DecadeShelf decade={decade} key={decade} />)}
     </div>
   );
 }

@@ -100,8 +100,10 @@ rows through Supabase's Data API under the current RLS policy.
 ### Home and anime discovery
 
 - Home puts Continue watching and personal recommendations ahead of the current
-  season and a compact coming-soon shelf. Explore classics opens the older-title
-  feed in Discover; headlines stay on News.
+  season and a compact coming-soon shelf. Four decade sections (2020s through
+  1990s) each show ten shuffled picks from that decade's top 50 scored anime.
+  Shuffle refreshes just that section, while Browse opens its full Discover feed.
+  Headlines stay on News.
 - Discover supports catalog search and paged browsing so users are not limited
   to the first response page. Browse presets include airing, upcoming, popular,
   classics, movies, family titles, Studio Ghibli, and most favorited titles.

@@ -20,6 +20,9 @@ interface CatalogFacetResponse {
   }>;
 }
 
+export const ANIME_DECADES = ["2020s", "2010s", "2000s", "1990s"] as const;
+export type AnimeDecade = (typeof ANIME_DECADES)[number];
+
 export type AnimeBrowsePreset =
   | "airing"
   | "upcoming"
@@ -30,6 +33,7 @@ export type AnimeBrowsePreset =
   | "movies"
   | "favorites"
   | "past"
+  | "1990s"
   | "2000s"
   | "2010s"
   | "2020s";
@@ -50,6 +54,12 @@ const BROWSE_PRESETS: Record<AnimeBrowsePreset, Record<string, string>> = {
   favorites: { order_by: "favorites", sort: "desc" },
   past: {
     start_date: "1970-01-01",
+    end_date: "1999-12-31",
+    order_by: "score",
+    sort: "desc"
+  },
+  "1990s": {
+    start_date: "1990-01-01",
     end_date: "1999-12-31",
     order_by: "score",
     sort: "desc"
@@ -158,6 +168,27 @@ export async function browseAnime(
     { signal, cacheMs: POPULAR_LIST_CACHE_MS, cacheStorage: "local" }
   );
   return mapPage(response);
+}
+
+export async function getTopDecadeAnime(
+  decade: AnimeDecade,
+  signal?: AbortSignal
+): Promise<Anime[]> {
+  const requests = [1, 2].map((page) => {
+    const params = new URLSearchParams({
+      ...BROWSE_PRESETS[decade],
+      limit: "25",
+      sfw: "true",
+      page: String(page)
+    });
+    return tenraiGet<TenraiListResponse>(`/anime?${params}`, {
+      signal,
+      cacheMs: POPULAR_LIST_CACHE_MS,
+      cacheStorage: "local"
+    });
+  });
+  const pages = await Promise.all(requests);
+  return dedupeAnimeById(pages.flatMap((page) => page.data.map(mapTenraiAnime))).slice(0, 50);
 }
 
 export async function browseAnimeByFacet(
