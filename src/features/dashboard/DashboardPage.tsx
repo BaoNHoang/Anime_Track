@@ -1,9 +1,8 @@
-import { ExternalLink, Star } from "../../components/OwnedIcons";
+import { ChevronRight, Star } from "../../components/OwnedIcons";
 import { ErrorState } from "../../components/ErrorState";
-import { CompactListSkeleton, LoadingState } from "../../components/LoadingState";
+import { LoadingState } from "../../components/LoadingState";
 import { SectionHeader } from "../../components/SectionHeader";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
-import { useAnimeNews } from "../../hooks/useAnimeNews";
 import {
   useAnimeBrowse,
   useCurrentSeason,
@@ -14,12 +13,8 @@ import type { AnimePage } from "../../domain/anime/types";
 import { ContinueWatching } from "./ContinueWatching";
 import { Recommendations } from "./Recommendations";
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
-
-const dateFormatter = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  day: "numeric"
-});
 
 function SeasonTile({ anime }: { anime: Anime }) {
   const { openAnime } = useAnimePanel();
@@ -74,15 +69,9 @@ function HomeShelf({
 }
 
 export function DashboardPage() {
-  const { openAnime } = useAnimePanel();
   const season = useCurrentSeason();
   const airing = useTopAnime("airing");
   const upcoming = useAnimeBrowse("upcoming");
-  const past = useAnimeBrowse("past");
-  const twoThousands = useAnimeBrowse("2000s");
-  const twentyTens = useAnimeBrowse("2010s");
-  const twentyTwenties = useAnimeBrowse("2020s");
-  const news = useAnimeNews();
   const recommendationCandidates = useMemo(
     () => [
       ...(season.data?.items ?? []),
@@ -100,103 +89,31 @@ export function DashboardPage() {
 
       <Recommendations candidates={recommendationCandidates} />
 
-      <div className="home-layout">
-        <div className="home-main">
-          <section className="home-section">
-            <SectionHeader
-              title="Current season"
-              action={{ label: "Browse season", to: "/discover" }}
-            />
-            {season.isPending && <LoadingState cards={10} layout="season" label="Loading current season" />}
-            {season.isError && <ErrorState onRetry={() => season.refetch()} />}
-            {season.data && (
-              <div className="home-season-grid">
-                {season.data.items.slice(0, 10).map((anime) => (
-                  <SeasonTile anime={anime} key={anime.id} />
-                ))}
-              </div>
-            )}
-          </section>
+      <section className="home-section">
+        <SectionHeader
+          title="Current season"
+          action={{ label: "Browse season", to: "/discover" }}
+        />
+        {season.isPending && <LoadingState cards={10} layout="season" label="Loading current season" />}
+        {season.isError && <ErrorState onRetry={() => season.refetch()} />}
+        {season.data && (
+          <div className="home-season-grid">
+            {season.data.items.slice(0, 10).map((anime) => (
+              <SeasonTile anime={anime} key={anime.id} />
+            ))}
+          </div>
+        )}
+      </section>
 
-          <HomeShelf title="Coming soon" result={upcoming} />
-          <HomeShelf title="Blast from the past" result={past} />
-          <HomeShelf title="Top anime of the 2000s" result={twoThousands} />
-          <HomeShelf title="Top anime of the 2010s" result={twentyTens} />
-          <HomeShelf title="Top anime of the 2020s" result={twentyTwenties} />
+      <HomeShelf title="Coming soon" result={upcoming} />
 
-          <section className="home-section">
-            <SectionHeader
-              title="Latest headlines"
-              action={{ label: "All news", to: "/news" }}
-            />
-            {news.articlesLoading && (
-              <CompactListSkeleton items={6} variant="news" label="Loading latest headlines" />
-            )}
-            {news.articlesError && !news.articles.length && (
-              <ErrorState
-                message="Anime news could not be loaded."
-                onRetry={() => void news.refetchArticles()}
-              />
-            )}
-            {news.articles.length > 0 && (
-              <div className="home-news-list">
-                {news.articles.slice(0, 6).map((article) => (
-                  <article key={article.url}>
-                    <ImageWithFallback
-                      src={article.imageUrl || article.animeImageUrl}
-                      fallbackSrc={article.animeImageUrl}
-                      loading="lazy"
-                    />
-                    <div>
-                      <h3>{article.title}</h3>
-                      <time dateTime={article.publishedAt}>
-                        {dateFormatter.format(new Date(article.publishedAt))}
-                      </time>
-                    </div>
-                    <a
-                      href={article.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label={`Read ${article.title}`}
-                    >
-                      <ExternalLink size={15} />
-                    </a>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-
-        <aside className="home-ranking" aria-label="Top airing anime">
-          <SectionHeader
-            title="Top airing"
-            action={{ label: "Discover", to: "/discover" }}
-          />
-          {airing.isLoading && (
-            <CompactListSkeleton items={8} variant="ranking" label="Loading top airing anime" />
-          )}
-          {airing.isError && <ErrorState onRetry={() => airing.refetch()} />}
-          {airing.data && (
-            <ol>
-              {airing.data.items.slice(0, 8).map((anime, index) => (
-                <li key={anime.id}>
-                  <span>{index + 1}</span>
-                  <button type="button" onClick={() => openAnime(anime)}>
-                    <ImageWithFallback src={anime.imageUrl} fallbackSrc={anime.largeImageUrl} loading="lazy" />
-                  </button>
-                  <button type="button" onClick={() => openAnime(anime)}>
-                    <strong>{anime.titleEnglish || anime.title}</strong>
-                    <small>
-                      {anime.score ? `${anime.score.toFixed(2)} score` : anime.type}
-                    </small>
-                  </button>
-                </li>
-              ))}
-            </ol>
-          )}
-        </aside>
-      </div>
+      <Link className="home-classics-link" to="/discover?feed=classics">
+        <span>
+          <strong>Explore classics</strong>
+          <small>Find something from an earlier era.</small>
+        </span>
+        <ChevronRight size={18} aria-hidden="true" />
+      </Link>
     </div>
   );
 }

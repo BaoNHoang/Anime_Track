@@ -99,9 +99,9 @@ rows through Supabase's Data API under the current RLS policy.
 
 ### Home and anime discovery
 
-- Home presents the current season, a compact coming-soon shelf, top airing
-  titles, recent headlines, a blast-from-the-past collection, and ranked
-  collections for the 2000s, 2010s, and 2020s.
+- Home puts Continue watching and personal recommendations ahead of the current
+  season and a compact coming-soon shelf. Explore classics opens the older-title
+  feed in Discover; headlines stay on News.
 - Discover supports catalog search and paged browsing so users are not limited
   to the first response page. Browse presets include airing, upcoming, popular,
   classics, movies, family titles, Studio Ghibli, and most favorited titles.

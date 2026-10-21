@@ -24,11 +24,11 @@ implementation decisions and history in `docs/engineering-history.md`.
   with primary navigation.
 - Mobile reduces the header to the mark, search, and profile access, with a
   five-item bottom navigation for the primary destinations.
-- Home starts directly with current-season anime, then uses compact shelves for
-  upcoming titles and top anime from earlier decades. When active titles exist,
-  a compact Continue watching rail precedes discovery content and exposes each
-  title's next unwatched episode. Profile owns the tracking summary, activity,
-  airing schedule, genre distribution, and ordered favorites.
+- Home puts a compact Continue watching rail first when active titles exist,
+  then personalized recommendations, current-season anime, and a small upcoming
+  shelf. A single Explore classics link leads to older titles in Discover.
+  Profile owns the tracking summary, activity, airing schedule, genre
+  distribution, and ordered favorites.
 - Catalog pages use poster grids. The library uses dense poster-only tiles;
   clicking a cover opens the detail drawer for status, progress, and score
   editing.

@@ -1630,21 +1630,9 @@ h3,
   color: var(--success);
 }
 
-.home-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 310px;
-  align-items: start;
-  gap: 34px;
-}
-
-.home-main,
 .home-section {
   display: grid;
   min-width: 0;
-  gap: 30px;
-}
-
-.home-section {
   gap: 14px;
 }
 
@@ -1724,155 +1712,38 @@ h3,
   color: var(--warning);
 }
 
-.home-ranking {
-  position: sticky;
-  top: 84px;
-  min-width: 0;
-  padding-left: 24px;
-  border-left: 1px solid var(--border);
-}
-
-.home-ranking ol {
-  display: grid;
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-
-.home-ranking li {
-  display: grid;
-  grid-template-columns: 24px 44px minmax(0, 1fr);
-  min-width: 0;
+.home-classics-link {
+  display: flex;
+  min-height: 64px;
   align-items: center;
-  gap: 10px;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.home-ranking li > span {
-  color: var(--faint);
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 800;
-  text-align: center;
-}
-
-.home-ranking li:nth-child(-n + 3) > span {
-  color: var(--accent);
-}
-
-.home-ranking li > button {
-  min-width: 0;
-  padding: 0;
-  border: 0;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
   color: var(--ink);
-  background: transparent;
-  text-align: left;
 }
 
-.home-ranking li > button:first-of-type {
-  width: 44px;
-  height: 58px;
-  overflow: hidden;
-  border-radius: 4px;
-  background: var(--surface-muted);
-}
-
-.home-ranking li img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.home-ranking li > button:last-child {
+.home-classics-link > span {
   display: grid;
-  gap: 5px;
+  gap: 4px;
 }
 
-.home-ranking li strong {
-  display: -webkit-box;
-  overflow: hidden;
-  font-size: 10px;
-  line-height: 1.35;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+.home-classics-link strong {
+  font-size: 16px;
 }
 
-.home-ranking li > button:last-child:hover strong {
+.home-classics-link small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.home-classics-link > svg {
+  flex: none;
   color: var(--accent);
 }
 
-.home-ranking li small {
-  color: var(--muted);
-  font-size: 9px;
-}
-
-.home-news-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 18px;
-}
-
-.home-news-list article {
-  display: grid;
-  grid-template-columns: 76px minmax(0, 1fr) 30px;
-  min-width: 0;
-  min-height: 76px;
-  align-items: center;
-  gap: 11px;
-  padding: 8px;
-  border-bottom: 1px solid var(--border);
-}
-
-.home-news-list article > img {
-  width: 76px;
-  height: 58px;
-  object-fit: cover;
-  border-radius: 4px;
-  background: var(--surface-muted);
-}
-
-.home-news-list article > .poster-placeholder {
-  width: 76px;
-  height: 58px;
-  border-radius: 4px;
-  font-size: 9px;
-}
-
-.home-news-list article > div {
-  display: grid;
-  min-width: 0;
-  gap: 6px;
-}
-
-.home-news-list h3 {
-  display: -webkit-box;
-  overflow: hidden;
-  margin: 0;
-  font-size: 10px;
-  line-height: 1.4;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.home-news-list time {
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 650;
-}
-
-.home-news-list a {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border-radius: 5px;
-  color: var(--muted);
-}
-
-.home-news-list a:hover {
+.home-classics-link:hover strong {
   color: var(--accent);
-  background: var(--accent-soft);
 }
 
 .dashboard-heading {
@@ -6053,11 +5924,6 @@ h3,
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
-  .home-layout {
-    grid-template-columns: minmax(0, 1fr) 270px;
-    gap: 26px;
-  }
-
   .home-season-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -6309,22 +6175,6 @@ h3,
     align-items: flex-start;
     flex-direction: column;
     gap: 8px;
-  }
-
-  .home-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .home-ranking {
-    position: static;
-    padding-top: 24px;
-    padding-left: 0;
-    border-top: 1px solid var(--border);
-    border-left: 0;
-  }
-
-  .home-news-list {
-    grid-template-columns: 1fr;
   }
 
   .dashboard-section--schedule {
