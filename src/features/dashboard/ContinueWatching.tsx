@@ -2,6 +2,7 @@ import { Check, Play } from "../../components/OwnedIcons";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useTracker } from "../../app/providers/useTracker";
 import { nextEpisodeNumber } from "../../domain/tracker/episodes";
+import { sortByRecentWatch } from "../../domain/tracker/recentWatching";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
 
 function today() {
@@ -13,13 +14,11 @@ function today() {
 export function ContinueWatching() {
   const { items, setEpisodeWatched } = useTracker();
   const { openAnime } = useAnimePanel();
-  const queue = items
-    .filter((item) => item.status === "watching")
+  const queue = sortByRecentWatch(items.filter((item) => item.status === "watching"))
     .map((item) => ({ item, nextEpisode: nextEpisodeNumber(item) }))
     .filter((entry): entry is typeof entry & { nextEpisode: number } =>
       entry.nextEpisode !== undefined
     )
-    .sort((left, right) => right.item.updatedAt.localeCompare(left.item.updatedAt))
     .slice(0, 4);
 
   if (!queue.length) return null;
@@ -31,7 +30,7 @@ export function ContinueWatching() {
           <span>Up next</span>
           <h2 id="continue-watching-title">Continue watching</h2>
         </div>
-        <p>Your most recently updated shows.</p>
+        <p>Your recently watched shows.</p>
       </header>
       <div className="continue-watching__grid">
         {queue.map(({ item, nextEpisode }) => (
