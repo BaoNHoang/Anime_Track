@@ -48,6 +48,7 @@ test("profile counts open matching library filters", async ({ page }) => {
   await expect(page.locator(".watch-journal__details strong").first()).toHaveCSS("font-size", "13px");
   await expect(page.locator(".activity-item__copy strong").first()).toHaveCSS("font-size", "13px");
   await expect(page.locator(".profile-favorites__items strong").first()).toHaveCSS("font-size", "12px");
+  await expect(page.locator(".profile-favorites__groups h3")).toHaveText(["Anime"]);
 
   await summary.getByRole("link", { name: "1 Completed" }).click();
   await expect(page).toHaveURL(/\/library\?status=completed$/);
@@ -60,4 +61,32 @@ test("profile counts open matching library filters", async ({ page }) => {
   await expect(page).toHaveURL(/\/library\?status=watching$/);
   await expect(libraryGrid.getByRole("button", { name: /Currently watching/ })).toBeVisible();
   await expect(libraryGrid.getByRole("button", { name: /Already completed/ })).toHaveCount(0);
+});
+
+test("profile offers one prompt when no favorites are selected", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("banime:library:v1", "[]");
+    window.localStorage.setItem("banime.local-profile.v1", JSON.stringify({
+      username: "Profile test", avatarId: "", bannerId: "banner-01",
+      favorites: { anime: [], characters: [], studios: [], directors: [] }
+    }));
+  });
+  await page.route("**/api/auth/session", (route) => route.fulfill({ json: {
+    user: {
+      id: "empty-favorites-user", email: "empty@example.test", username: "Profile test",
+      provider: "email", avatarId: "", bannerId: "", scoreStep: 1,
+      favorites: { anime: [], characters: [], studios: [], directors: [] }
+    }
+  } }));
+  await page.route("**/api/library/summary", (route) => route.fulfill({ json: { summary: {
+    stats: { total: 0, watching: 0, completed: 0, episodesWatched: 0, daysWatched: 0 },
+    recentItems: [], favoriteGenres: [], airingItems: []
+  } } }));
+  await page.route("**/api/library?*", (route) => route.fulfill({ json: { items: [], total: 0 } }));
+  await page.route("**/api/library", (route) => route.fulfill({ json: {} }));
+
+  await page.goto("/profile", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".profile-favorites__empty")).toBeVisible();
+  await expect(page.locator(".profile-favorites__groups")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Edit favorites" })).toBeVisible();
 });

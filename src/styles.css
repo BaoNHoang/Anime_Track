@@ -2324,10 +2324,10 @@ h3,
   font-size: 13px;
 }
 
-.profile-favorites__groups p {
+.profile-favorites__empty {
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .profile-editor-heading {
