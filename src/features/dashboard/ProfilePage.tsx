@@ -112,6 +112,9 @@ export function ProfilePage() {
     { kind: "studios", label: "Studios" },
     { kind: "directors", label: "Directors" }
   ];
+  const populatedFavoriteGroups = favoriteGroups.filter(
+    ({ kind }) => favorites?.[kind].length
+  );
 
   if (editMode === "favorites") return <FavoriteEditor />;
   if (editMode === "profile") return <ProfileSettings />;
@@ -265,24 +268,22 @@ export function ProfilePage() {
             <div><h2>Favorites</h2></div>
             <Link to="/profile?edit=favorites">Edit favorites</Link>
           </div>
-          <div className="profile-favorites__groups">
-            {favoriteGroups.map(({ kind, label }) => (
+          {populatedFavoriteGroups.length ? <div className="profile-favorites__groups">
+            {populatedFavoriteGroups.map(({ kind, label }) => (
               <div key={kind}>
                 <h3>{label}</h3>
-                {favorites[kind].length > 0 ? (
-                  <div className="profile-favorites__items">
-                    {favorites[kind].map((item, index) => (
-                      <article key={item.id}>
-                        <span>{index + 1}</span>
-                        <ImageWithFallback src={item.imageUrl} loading="lazy" fallback={<div aria-hidden="true">{item.name.slice(0, 1)}</div>} />
-                        <strong title={item.name}>{item.name}</strong>
-                      </article>
-                    ))}
-                  </div>
-                ) : <p>None selected</p>}
+                <div className="profile-favorites__items">
+                  {favorites[kind].map((item, index) => (
+                    <article key={item.id}>
+                      <span>{index + 1}</span>
+                      <ImageWithFallback src={item.imageUrl} loading="lazy" fallback={<div aria-hidden="true">{item.name.slice(0, 1)}</div>} />
+                      <strong title={item.name}>{item.name}</strong>
+                    </article>
+                  ))}
+                </div>
               </div>
             ))}
-          </div>
+          </div> : <p className="profile-favorites__empty">Add a favorite anime, character, studio, or director to make this space yours.</p>}
         </section>
       )}
     </div>

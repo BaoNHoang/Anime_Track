@@ -47,7 +47,7 @@ export function DiscoverPage() {
     value: urlQuery
   }));
   const query = queryState.source === urlQuery ? queryState.value : urlQuery;
-  const [feed, setFeed] = useState<AnimeBrowsePreset>("airing");
+  const feed = feeds.find((option) => option.value === searchParams.get("feed"))?.value ?? "airing";
   const { items: library } = useTracker();
   const [year, setYear] = useState("");
   const [season, setSeason] = useState("");
@@ -127,7 +127,12 @@ export function DiscoverPage() {
     setGenre("all");
   };
   const updateFeed = (value: AnimeBrowsePreset) => {
-    setFeed(value);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (value === "airing") next.delete("feed");
+      else next.set("feed", value);
+      return next;
+    });
     setPageState({ source: urlQuery, value: 1 });
     setType("all");
     setGenre("all");
