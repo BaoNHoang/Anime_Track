@@ -12,6 +12,7 @@ import {
   browseAnime,
   browseAnimeByFacet,
   getAnimeSequels,
+  getTopDecadeAnime,
   getTopAnime,
   searchAnime
 } from "./animeService";
@@ -71,6 +72,32 @@ describe("getTopAnime", () => {
 
     expect(tenraiGetMock).toHaveBeenCalledWith(
       "/anime?start_date=2010-01-01&end_date=2019-12-31&order_by=score&sort=desc&limit=24&sfw=true&page=2",
+      expect.objectContaining({ cacheStorage: "local" })
+    );
+  });
+
+  it("collects the top 50 scored titles from both pages of a decade", async () => {
+    tenraiGetMock.mockImplementation((path: string) => ({
+      data: Array.from({ length: 25 }, (_, index) => ({
+        mal_id: (path.includes("page=1") ? 0 : 25) + index + 1,
+        title: `Anime ${index + 1}`,
+        url: "",
+        images: { jpg: { image_url: "", large_image_url: "" } }
+      })),
+      pagination: { current_page: 1, has_next_page: true }
+    }));
+
+    const result = await getTopDecadeAnime("1990s");
+
+    expect(result).toHaveLength(50);
+    expect(result[0].id).toBe(1);
+    expect(result[49].id).toBe(50);
+    expect(tenraiGetMock).toHaveBeenCalledWith(
+      "/anime?start_date=1990-01-01&end_date=1999-12-31&order_by=score&sort=desc&limit=25&sfw=true&page=1",
+      expect.objectContaining({ cacheStorage: "local" })
+    );
+    expect(tenraiGetMock).toHaveBeenCalledWith(
+      "/anime?start_date=1990-01-01&end_date=1999-12-31&order_by=score&sort=desc&limit=25&sfw=true&page=2",
       expect.objectContaining({ cacheStorage: "local" })
     );
   });

@@ -6,7 +6,9 @@ import {
   getCurrentSeason,
   getTopAnimeCacheMs,
   getTopAnime,
+  getTopDecadeAnime,
   searchAnime,
+  type AnimeDecade,
   type AnimeBrowsePreset
 } from "../services/tenrai/animeService";
 import type { ConnectionFacet } from "../domain/anime/connectionMap";
@@ -57,6 +59,16 @@ export function useAnimeBrowse(preset: AnimeBrowsePreset, page = 1, enabled = tr
     staleTime: 6 * 60 * 60 * 1000,
     gcTime: DISCOVERY_QUERY_GC_MS,
     placeholderData: (previousData) => previousData
+  });
+}
+
+export function useTopDecadeAnime(decade: AnimeDecade, enabled = true) {
+  return useQuery({
+    queryKey: ["anime", "decade-top-50", decade],
+    queryFn: ({ signal }) => getTopDecadeAnime(decade, signal),
+    enabled,
+    staleTime: 6 * 60 * 60 * 1000,
+    gcTime: DISCOVERY_QUERY_GC_MS
   });
 }
 
