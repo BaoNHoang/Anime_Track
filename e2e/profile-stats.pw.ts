@@ -45,8 +45,10 @@ test("profile counts open matching library filters", async ({ page }) => {
   await expect(summary.getByRole("progressbar")).toHaveAttribute("aria-valuetext", "1 of 2 anime completed");
   await expect(summary).toContainText("1 / 2 completed");
   await expect(summary).toContainText("50%");
-  await expect(page.locator(".watch-journal__details strong").first()).toHaveCSS("font-size", "13px");
-  await expect(page.locator(".activity-item__copy strong").first()).toHaveCSS("font-size", "13px");
+  await expect(page.getByRole("heading", { name: "Recently updated" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Watch journal" })).toHaveCount(0);
+  await expect(page.locator(".activity-item__watch").first()).toContainText("Watched episode 1 · Oct 18, 2026");
+  await expect(page.locator(".activity-item__copy strong").first()).toHaveCSS("font-size", "15px");
   await expect(page.locator(".profile-favorites__items strong").first()).toHaveCSS("font-size", "12px");
   await expect(page.locator(".profile-favorites__groups h3")).toHaveText(["Anime"]);
 
