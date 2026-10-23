@@ -8,7 +8,6 @@ import { profileAvatar, profileAvatarSrc } from "../../domain/account/avatars";
 import { profileBanner, profileBannerSrc } from "../../domain/account/banners";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
 import { RecentActivity } from "./RecentActivity";
-import { WatchJournal } from "./WatchJournal";
 import { AiringSchedule } from "./NextAiring";
 import { useLocalProfile } from "../../hooks/useLocalProfile";
 import { useMemo, type CSSProperties } from "react";
@@ -199,14 +198,10 @@ export function ProfilePage() {
         {showPersonalTracking && (
           <section className="dashboard-section dashboard-activity">
             <SectionHeader
-              title="Watch journal"
+              title="Recently updated"
               action={{ label: "Open library", to: "/library" }}
             />
-            <WatchJournal />
-            <div className="profile-recent">
-              <h3>Recently updated</h3>
-              <RecentActivity items={profileSummary?.recentItems} />
-            </div>
+            <RecentActivity items={profileSummary?.recentItems} />
           </section>
         )}
         <section className="dashboard-section dashboard-airing">

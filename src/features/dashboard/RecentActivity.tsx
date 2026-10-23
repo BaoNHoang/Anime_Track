@@ -5,6 +5,12 @@ import { useTracker } from "../../app/providers/useTracker";
 import type { TrackedAnime } from "../../domain/tracker/types";
 import { nextEpisodeNumber } from "../../domain/tracker/episodes";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
+import { createWatchJournal } from "../../domain/tracker/watchJournal";
+
+const MAX_RECENT_ITEMS = 8;
+const watchDateFormatter = new Intl.DateTimeFormat(undefined, {
+  month: "short", day: "numeric", year: "numeric", timeZone: "UTC"
+});
 
 function relativeTime(value: string, now: number) {
   const elapsedSeconds = Math.max(0, (now - Date.parse(value)) / 1000);
@@ -41,6 +47,7 @@ function ActivityItem({ item, now }: { item: TrackedAnime; now: number }) {
   const total = item.anime.episodes;
   const isComplete = Boolean(total && item.progress >= total);
   const nextEpisode = nextEpisodeNumber(item);
+  const latestWatch = createWatchJournal([item])[0];
 
   return (
     <article className="activity-item">
@@ -49,6 +56,15 @@ function ActivityItem({ item, now }: { item: TrackedAnime; now: number }) {
       </button>
       <button className="activity-item__copy" onClick={() => openAnime(item.anime)}>
         <strong>{activityText(item)}</strong>
+        {latestWatch && (
+          <span className="activity-item__watch">
+            {latestWatch.kind === "completion"
+              ? "Completed watch"
+              : `Watched episode ${latestWatch.episode}`}
+            {latestWatch.rewatch > 0 ? ` · Rewatch ${latestWatch.rewatch}` : ""}
+            {` · ${watchDateFormatter.format(new Date(`${latestWatch.day}T12:00:00Z`))}`}
+          </span>
+        )}
         <time dateTime={item.updatedAt}>{relativeTime(item.updatedAt, now)}</time>
       </button>
       {item.status === "watching" && (
@@ -82,7 +98,7 @@ export function RecentActivity({ items }: { items?: TrackedAnime[] }) {
       items ??
       [...trackedItems]
         .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-        .slice(0, 4),
+        .slice(0, MAX_RECENT_ITEMS),
     [items, trackedItems]
   );
 
@@ -99,7 +115,7 @@ export function RecentActivity({ items }: { items?: TrackedAnime[] }) {
 
   return (
     <div className="activity-grid">
-      {recent.slice(0, 4).map((item) => <ActivityItem item={item} now={now} key={item.anime.id} />)}
+      {recent.slice(0, MAX_RECENT_ITEMS).map((item) => <ActivityItem item={item} now={now} key={item.anime.id} />)}
     </div>
   );
 }

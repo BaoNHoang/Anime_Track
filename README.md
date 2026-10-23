@@ -155,7 +155,8 @@ rows through Supabase's Data API under the current RLS policy.
 
 - The profile shows a user banner, profile picture, total tracked anime, days
   watched, episodes watched, mean score, completion progress, and recent
-  activity ordered by the latest update.
+  activity ordered by the latest update. Recently updated shows up to eight
+  titles and includes each title's latest dated episode or rewatch when available.
 - Airing next prioritizes currently airing titles marked Watching, followed by
   Plan to watch titles and then the wider airing catalog. Broadcast times are
   shown in the user's local time zone.
