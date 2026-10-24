@@ -1,16 +1,15 @@
 import { ErrorState } from "../../components/ErrorState";
-import { CompactListSkeleton, RouteSkeleton } from "../../components/LoadingState";
+import { RouteSkeleton } from "../../components/LoadingState";
 import { SectionHeader } from "../../components/SectionHeader";
-import { useTopAnime } from "../../hooks/useAnimeQueries";
 import { useTracker } from "../../app/providers/useTracker";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { profileAvatar, profileAvatarSrc } from "../../domain/account/avatars";
 import { profileBanner, profileBannerSrc } from "../../domain/account/banners";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
 import { RecentActivity } from "./RecentActivity";
-import { AiringSchedule } from "./NextAiring";
+import { ProfileNewEpisodes } from "./ProfileNewEpisodes";
 import { useLocalProfile } from "../../hooks/useLocalProfile";
-import { useMemo, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { FavoriteEditor } from "./FavoriteEditor";
 import { ProfileSettings } from "./ProfileSettings";
@@ -33,7 +32,6 @@ export function ProfilePage() {
   const { items, profileSummary, syncError, syncStatus } = useTracker();
   const { configured, initialized, user } = useCloudAuth();
   const { profile: localProfile } = useLocalProfile();
-  const airing = useTopAnime("airing");
   const showPersonalTracking = initialized && (!configured || Boolean(user));
   const displayProfile = user ?? (!configured ? localProfile : undefined);
   const stats = profileSummary?.stats ?? {
@@ -77,32 +75,6 @@ export function ProfilePage() {
     0
   );
   const trackedAiringItems = profileSummary?.airingItems ?? EMPTY_TRACKED_ITEMS;
-  const airingPriority = useMemo(
-    () =>
-      new Map(
-        trackedAiringItems.map((item) => [
-          item.anime.id,
-          {
-            rank: item.status === "watching" ? 0 : 1,
-            label: item.status === "watching" ? "Watching" : "Planning"
-          }
-        ])
-      ),
-    [trackedAiringItems]
-  );
-  const prioritizedAiringItems = useMemo(
-    () =>
-      airing.data
-        ? [
-            ...trackedAiringItems.map((item) => item.anime),
-            ...airing.data.items
-          ].filter(
-            (anime, index, merged) =>
-              merged.findIndex((candidate) => candidate.id === anime.id) === index
-          )
-        : [],
-    [airing.data, trackedAiringItems]
-  );
 
   const favorites = displayProfile?.favorites;
   const favoriteGroups: Array<{ kind: FavoriteKind; label: string }> = [
@@ -190,12 +162,8 @@ export function ProfilePage() {
         </section>
       )}
 
-      <div
-        className={`dashboard-workspace${
-          showPersonalTracking ? "" : " dashboard-workspace--public"
-        }`}
-      >
-        {showPersonalTracking && (
+      {showPersonalTracking && (
+        <div className="dashboard-workspace">
           <section className="dashboard-section dashboard-activity">
             <SectionHeader
               title="Recently updated"
@@ -203,25 +171,9 @@ export function ProfilePage() {
             />
             <RecentActivity items={profileSummary?.recentItems} />
           </section>
-        )}
-        <section className="dashboard-section dashboard-airing">
-          <SectionHeader
-            title="Airing next"
-            action={{ label: "Browse", to: "/discover" }}
-          />
-          {airing.isLoading && (
-            <CompactListSkeleton items={6} variant="airing" label="Loading airing schedule" />
-          )}
-          {airing.isError && <ErrorState onRetry={() => airing.refetch()} />}
-          {airing.data && (
-            <AiringSchedule
-              items={prioritizedAiringItems}
-              priorityByAnimeId={airingPriority}
-              compact
-            />
-          )}
-        </section>
-      </div>
+          <ProfileNewEpisodes items={trackedAiringItems} />
+        </div>
+      )}
 
       {showPersonalTracking && favoriteGenres.length > 0 && (
         <section className="profile-overview profile-overview--genres">

@@ -1,6 +1,20 @@
 import { expect, test } from "@playwright/test";
 
 test("home opens four shuffled decade shelves and their Discover feeds", async ({ page }) => {
+  const nextDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const broadcastDay = new Intl.DateTimeFormat("en-US", {
+    weekday: "long", timeZone: "UTC"
+  }).format(nextDay);
+  await page.route("**/v1/top/anime?*", (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    if (params.get("filter") !== "airing") return route.continue();
+    return route.fulfill({ json: { data: [{
+      mal_id: 7788, title: "Next broadcast test", status: "Currently Airing", type: "TV",
+      url: "https://myanimelist.net/anime/7788",
+      images: { jpg: { image_url: "", large_image_url: "" } },
+      broadcast: { day: broadcastDay, time: "12:00", timezone: "UTC" }
+    }], pagination: { current_page: 1, has_next_page: false } } });
+  });
   await page.route("**/v1/anime?*", (route) => {
     const params = new URL(route.request().url()).searchParams;
     const year = Number(params.get("start_date")?.slice(0, 4));
@@ -22,6 +36,8 @@ test("home opens four shuffled decade shelves and their Discover feeds", async (
   });
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Current season" })).toBeVisible();
+  const airing = page.locator(".home-section").filter({ has: page.getByRole("heading", { name: "Airing next" }) });
+  await expect(airing.getByRole("button", { name: /Next broadcast test/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Coming soon" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Latest headlines" })).toHaveCount(0);
   for (const decade of ["2020s", "2010s", "2000s", "1990s"]) {
