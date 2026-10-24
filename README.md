@@ -157,8 +157,9 @@ rows through Supabase's Data API under the current RLS policy.
   watched, episodes watched, mean score, completion progress, and recent
   activity ordered by the latest update. Recently updated shows up to eight
   titles and includes each title's latest dated episode or rewatch when available.
-- Home's Airing next shows the wider airing catalog, ordered by the next
-  broadcast time. Profile's New episodes shows release alerts only for
+- Home's sticky left-side Airing next rail shows the next five scheduled
+  broadcasts from the airing and current-season catalogs. It advances as
+  broadcast times pass. Profile's New episodes shows release alerts only for
   current-season titles marked Watching. Broadcast times are shown in the
   user's local time zone.
 - Genre overview calculates the five most represented genres in the user's

@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   formatAiringRelative,
   formatNextAiring,
   formatPremiereDate,
-  getNextAiringAt
 } from "../../domain/anime/airing";
+import { selectNextAirings } from "../../domain/anime/nextAirings";
 import type { Anime } from "../../domain/anime/types";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
@@ -19,25 +19,17 @@ export function AiringSchedule({
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(new Date()), 60 * 1000);
-    return () => window.clearInterval(interval);
+    const refresh = () => setNow(new Date());
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, []);
 
-  const upcoming = useMemo(
-    () =>
-      items
-        .map((anime) => ({ anime, date: getNextAiringAt(anime, now) }))
-        .filter(
-          (
-            item
-          ): item is {
-            anime: Anime;
-            date: Date;
-          } => Boolean(item.date)
-        )
-        .sort((left, right) => left.date.getTime() - right.date.getTime())
-        .slice(0, 10),
-    [items, now]
-  );
+  const upcoming = selectNextAirings(items, now);
 
   if (!upcoming.length) {
     return (
@@ -48,22 +40,21 @@ export function AiringSchedule({
   }
 
   return (
-    <div className="schedule-grid schedule-grid--airing">
-      {upcoming.map(({ anime }) => (
+    <div className="airing-next-list">
+      {upcoming.map(({ anime, date }) => (
         <button
-          className="schedule-card schedule-card--airing"
+          className="airing-next-item"
+          type="button"
           onClick={() => openAnime(anime)}
           key={anime.id}
         >
-          <span className="schedule-card__poster">
+          <span className="airing-next-item__poster">
             <ImageWithFallback src={anime.imageUrl} fallbackSrc={anime.largeImageUrl} loading="lazy" />
-            <span className="schedule-card__timing">
-              <strong>{formatAiringRelative(anime, now) ?? "Time TBA"}</strong>
-              <small>{formatNextAiring(anime, now)?.split(" - ")[0]}</small>
-            </span>
           </span>
-          <span className="schedule-card__title">
-            {anime.titleEnglish || anime.title}
+          <span className="airing-next-item__copy">
+            <strong>{anime.titleEnglish || anime.title}</strong>
+            <span>{formatAiringRelative(anime, now)}</span>
+            <time dateTime={date.toISOString()}>{formatNextAiring(anime, now)?.split(" - ")[0]}</time>
           </span>
         </button>
       ))}

@@ -1,6 +1,6 @@
 import { ChevronRight, Shuffle, Star } from "../../components/OwnedIcons";
 import { ErrorState } from "../../components/ErrorState";
-import { LoadingState } from "../../components/LoadingState";
+import { CompactListSkeleton, LoadingState } from "../../components/LoadingState";
 import { SectionHeader } from "../../components/SectionHeader";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import {
@@ -19,6 +19,10 @@ import { Recommendations } from "./Recommendations";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
+
+function hasBroadcastTime(anime: Anime) {
+  return Boolean(anime.broadcast?.day && anime.broadcast.time && anime.broadcast.timezone);
+}
 
 function SeasonTile({ anime }: { anime: Anime }) {
   const { openAnime } = useAnimePanel();
@@ -129,6 +133,16 @@ export function DashboardPage() {
   const season = useCurrentSeason();
   const airing = useTopAnime("airing");
   const upcoming = useAnimeBrowse("upcoming");
+  const airingCandidates = useMemo(() => {
+    const byId = new Map<number, Anime>();
+    for (const anime of [...(airing.data?.items ?? []), ...(season.data?.items ?? [])]) {
+      const existing = byId.get(anime.id);
+      if (!existing || (!hasBroadcastTime(existing) && hasBroadcastTime(anime))) {
+        byId.set(anime.id, anime);
+      }
+    }
+    return [...byId.values()];
+  }, [airing.data?.items, season.data?.items]);
   const recommendationCandidates = useMemo(
     () => [
       ...(season.data?.items ?? []),
@@ -141,37 +155,39 @@ export function DashboardPage() {
   return (
     <div className="home-page">
       <h1 className="visually-hidden">Home</h1>
-
-      <ContinueWatching />
-
-      <Recommendations candidates={recommendationCandidates} />
-
-      <section className="home-section">
-        <SectionHeader
-          title="Current season"
-          action={{ label: "Browse season", to: "/discover" }}
-        />
-        {season.isPending && <LoadingState cards={10} layout="season" label="Loading current season" />}
-        {season.isError && <ErrorState onRetry={() => season.refetch()} />}
-        {season.data && (
-          <div className="home-season-grid">
-            {season.data.items.slice(0, 10).map((anime) => (
-              <SeasonTile anime={anime} key={anime.id} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="home-section">
+      <aside className="home-airing-rail" aria-label="Airing next">
         <SectionHeader title="Airing next" action={{ label: "Browse", to: "/discover" }} />
-        {airing.isPending && <LoadingState cards={5} layout="season" label="Loading airing schedule" />}
-        {airing.isError && <ErrorState onRetry={() => airing.refetch()} />}
-        {airing.data && <AiringSchedule items={airing.data.items} />}
-      </section>
+        {airing.isPending && season.isPending && <CompactListSkeleton items={5} variant="airing" label="Loading airing schedule" />}
+        {airing.isError && season.isError && <ErrorState onRetry={() => { void airing.refetch(); void season.refetch(); }} />}
+        {(airing.data || season.data) && <AiringSchedule items={airingCandidates} />}
+        <p className="home-airing-rail__note">Broadcast times are estimates; streaming releases may vary.</p>
+      </aside>
 
-      <HomeShelf title="Coming soon" result={upcoming} />
+      <div className="home-feed">
+        <ContinueWatching />
 
-      {ANIME_DECADES.map((decade) => <DecadeShelf decade={decade} key={decade} />)}
+        <Recommendations candidates={recommendationCandidates} />
+
+        <section className="home-section">
+          <SectionHeader
+            title="Current season"
+            action={{ label: "Browse season", to: "/discover" }}
+          />
+          {season.isPending && <LoadingState cards={10} layout="season" label="Loading current season" />}
+          {season.isError && <ErrorState onRetry={() => season.refetch()} />}
+          {season.data && (
+            <div className="home-season-grid">
+              {season.data.items.slice(0, 10).map((anime) => (
+                <SeasonTile anime={anime} key={anime.id} />
+              ))}
+            </div>
+          )}
+        </section>
+
+        <HomeShelf title="Coming soon" result={upcoming} />
+
+        {ANIME_DECADES.map((decade) => <DecadeShelf decade={decade} key={decade} />)}
+      </div>
     </div>
   );
 }
