@@ -10,13 +10,9 @@ import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
 
 export function AiringSchedule({
-  items,
-  priorityByAnimeId,
-  compact = false
+  items
 }: {
   items: Anime[];
-  priorityByAnimeId?: ReadonlyMap<number, { rank: number; label?: string }>;
-  compact?: boolean;
 }) {
   const [now, setNow] = useState(() => new Date());
   const { openAnime } = useAnimePanel();
@@ -38,14 +34,9 @@ export function AiringSchedule({
             date: Date;
           } => Boolean(item.date)
         )
-        .sort((left, right) => {
-          const priorityDifference =
-            (priorityByAnimeId?.get(left.anime.id)?.rank ?? 3) -
-            (priorityByAnimeId?.get(right.anime.id)?.rank ?? 3);
-          return priorityDifference || left.date.getTime() - right.date.getTime();
-        })
-        .slice(0, compact ? 6 : 10),
-    [compact, items, now, priorityByAnimeId]
+        .sort((left, right) => left.date.getTime() - right.date.getTime())
+        .slice(0, 10),
+    [items, now]
   );
 
   if (!upcoming.length) {
@@ -53,36 +44,6 @@ export function AiringSchedule({
       <p className="schedule-empty">
         Broadcast times are still being announced.
       </p>
-    );
-  }
-
-  if (compact) {
-    return (
-      <div className="airing-list">
-        {upcoming.map(({ anime }) => (
-          <button
-            className="airing-list__item"
-            onClick={() => openAnime(anime)}
-            key={anime.id}
-          >
-            <span className="airing-list__poster">
-              <ImageWithFallback src={anime.imageUrl} fallbackSrc={anime.largeImageUrl} loading="lazy" />
-            </span>
-            <span className="airing-list__content">
-              <strong>{anime.titleEnglish || anime.title}</strong>
-              <small>
-                {priorityByAnimeId?.get(anime.id)?.label && (
-                  <em>{priorityByAnimeId.get(anime.id)?.label}</em>
-                )}
-                {formatNextAiring(anime, now)?.split(" - ")[0]}
-              </small>
-            </span>
-            <span className="airing-list__time">
-              {formatAiringRelative(anime, now) ?? "TBA"}
-            </span>
-          </button>
-        ))}
-      </div>
     );
   }
 

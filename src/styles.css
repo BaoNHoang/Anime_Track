@@ -1934,19 +1934,6 @@ h3,
   gap: 28px;
 }
 
-.dashboard-workspace--public {
-  grid-template-columns: 1fr;
-}
-
-.dashboard-workspace--public .dashboard-airing {
-  padding-left: 0;
-  border-left: 0;
-}
-
-.dashboard-workspace--public .airing-list {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
 .dashboard-section {
   min-width: 0;
 }
@@ -1958,25 +1945,24 @@ h3,
   background: color-mix(in srgb, var(--surface) 92%, transparent);
 }
 
-.dashboard-airing {
+.dashboard-new-episodes {
   padding-left: 24px;
   border-left: 1px solid var(--border);
 }
 
-.airing-list {
+.profile-release-list {
   display: grid;
   gap: 10px;
 }
 
-.airing-list__item {
+.profile-release {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
+  grid-template-columns: 58px minmax(0, 1fr);
   min-width: 0;
-  min-height: 68px;
-  align-items: center;
-  gap: 11px;
+  min-height: 84px;
+  gap: 12px;
   width: 100%;
-  padding: 0 10px 0 0;
+  padding: 0 12px 0 0;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 7px;
@@ -1986,59 +1972,46 @@ h3,
   transition: border-color 160ms ease, transform 160ms ease;
 }
 
-.airing-list__item:hover {
+.profile-release:hover,
+.profile-release:focus-visible {
   border-color: var(--border-strong);
-  transform: translateY(-2px);
 }
 
-.airing-list__poster {
-  width: 48px;
-  height: 68px;
+.profile-release__poster {
+  width: 58px;
+  height: 100%;
   overflow: hidden;
   background: var(--surface-muted);
 }
 
-.airing-list__poster img {
+.profile-release__poster img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.airing-list__content {
+.profile-release__copy {
   display: grid;
   min-width: 0;
-  gap: 5px;
+  align-content: center;
+  gap: 4px;
 }
 
-.airing-list__content strong,
-.airing-list__content small {
+.profile-release__copy strong {
   overflow: hidden;
+  font-size: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.airing-list__content strong {
-  font-size: 11px;
-}
-
-.airing-list__content small {
+.profile-release__copy span,
+.profile-release__copy time {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
 }
 
-.airing-list__content small em {
-  display: inline-block;
-  margin-right: 6px;
-  color: var(--accent);
-  font-style: normal;
-  font-weight: 800;
-}
-
-.airing-list__time {
-  color: var(--accent);
-  font-size: 9px;
-  font-weight: 750;
-  white-space: nowrap;
+.profile-release__copy time {
+  font-size: 11px;
 }
 
 .anime-card__title {
@@ -6184,11 +6157,7 @@ h3,
     grid-column: 1 / -1;
   }
 
-  .dashboard-workspace--public .airing-list {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard-airing {
+  .dashboard-new-episodes {
     padding-top: 24px;
     padding-left: 0;
     border-top: 1px solid var(--border);

@@ -14,6 +14,7 @@ import { sampleTopAnime } from "../../domain/anime/sampleTopAnime";
 import type { Anime } from "../../domain/anime/types";
 import type { AnimePage } from "../../domain/anime/types";
 import { ContinueWatching } from "./ContinueWatching";
+import { AiringSchedule } from "./NextAiring";
 import { Recommendations } from "./Recommendations";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -159,6 +160,13 @@ export function DashboardPage() {
             ))}
           </div>
         )}
+      </section>
+
+      <section className="home-section">
+        <SectionHeader title="Airing next" action={{ label: "Browse", to: "/discover" }} />
+        {airing.isPending && <LoadingState cards={5} layout="season" label="Loading airing schedule" />}
+        {airing.isError && <ErrorState onRetry={() => airing.refetch()} />}
+        {airing.data && <AiringSchedule items={airing.data.items} />}
       </section>
 
       <HomeShelf title="Coming soon" result={upcoming} />

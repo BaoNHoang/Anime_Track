@@ -28,8 +28,9 @@ implementation decisions and history in `docs/engineering-history.md`.
   then personalized recommendations, current-season anime, and a small upcoming
   shelf. Four decade shelves reuse the current-season tile grid, with ten
   shuffled picks from each decade's top 50 and controls to reshuffle or browse.
-  Profile owns the tracking summary, activity, airing schedule, genre
-  distribution, and ordered favorites.
+  Home also carries the general Airing next schedule. Profile owns the
+  tracking summary, activity, new-episode alerts for current-season shows
+  being watched, genre distribution, and ordered favorites.
 - Catalog pages use poster grids. The library uses dense poster-only tiles;
   clicking a cover opens the detail drawer for status, progress, and score
   editing.
