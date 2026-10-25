@@ -9,27 +9,38 @@ import type { Anime } from "../../domain/anime/types";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
 
+function airingDisplayLimit() {
+  if (typeof window === "undefined") return 5;
+  if (window.innerWidth <= 580) return 10;
+  if (window.innerWidth <= 900) return 6;
+  return Math.max(3, Math.min(12, Math.floor((window.innerHeight - 160) / 86)));
+}
+
 export function AiringSchedule({
   items
 }: {
   items: Anime[];
 }) {
   const [now, setNow] = useState(() => new Date());
+  const [limit, setLimit] = useState(airingDisplayLimit);
   const { openAnime } = useAnimePanel();
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(new Date()), 60 * 1000);
     const refresh = () => setNow(new Date());
+    const resize = () => setLimit(airingDisplayLimit());
     window.addEventListener("focus", refresh);
+    window.addEventListener("resize", resize);
     document.addEventListener("visibilitychange", refresh);
     return () => {
       window.clearInterval(interval);
       window.removeEventListener("focus", refresh);
+      window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", refresh);
     };
   }, []);
 
-  const upcoming = selectNextAirings(items, now);
+  const upcoming = selectNextAirings(items, now, limit);
 
   if (!upcoming.length) {
     return (

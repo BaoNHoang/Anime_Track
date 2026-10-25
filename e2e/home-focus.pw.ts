@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
-test("home keeps the next five broadcasts beside the shelves and opens decade feeds", async ({ page }, testInfo) => {
-  const airingData = Array.from({ length: 7 }, (_, index) => {
+test("home fits upcoming broadcasts beside the shelves and opens decade feeds", async ({ page }, testInfo) => {
+  const airingData = Array.from({ length: 12 }, (_, index) => {
     const nextDay = new Date(Date.now() + (index + 1) * 24 * 60 * 60 * 1000);
     const broadcastDay = new Intl.DateTimeFormat("en-US", {
       weekday: "long", timeZone: "UTC"
@@ -49,7 +49,9 @@ test("home keeps the next five broadcasts beside the shelves and opens decade fe
   await expect(page.getByRole("heading", { name: "Current season" })).toBeVisible();
   const airing = page.locator(".home-airing-rail");
   await expect(airing.getByRole("heading", { name: "Airing next" })).toBeVisible();
-  await expect(airing.getByRole("button", { name: /Next broadcast test/ })).toHaveCount(5);
+  await expect(airing.getByRole("button", { name: /Next broadcast test/ }))
+    .toHaveCount(testInfo.project.name === "desktop-chromium" ? 6 : 10);
+  await expect(airing).not.toContainText("Broadcast times are estimates");
   if (testInfo.project.name === "desktop-chromium") {
     await expect(airing).toHaveCSS("position", "sticky");
     const railBox = await airing.boundingBox();
@@ -58,8 +60,11 @@ test("home keeps the next five broadcasts beside the shelves and opens decade fe
     await page.evaluate(() => window.scrollTo(0, 900));
     await expect.poll(async () => (await airing.boundingBox())?.y).toBeGreaterThanOrEqual(88);
     await expect.poll(async () => (await airing.boundingBox())?.y).toBeLessThan(120);
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await expect(airing.getByRole("button", { name: /Next broadcast test/ })).toHaveCount(9);
     await page.setViewportSize({ width: 1024, height: 768 });
     await expect(airing).toHaveCSS("position", "sticky");
+    await expect(airing.getByRole("button", { name: /Next broadcast test/ })).toHaveCount(7);
   } else {
     await expect(airing).toHaveCSS("position", "static");
   }

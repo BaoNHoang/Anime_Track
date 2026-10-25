@@ -160,7 +160,6 @@ export function DashboardPage() {
         {airing.isPending && season.isPending && <CompactListSkeleton items={5} variant="airing" label="Loading airing schedule" />}
         {airing.isError && season.isError && <ErrorState onRetry={() => { void airing.refetch(); void season.refetch(); }} />}
         {(airing.data || season.data) && <AiringSchedule items={airingCandidates} />}
-        <p className="home-airing-rail__note">Broadcast times are estimates; streaming releases may vary.</p>
       </aside>
 
       <div className="home-feed">
