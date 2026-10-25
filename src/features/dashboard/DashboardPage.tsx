@@ -14,7 +14,7 @@ import { sampleTopAnime } from "../../domain/anime/sampleTopAnime";
 import type { Anime } from "../../domain/anime/types";
 import type { AnimePage } from "../../domain/anime/types";
 import { ContinueWatching } from "./ContinueWatching";
-import { AiringSchedule } from "./NextAiring";
+import { AiringSchedule } from "./AiringSchedule";
 import { Recommendations } from "./Recommendations";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
@@ -60,7 +60,7 @@ function HomeShelf({
   limit?: number;
 }) {
   return (
-    <section className="home-section home-section--shelf">
+    <section className="home-section">
       <SectionHeader title={title} />
       {result.isLoading && <LoadingState cards={limit} layout="season" label={`Loading ${title}`} />}
       {result.isError && <ErrorState onRetry={() => void result.refetch()} />}
@@ -103,11 +103,11 @@ function DecadeShelf({ decade }: { decade: AnimeDecade }) {
     <section className="home-section home-decade" ref={sectionRef}>
       <SectionHeader
         title={`Top anime of the ${decade}`}
-        trailing={<div className="home-decade__actions">
+        trailing={
           <button type="button" onClick={() => setSeed((current) => current + 1)} disabled={picks.length < 2}>
             <Shuffle size={16} aria-hidden="true" /> Shuffle
           </button>
-        </div>}
+        }
       />
       {(!enabled || result.isPending) && (
         <LoadingState cards={10} layout="season" label={`Loading top anime of the ${decade}`} />

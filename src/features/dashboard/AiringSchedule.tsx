@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   formatAiringRelative,
-  formatNextAiring,
-  formatPremiereDate,
+  formatNextAiring
 } from "../../domain/anime/airing";
 import { selectNextAirings } from "../../domain/anime/nextAirings";
 import type { Anime } from "../../domain/anime/types";
@@ -66,47 +65,6 @@ export function AiringSchedule({
             <strong>{anime.titleEnglish || anime.title}</strong>
             <span>{formatAiringRelative(anime, now)}</span>
             <time dateTime={date.toISOString()}>{formatNextAiring(anime, now)?.split(" - ")[0]}</time>
-          </span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-export function UpcomingSchedule({ items }: { items: Anime[] }) {
-  const { openAnime } = useAnimePanel();
-  const [now] = useState(() => Date.now());
-  const upcoming = items
-    .filter((anime) => {
-      const startTime = anime.startDate ? Date.parse(anime.startDate) : Number.NaN;
-      return !anime.status.toLowerCase().includes("airing") &&
-        (Number.isNaN(startTime) || startTime > now);
-    })
-    .slice(0, 8);
-
-  if (!upcoming.length) {
-    return (
-      <p className="schedule-empty">No upcoming premieres are available.</p>
-    );
-  }
-
-  return (
-    <div className="schedule-grid schedule-grid--upcoming">
-      {upcoming.map((anime) => (
-        <button
-          className="schedule-card schedule-card--upcoming"
-          onClick={() => openAnime(anime)}
-          key={anime.id}
-        >
-          <span className="schedule-card__poster">
-            <ImageWithFallback src={anime.imageUrl} fallbackSrc={anime.largeImageUrl} loading="lazy" />
-            <span className="schedule-card__timing">
-              <strong>{formatPremiereDate(anime)}</strong>
-              <small>{anime.type}</small>
-            </span>
-          </span>
-          <span className="schedule-card__title">
-            {anime.titleEnglish || anime.title}
           </span>
         </button>
       ))}
