@@ -27,7 +27,9 @@ implementation decisions and history in `docs/engineering-history.md`.
 - Home puts a compact Continue watching rail first when active titles exist,
   then personalized recommendations, current-season anime, and a small upcoming
   shelf. Four decade shelves reuse the current-season tile grid, with ten
-  shuffled picks from each decade's top 50 and controls to reshuffle or browse.
+  shuffled picks from each decade's top 50 and a control to reshuffle. The
+  primary navigation leads to Discover instead of repeating Browse links on
+  every Home shelf.
   Home also carries a sticky left-side Airing next rail with as many compact
   scheduled broadcasts as fit the viewport beside the shelves; it becomes a
   compact horizontal strip above them on narrow screens. Profile owns the

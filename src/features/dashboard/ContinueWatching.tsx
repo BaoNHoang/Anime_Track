@@ -27,7 +27,6 @@ export function ContinueWatching() {
     <section className="continue-watching" aria-labelledby="continue-watching-title">
       <header className="continue-watching__header">
         <div>
-          <span>Up next</span>
           <h2 id="continue-watching-title">Continue watching</h2>
         </div>
         <p>Your recently watched shows.</p>

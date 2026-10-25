@@ -1,4 +1,4 @@
-import { ChevronRight, Shuffle, Star } from "../../components/OwnedIcons";
+import { Shuffle, Star } from "../../components/OwnedIcons";
 import { ErrorState } from "../../components/ErrorState";
 import { CompactListSkeleton, LoadingState } from "../../components/LoadingState";
 import { SectionHeader } from "../../components/SectionHeader";
@@ -17,7 +17,6 @@ import { ContinueWatching } from "./ContinueWatching";
 import { AiringSchedule } from "./NextAiring";
 import { Recommendations } from "./Recommendations";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
 
 function hasBroadcastTime(anime: Anime) {
@@ -62,7 +61,7 @@ function HomeShelf({
 }) {
   return (
     <section className="home-section home-section--shelf">
-      <SectionHeader title={title} action={{ label: "Browse", to: "/discover" }} />
+      <SectionHeader title={title} />
       {result.isLoading && <LoadingState cards={limit} layout="season" label={`Loading ${title}`} />}
       {result.isError && <ErrorState onRetry={() => void result.refetch()} />}
       {result.data && (
@@ -108,9 +107,6 @@ function DecadeShelf({ decade }: { decade: AnimeDecade }) {
           <button type="button" onClick={() => setSeed((current) => current + 1)} disabled={picks.length < 2}>
             <Shuffle size={16} aria-hidden="true" /> Shuffle
           </button>
-          <Link className="text-link" to={`/discover?feed=${decade}`}>
-            Browse <ChevronRight size={16} aria-hidden="true" />
-          </Link>
         </div>}
       />
       {(!enabled || result.isPending) && (
@@ -156,7 +152,7 @@ export function DashboardPage() {
     <div className="home-page">
       <h1 className="visually-hidden">Home</h1>
       <aside className="home-airing-rail" aria-label="Airing next">
-        <SectionHeader title="Airing next" action={{ label: "Browse", to: "/discover" }} />
+        <SectionHeader title="Airing next" />
         {airing.isPending && season.isPending && <CompactListSkeleton items={5} variant="airing" label="Loading airing schedule" />}
         {airing.isError && season.isError && <ErrorState onRetry={() => { void airing.refetch(); void season.refetch(); }} />}
         {(airing.data || season.data) && <AiringSchedule items={airingCandidates} />}
@@ -168,10 +164,7 @@ export function DashboardPage() {
         <Recommendations candidates={recommendationCandidates} />
 
         <section className="home-section">
-          <SectionHeader
-            title="Current season"
-            action={{ label: "Browse season", to: "/discover" }}
-          />
+          <SectionHeader title="Current season" />
           {season.isPending && <LoadingState cards={10} layout="season" label="Loading current season" />}
           {season.isError && <ErrorState onRetry={() => season.refetch()} />}
           {season.data && (
