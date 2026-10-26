@@ -47,6 +47,7 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
   });
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Current season" })).toBeVisible();
+  await expect(page.locator(".home-page").getByRole("link", { name: /^Browse/ })).toHaveCount(0);
   const airing = page.locator(".home-airing-rail");
   await expect(airing.getByRole("heading", { name: "Airing next" })).toBeVisible();
   await expect(airing.getByRole("button", { name: /Next broadcast test/ }))
@@ -81,7 +82,8 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
   const before = await nineties.locator(".home-season-tile > div > button").allTextContents();
   await nineties.getByRole("button", { name: "Shuffle" }).click();
   await expect.poll(() => nineties.locator(".home-season-tile > div > button").allTextContents()).not.toEqual(before);
-  await nineties.getByRole("link", { name: "Browse" }).click();
+  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Discover" }).click();
+  await page.getByRole("button", { name: "1990s", exact: true }).click();
   await expect(page).toHaveURL(/\/discover\?feed=1990s$/);
   await expect(page.getByRole("button", { name: "1990s", exact: true })).toHaveClass(/is-active/);
 });
