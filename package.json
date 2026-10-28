@@ -15,6 +15,7 @@
     "api:check": "tsc -p tsconfig.api.json",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "perf:home": "node scripts/measure-home.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
