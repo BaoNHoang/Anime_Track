@@ -1,6 +1,6 @@
-import { LogIn, UserPlus } from "./OwnedIcons";
+import { lazy, Suspense } from "react";
+import { LogIn, UserPlus, X } from "./OwnedIcons";
 import { Link, Outlet } from "react-router-dom";
-import { AnimeDetailPanel } from "../features/anime/AnimeDetailPanel";
 import { AmbientBackdrop } from "./AmbientBackdrop";
 import { Brand } from "./Brand";
 import { HeaderSearch } from "./HeaderSearch";
@@ -16,8 +16,12 @@ import { useOnline } from "../hooks/useOnline";
 import { EpisodeUndoToast } from "./EpisodeUndoToast";
 import { useAnimePanel } from "../app/providers/useAnimePanel";
 
+const AnimeDetailPanel = lazy(() =>
+  import("../features/anime/AnimeDetailPanel").then(({ AnimeDetailPanel }) => ({ default: AnimeDetailPanel }))
+);
+
 export function AppShell() {
-  const { selectedAnime } = useAnimePanel();
+  const { selectedAnime, closeAnime } = useAnimePanel();
   const online = useOnline();
   const { configured, initialized, user } = useCloudAuth();
   const { profile: localProfile } = useLocalProfile();
@@ -61,7 +65,21 @@ export function AppShell() {
         <div className="mobile-nav">
           <Navigation variant="mobile" />
         </div>
-        <AnimeDetailPanel />
+        {selectedAnime && (
+          <Suspense fallback={
+            <div className="panel-layer">
+              <button className="panel-backdrop" onClick={closeAnime} aria-label="Close anime details" />
+              <aside className="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detail-loading-title">
+                <button className="detail-panel__close" onClick={closeAnime} aria-label="Close">
+                  <X size={20} />
+                </button>
+                <p className="detail-panel__loading" id="detail-loading-title" role="status">Opening anime details…</p>
+              </aside>
+            </div>
+          }>
+            <AnimeDetailPanel />
+          </Suspense>
+        )}
         {!selectedAnime && <EpisodeUndoToast />}
       </div>
     </AuthPromptProvider>

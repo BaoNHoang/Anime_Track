@@ -19,6 +19,23 @@ Baseline on `main` at `5bfa165` (three cold runs, median):
 | Home requests during sample | 29 total, 3 catalog |
 | Main JavaScript output | 408.19 kB, 126.32 kB gzip |
 
+After deferring the anime detail panel (same three-run profile):
+
+| Measure | Baseline | Deferred panel |
+| --- | ---: | ---: |
+| First contentful paint | 1,652 ms | 1,632 ms |
+| Largest contentful paint | 4,316 ms | 4,288 ms |
+| Cumulative layout shift | 0.263 | 0.254 |
+| Long-task blocking, TBT-like proxy | 188 ms | 194 ms |
+| Discover navigation readiness | 497 ms | 603 ms |
+| Home requests during sample | 29 total, 3 catalog | 30 total, 3 catalog |
+| Main JavaScript output | 408.19 kB, 126.32 kB gzip | 397.77 kB, 123.61 kB gzip |
+
+The panel is now a separate 11.17 kB chunk (3.68 kB gzip), downloaded only
+when a title is opened. The main chunk shrank by 10.42 kB (2.71 kB gzip).
+The small metric differences are within the noise of these three local runs;
+this experiment shows a bundle reduction, not a proven loading improvement.
+
 The first navigation sample was an outlier at 10.7 seconds; the other two were
 434 and 497 ms. These are local lab values, not real-user Core Web Vitals or
 Interaction to Next Paint (INP). The navigation timing includes automation

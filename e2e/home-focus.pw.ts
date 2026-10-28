@@ -1,6 +1,10 @@
 import { expect, test } from "@playwright/test";
 
 test("home fits upcoming broadcasts beside the shelves and opens decade feeds", async ({ page }, testInfo) => {
+  let detailModuleRequests = 0;
+  page.on("request", (request) => {
+    if (request.url().includes("AnimeDetailPanel.tsx")) detailModuleRequests += 1;
+  });
   const airingData = Array.from({ length: 12 }, (_, index) => {
     const nextDay = new Date(Date.now() + (index + 1) * 24 * 60 * 60 * 1000);
     const broadcastDay = new Intl.DateTimeFormat("en-US", {
@@ -52,6 +56,12 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
   await expect(airing.getByRole("heading", { name: "Airing next" })).toBeVisible();
   await expect(airing.getByRole("button", { name: /Next broadcast test/ }))
     .toHaveCount(testInfo.project.name === "desktop-chromium" ? 6 : 10);
+  expect(detailModuleRequests).toBe(0);
+  await airing.getByRole("button", { name: /Next broadcast test 1/ }).first().click();
+  await expect(page.getByRole("dialog", { name: "Next broadcast test 1" })).toBeVisible();
+  expect(detailModuleRequests).toBe(1);
+  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(airing).not.toContainText("Broadcast times are estimates");
   if (testInfo.project.name === "desktop-chromium") {
     await expect(airing).toHaveCSS("position", "sticky");
