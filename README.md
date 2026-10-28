@@ -139,9 +139,10 @@ rows through Supabase's Data API under the current RLS policy.
 
 ### Personal recommendations
 
-- Home ranks untracked titles from the current, airing, and upcoming catalog
-  feeds against the genres and studios in titles the user is watching, has
-  completed, or has scored.
+- Home ranks untracked titles from the current, airing, upcoming, and one
+  rotating watch-history genre feed against the genres and studios in titles
+  the user is watching, has completed, or has scored. Repeat visits sample
+  different titles from the highest-ranked matches.
 - Completed titles, higher personal scores, and explicitly favorited studios
   contribute more affinity. Each result explains its strongest match, and
   tracked titles are excluded.

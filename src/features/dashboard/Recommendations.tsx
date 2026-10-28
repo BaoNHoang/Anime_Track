@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
@@ -7,7 +7,9 @@ import { Sparkles } from "../../components/OwnedIcons";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
 import { SectionHeader } from "../../components/SectionHeader";
 import type { Anime } from "../../domain/anime/types";
-import { rankRecommendations } from "../../domain/recommendations/rankRecommendations";
+import { recommendationGenres } from "../../domain/recommendations/recommendationGenres";
+import { sampleRecommendations } from "../../domain/recommendations/sampleRecommendations";
+import { useAnimeFacet } from "../../hooks/useAnimeQueries";
 import { useLocalProfile } from "../../hooks/useLocalProfile";
 
 export function Recommendations({ candidates }: { candidates: Anime[] }) {
@@ -15,13 +17,20 @@ export function Recommendations({ candidates }: { candidates: Anime[] }) {
   const { configured, user } = useCloudAuth();
   const { profile } = useLocalProfile();
   const { openAnime } = useAnimePanel();
+  const [visitSeed] = useState(() => Math.floor(Math.random() * 2 ** 32));
+  const genres = useMemo(() => recommendationGenres(items), [items]);
+  const genre = genres[visitSeed % genres.length];
+  const facet = useAnimeFacet(isReady && genre ? {
+    kind: "genre", label: genre, key: `genre:${genre.toLocaleLowerCase()}`
+  } : undefined);
   const recommendations = useMemo(
-    () => rankRecommendations(
+    () => sampleRecommendations(
       items,
-      candidates,
-      (user ?? (!configured ? profile : undefined))?.favorites.studios ?? []
+      [...candidates, ...(facet.data?.items ?? [])],
+      (user ?? (!configured ? profile : undefined))?.favorites.studios ?? [],
+      visitSeed
     ),
-    [candidates, configured, items, profile, user]
+    [candidates, configured, facet.data?.items, items, profile, user, visitSeed]
   );
 
   if (!isReady || (!items.length && configured && !user)) return null;
