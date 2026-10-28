@@ -44,6 +44,18 @@ samples and inspect their request counts before attributing a change to code.
 The elevated lab LCP and CLS merit investigation, but a bundle-size reduction
 alone is not proof that either metric improved.
 
+## Decade-shelf request check
+
+The desktop and Pixel 7 browser checks now count the four shelves' catalog
+requests. They observed zero decade requests on initial Home load, eight unique
+requests after scrolling through all four shelves (two pages per decade), no
+additional requests from Shuffle, and no repeat requests after reloading and
+scrolling again in the same browser. The responses are stored in local cache
+for six hours. The full-scroll cold cost is real, but it does not delay the
+initial Home view or repeat during a typical return visit, so the current
+600 px prefetch trigger and cache policy remain unchanged. Revisit this if
+field network traces show users hitting rate limits or waiting on a shelf.
+
 For field data, check the deployed Home URL in Chrome DevTools or PageSpeed
 Insights and compare the 75th percentile before prioritizing further work.
 See [Google's Web Vitals measurement guide](https://web.dev/articles/vitals-measurement-getting-started).

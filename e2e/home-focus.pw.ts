@@ -2,8 +2,13 @@ import { expect, test } from "@playwright/test";
 
 test("home fits upcoming broadcasts beside the shelves and opens decade feeds", async ({ page }, testInfo) => {
   let detailModuleRequests = 0;
+  const decadeRequests: string[] = [];
   page.on("request", (request) => {
     if (request.url().includes("AnimeDetailPanel.tsx")) detailModuleRequests += 1;
+    const url = new URL(request.url());
+    if (url.pathname === "/v1/anime" && url.searchParams.has("start_date")) {
+      decadeRequests.push(url.searchParams.toString());
+    }
   });
   const airingData = Array.from({ length: 12 }, (_, index) => {
     const nextDay = new Date(Date.now() + (index + 1) * 24 * 60 * 60 * 1000);
@@ -81,17 +86,27 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
   }
   await expect(page.getByRole("heading", { name: "Coming soon" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Latest headlines" })).toHaveCount(0);
+  expect(decadeRequests).toHaveLength(0);
   for (const decade of ["2020s", "2010s", "2000s", "1990s"]) {
     const shelf = page.locator(".home-decade").filter({ has: page.getByRole("heading", { name: `Top anime of the ${decade}` }) });
     await shelf.scrollIntoViewIfNeeded();
     await expect(shelf.locator(".home-season-tile")).toHaveCount(10);
     await expect(shelf.locator(".home-season-tile > div > button").first()).toContainText("pick");
   }
+  expect(decadeRequests).toHaveLength(8);
+  expect(new Set(decadeRequests).size).toBe(8);
 
   const nineties = page.locator(".home-decade").filter({ has: page.getByRole("heading", { name: "Top anime of the 1990s" }) });
   const before = await nineties.locator(".home-season-tile > div > button").allTextContents();
   await nineties.getByRole("button", { name: "Shuffle" }).click();
   await expect.poll(() => nineties.locator(".home-season-tile > div > button").allTextContents()).not.toEqual(before);
+  expect(decadeRequests).toHaveLength(8);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  for (const shelf of await page.locator(".home-decade").all()) {
+    await shelf.scrollIntoViewIfNeeded();
+    await expect(shelf.locator(".home-season-tile")).toHaveCount(10);
+  }
+  expect(decadeRequests).toHaveLength(8);
   await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Discover" }).click();
   await page.getByRole("button", { name: "1990s", exact: true }).click();
   await expect(page).toHaveURL(/\/discover\?feed=1990s$/);
