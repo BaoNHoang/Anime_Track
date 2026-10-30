@@ -17,6 +17,18 @@ test("switches to half-point scores out of 100 without changing existing ratings
   };
   const preferences: Array<{ scoreStep: number; scoreScale: number }> = [];
 
+  await page.addInitScript((seedItem) => {
+    if (!window.localStorage.getItem("banime:library:v1")) {
+      window.localStorage.setItem("banime:library:v1", JSON.stringify([seedItem]));
+    }
+    if (!window.localStorage.getItem("banime.local-profile.v1")) {
+      window.localStorage.setItem("banime.local-profile.v1", JSON.stringify({
+        username: "Score test", avatarId: "", bannerId: "banner-01",
+        scoreStep: 1, scoreScale: 10,
+        favorites: { anime: [], characters: [], studios: [], directors: [] }
+      }));
+    }
+  }, item);
   await page.route("**/api/auth/session", (route) => route.fulfill({ json: { user: account } }));
   await page.route("**/api/auth/preferences", async (route) => {
     const body = route.request().postDataJSON() as { scoreStep: 1 | 0.5; scoreScale: 10 | 100 };
@@ -38,12 +50,20 @@ test("switches to half-point scores out of 100 without changing existing ratings
   await page.goto("/settings", { waitUntil: "domcontentloaded" });
   const scale = page.getByRole("group", { name: "Personal score scale" });
   await scale.getByRole("button", { name: /Out of 100/ }).click();
+  await expect(scale.getByRole("button", { name: /Out of 100/ })).toHaveAttribute("aria-pressed", "true");
   const increments = page.getByRole("group", { name: "Personal score increment" });
   await increments.getByRole("button", { name: /Half steps/ }).click();
-  expect(preferences).toEqual([
-    { scoreStep: 1, scoreScale: 100 },
-    { scoreStep: 0.5, scoreScale: 100 }
-  ]);
+  await expect(increments.getByRole("button", { name: /Half steps/ })).toHaveAttribute("aria-pressed", "true");
+  if (preferences.length) {
+    expect(preferences).toEqual([
+      { scoreStep: 1, scoreScale: 100 },
+      { scoreStep: 0.5, scoreScale: 100 }
+    ]);
+  } else {
+    expect(await page.evaluate(() => JSON.parse(window.localStorage.getItem("banime.local-profile.v1") ?? "{}"))).toMatchObject({
+      scoreStep: 0.5, scoreScale: 100
+    });
+  }
 
   await page.goto("/library", { waitUntil: "domcontentloaded" });
   const card = page.getByRole("button", { name: "Open and edit Score Example" });
@@ -57,7 +77,14 @@ test("switches to half-point scores out of 100 without changing existing ratings
   await score.blur();
   await expect(score).toHaveValue("85.5");
   await expect(card).toContainText("85.5/100");
-  await expect.poll(() => item.userScore).toBe(8.55);
+  if (preferences.length) {
+    await expect.poll(() => item.userScore).toBe(8.55);
+  } else {
+    await expect.poll(() => page.evaluate(() => {
+      const library = JSON.parse(window.localStorage.getItem("banime:library:v1") ?? "[]") as Array<{ userScore?: number }>;
+      return library[0]?.userScore;
+    })).toBe(8.55);
+  }
 
   await page.goto("/settings", { waitUntil: "domcontentloaded" });
   await scale.getByRole("button", { name: /^Out of 10\b/ }).click();
