@@ -109,6 +109,9 @@ export default async function handler(
         items.map((item) => toCloudRow(auth.user.id, item)),
         { onConflict: "user_id,anime_id" }
       );
+    if (error?.code === "P0001" && error.message === "Library can hold at most 5,000 titles.") {
+      throw new ApiError(409, error.message);
+    }
     if (error) throw new ApiError(502, "Cloud library could not be saved.");
     sendJson(response, 200, { saved: items.length });
   } catch (error) {

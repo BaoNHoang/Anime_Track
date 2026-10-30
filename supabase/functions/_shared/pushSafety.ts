@@ -1,6 +1,10 @@
 export const MAX_PUSH_SUBSCRIPTIONS_PER_RELEASE = 5;
 export const MAX_PUSH_ATTEMPTS_PER_USER = 10;
-export const MAX_PUSH_ATTEMPTS_PER_RUN = 40;
+export const MAX_USERS_PER_RUN = 8;
+
+// Every visited account can use its full per-account allowance. A smaller
+// global cap would consume the budget before later accounts get a push.
+export const MAX_PUSH_ATTEMPTS_PER_RUN = MAX_USERS_PER_RUN * MAX_PUSH_ATTEMPTS_PER_USER;
 export const MAX_PUSH_CONCURRENCY = 4;
 export const PUSH_SEND_TIMEOUT_MS = 5_000;
 

@@ -84,6 +84,39 @@ describe("private library API", () => {
     expect(JSON.parse(result.body).items).toHaveLength(250);
   });
 
+  it("reports the database library quota as a user-correctable conflict", async () => {
+    const upsert = vi.fn().mockResolvedValue({
+      error: { code: "P0001", message: "Library can hold at most 5,000 titles." }
+    });
+    mocks.authenticateRequest.mockResolvedValue({
+      user: { id: "user-a" },
+      client: { from: vi.fn().mockReturnValue({ upsert }) }
+    });
+    const item = {
+      anime: {
+        id: 1, title: "Test", imageUrl: "", largeImageUrl: "", synopsis: "",
+        status: "Finished Airing", type: "TV", genres: [], studios: [], url: ""
+      },
+      status: "completed", progress: 12, notes: "",
+      addedAt: "2026-06-01T00:00:00.000Z", updatedAt: "2026-06-02T00:00:00.000Z"
+    };
+    const result = response();
+
+    await libraryHandler({
+      method: "PUT",
+      headers: {
+        origin: "http://localhost:5173",
+        "content-type": "application/json",
+        "x-banime-user": "user-a"
+      },
+      body: { items: [item] }
+    } as unknown as ApiRequest, result as never);
+
+    expect(upsert).toHaveBeenCalledOnce();
+    expect(result.statusCode).toBe(409);
+    expect(result.body).toBe('{"error":"Library can hold at most 5,000 titles."}');
+  });
+
   it("scopes a delete to the authenticated user and validated numeric ID", async () => {
     const eqAnime = vi.fn().mockResolvedValue({ error: null });
     const eqUser = vi.fn().mockReturnValue({ eq: eqAnime });

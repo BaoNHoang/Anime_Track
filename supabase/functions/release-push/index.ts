@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.107.0";
 import webpush from "npm:web-push@3.6.7";
 import {
   boundedReleaseWindow,
@@ -9,32 +9,44 @@ import {
   PUSH_PROVIDER_FILTER,
   MAX_PUSH_CONCURRENCY,
   MAX_PUSH_SUBSCRIPTIONS_PER_RELEASE,
+  MAX_USERS_PER_RUN,
   PUSH_SEND_TIMEOUT_MS
 } from "../_shared/pushSafety.ts";
+import { loadCompleteUserRows, nextSeasonBatch, nextTrackedUserId } from "../_shared/releaseScan.ts";
 
-type TrackedRow = { user_id: string; item: Record<string, unknown>; tracking_status: string };
+type TrackedRow = { user_id: string; anime_id: number; item: Record<string, unknown>; tracking_status: string };
 type Cursor = { user_id: string; last_checked_at: string; seen_season_ids?: unknown };
 type Subscription = { endpoint: string; p256dh: string; auth: string };
 type Delivery = { userId: string; id: string; title: string; body: string; animeId: number };
+type PushClient = ReturnType<typeof createClient<any>>;
 const RELEASE_UPSERT_BATCH_SIZE = 100;
+const MAX_ROWS_PER_RUN = 10_000;
 
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });
 const titleOf = (anime: Record<string, unknown>) => String(anime.titleEnglish || anime.title || "Anime");
 
-async function loadTrackedRows(client: ReturnType<typeof createClient>) {
-  const rows: TrackedRow[] = [];
-  const pageSize = 1_000;
-  for (let start = 0; start < 10_000; start += pageSize) {
-    const page = await client
-      .from("tracked_anime")
-      .select("user_id,item,tracking_status")
-      .range(start, start + pageSize - 1);
+async function findNextTrackedUser(client: PushClient, afterUserId: string | null) {
+  return await nextTrackedUserId(afterUserId, async (after) => {
+    let query = client.from("tracked_anime").select("user_id")
+      .order("user_id", { ascending: true }).limit(1);
+    if (after) query = query.gt("user_id", after);
+    const result = await query.maybeSingle();
+    if (result.error) throw result.error;
+    return result.data?.user_id as string | undefined;
+  });
+}
+
+async function loadTrackedRowsForUser(client: PushClient, userId: string) {
+  return await loadCompleteUserRows<TrackedRow>(async (afterAnimeId, limit) => {
+    const page = await client.from("tracked_anime")
+      .select("user_id,anime_id,item,tracking_status")
+      .eq("user_id", userId)
+      .gt("anime_id", afterAnimeId)
+      .order("anime_id", { ascending: true })
+      .limit(limit);
     if (page.error) throw page.error;
-    const values = page.data as TrackedRow[];
-    rows.push(...values);
-    if (values.length < pageSize) break;
-  }
-  return rows;
+    return (page.data ?? []) as TrackedRow[];
+  });
 }
 
 async function tenrai(path: string) {
@@ -61,14 +73,15 @@ function isUpcomingSeason(anime: Record<string, unknown>, now: Date) {
 }
 
 async function createSeasonNotifications(
-  client: ReturnType<typeof createClient>,
+  client: PushClient,
   rows: TrackedRow[],
   cursors: Map<string, Cursor>,
-  now: Date
+  now: Date,
+  seasonOffset: number
 ) {
   const deliveries: Delivery[] = [];
   const seenUpdates = new Map<string, number[]>();
-  const period = Math.floor(now.getTime() / (15 * 60 * 1000));
+  let nextOffset = seasonOffset;
   const byUser = new Map<string, TrackedRow[]>();
   for (const row of rows) {
     if (row.tracking_status === "dropped") continue;
@@ -78,8 +91,9 @@ async function createSeasonNotifications(
   for (const [userId, sources] of byUser) {
     const seen = seenSeasonIds(cursors.get(userId)?.seen_season_ids);
     const trackedIds = new Set(sources.map((row) => Number((row.item.anime as Record<string, unknown> | undefined)?.id)));
-    const offset = (period * 3) % sources.length;
-    const batch = [...sources.slice(offset), ...sources.slice(0, offset)].slice(0, 3);
+    const selection = nextSeasonBatch(sources, seasonOffset);
+    const { batch } = selection;
+    nextOffset = selection.nextOffset;
     for (const source of batch) {
       const sourceAnime = source.item.anime as Record<string, unknown> | undefined;
       const sourceId = Number(sourceAnime?.id);
@@ -117,7 +131,7 @@ async function createSeasonNotifications(
     }
     seenUpdates.set(userId, [...seen].slice(-500));
   }
-  return { deliveries, seenUpdates };
+  return { deliveries, seenUpdates, nextOffset };
 }
 
 function nextAt(anime: Record<string, unknown>, from: Date) {
@@ -167,7 +181,7 @@ function releasedEpisodes(row: TrackedRow, since: Date, now: Date) {
   return results.filter((entry) => Number.isInteger(entry.animeId) && entry.animeId > 0);
 }
 
-async function vapid(client: ReturnType<typeof createClient>) {
+async function vapid(client: PushClient) {
   const existing = await client.from("push_vapid_keys").select("public_key,private_key").eq("id", true).maybeSingle();
   if (existing.data) return { publicKey: existing.data.public_key, privateKey: existing.data.private_key };
   const generated = webpush.generateVAPIDKeys();
@@ -177,108 +191,178 @@ async function vapid(client: ReturnType<typeof createClient>) {
   return { publicKey: saved.data.public_key, privateKey: saved.data.private_key };
 }
 
+type PushBudget = { attempts: number; byUser: Map<string, number> };
+
+async function sendPushDeliveries(
+  client: PushClient,
+  created: Delivery[],
+  budget: PushBudget
+) {
+  for (const release of created) {
+    const allowance = remainingPushAttempts(budget.attempts, budget.byUser.get(release.userId) ?? 0);
+    if (!allowance) continue;
+    const subscriptions = await client.from("push_subscriptions")
+      .select("endpoint,p256dh,auth").eq("user_id", release.userId)
+      .or(PUSH_PROVIDER_FILTER)
+      .order("updated_at", { ascending: false })
+      .limit(MAX_PUSH_SUBSCRIPTIONS_PER_RELEASE * 4);
+    if (subscriptions.error) {
+      console.error("push subscription lookup failed", { userId: release.userId, code: subscriptions.error.code });
+      continue;
+    }
+    const selected = (subscriptions.data as Subscription[] ?? [])
+      .filter((entry) => isTrustedPushEndpoint(entry.endpoint)).slice(0, allowance);
+    budget.attempts += selected.length;
+    budget.byUser.set(release.userId, (budget.byUser.get(release.userId) ?? 0) + selected.length);
+    for (let start = 0; start < selected.length; start += MAX_PUSH_CONCURRENCY) {
+      await Promise.all(selected.slice(start, start + MAX_PUSH_CONCURRENCY).map(async (subscription) => {
+        try {
+          await webpush.sendNotification(
+            { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
+            JSON.stringify({ title: release.title, body: release.body, url: "/notifications", tag: release.id }),
+            { timeout: PUSH_SEND_TIMEOUT_MS }
+          );
+        } catch (error) {
+          const status = (error as { statusCode?: number }).statusCode;
+          if (status === 404 || status === 410) await client.from("push_subscriptions").delete().eq("endpoint", subscription.endpoint);
+        }
+      }));
+    }
+  }
+}
+
+async function processTrackedUser(
+  client: PushClient,
+  userId: string,
+  rows: TrackedRow[],
+  now: Date,
+  pushBudget: PushBudget
+) {
+  const cursorResult = await client.from("release_notification_cursors")
+    .select("user_id,last_checked_at,seen_season_ids")
+    .eq("user_id", userId).maybeSingle();
+  if (cursorResult.error) throw cursorResult.error;
+  const cursor = cursorResult.data as Cursor | null;
+  const seasonPosition = await client.from("release_season_scan_positions")
+    .select("next_offset").eq("user_id", userId).maybeSingle();
+  if (seasonPosition.error) throw seasonPosition.error;
+  const window = cursor ? boundedReleaseWindow(cursor.last_checked_at, now) : undefined;
+  const created: Delivery[] = [];
+  let scheduledRows = 0;
+  let failed = false;
+  const pendingEpisodes: Array<{ trackingStatus: string; episode: ReturnType<typeof releasedEpisodes>[number] }> = [];
+  for (const row of rows) {
+    if (!window) continue;
+    const episodes = releasedEpisodes(row, window.start, window.end);
+    if (episodes.length) scheduledRows += 1;
+    for (const episode of episodes) {
+      if (isStorableEpisode({ ...episode, trackingStatus: row.tracking_status })) {
+        pendingEpisodes.push({ trackingStatus: row.tracking_status, episode });
+      } else {
+        console.error("release notification skipped: invalid tracked anime metadata", { userId, animeId: episode.animeId });
+      }
+    }
+  }
+  for (let start = 0; start < pendingEpisodes.length; start += RELEASE_UPSERT_BATCH_SIZE) {
+    const batch = pendingEpisodes.slice(start, start + RELEASE_UPSERT_BATCH_SIZE);
+    const inserted = await client.from("release_notifications").upsert(batch.map(({ trackingStatus, episode }) => ({
+      user_id: userId, anime_id: episode.animeId, notification_id: episode.id,
+      notification_type: "episode", title: episode.title, image_url: episode.imageUrl,
+      released_at: episode.releasedAt, tracking_status: trackingStatus,
+      episode_number: episode.episode ?? null
+    })), { onConflict: "user_id,notification_id", ignoreDuplicates: true }).select("notification_id");
+    if (inserted.error) {
+      failed = true;
+      console.error("release notification upsert failed", { userId, code: inserted.error.code });
+      continue;
+    }
+    const createdIds = new Set((inserted.data ?? []).map((item) => item.notification_id));
+    for (const { episode } of batch) {
+      if (createdIds.has(episode.id)) {
+        created.push({ userId, id: episode.id, title: episode.title, body: episode.episode ? `Episode ${episode.episode} has aired.` : "A new episode has aired.", animeId: episode.animeId });
+      }
+    }
+  }
+  const seasons = await createSeasonNotifications(client, rows, new Map(cursor ? [[userId, cursor]] : []), now, seasonPosition.data?.next_offset ?? 0);
+  created.push(...seasons.deliveries);
+  if (!failed) {
+    const savedSeasonPosition = await client.from("release_season_scan_positions").upsert({
+      user_id: userId, next_offset: seasons.nextOffset
+    }, { onConflict: "user_id" });
+    if (savedSeasonPosition.error) {
+      failed = true;
+      console.error("release season scan position update failed", { userId, code: savedSeasonPosition.error.code });
+    }
+  }
+  if (!failed) {
+    const saved = await client.from("release_notification_cursors").upsert({
+      user_id: userId,
+      last_checked_at: window?.end.toISOString() ?? now.toISOString(),
+      seen_season_ids: seasons.seenUpdates.get(userId) ?? cursor?.seen_season_ids ?? [],
+      updated_at: now.toISOString()
+    });
+    if (saved.error) {
+      failed = true;
+      console.error("release cursor update failed", { userId, code: saved.error.code });
+    }
+  }
+  await sendPushDeliveries(client, created, pushBudget);
+  return { delivered: created.length, checkedRows: cursor ? rows.length : 0, scheduledRows, seasonAlerts: seasons.deliveries.length, failed };
+}
+
 Deno.serve(async (request) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_SECRET_KEY");
   const url = Deno.env.get("SUPABASE_URL");
   if (!serviceKey || !url) return json({ error: "Server configuration is unavailable." }, 503);
-  const client = createClient(url, serviceKey, { auth: { persistSession: false } });
+  const client = createClient<any>(url, serviceKey, { auth: { persistSession: false } });
   try {
     const keys = await vapid(client);
     if (new URL(request.url).searchParams.get("mode") === "public" && request.method === "GET") return json({ publicKey: keys.publicKey });
-    const settings = await client.from("push_delivery_settings").select("job_secret").eq("id", true).single();
+    const settings = await client.from("push_delivery_settings").select("job_secret,scan_after_user_id").eq("id", true).single();
     if (settings.error || request.headers.get("x-banime-push-job") !== settings.data.job_secret) return json({ error: "Not authorized." }, 401);
     webpush.setVapidDetails("mailto:security@banime.app", keys.publicKey, keys.privateKey);
     const now = new Date();
-    const [trackedRows, cursors] = await Promise.all([
-      loadTrackedRows(client),
-      client.from("release_notification_cursors").select("user_id,last_checked_at,seen_season_ids")
-    ]);
-    if (cursors.error) throw cursors.error;
-    const cursorByUser = new Map((cursors.data as Cursor[]).map((cursor) => [cursor.user_id, cursor]));
-    const created: Delivery[] = [];
+    const pushBudget: PushBudget = { attempts: 0, byUser: new Map() };
     const failedUsers = new Set<string>();
-    const releaseWindows = new Map<string, ReturnType<typeof boundedReleaseWindow>>();
+    const visitedUsers = new Set<string>();
+    let afterUserId = settings.data.scan_after_user_id as string | null;
+    let delivered = 0;
     let checkedRows = 0;
+    let scannedRows = 0;
     let scheduledRows = 0;
-    const pendingEpisodes: Array<{ userId: string; trackingStatus: string; episode: ReturnType<typeof releasedEpisodes>[number] }> = [];
-    for (const row of trackedRows) {
-      const cursor = cursorByUser.get(row.user_id); if (!cursor) continue;
-      checkedRows += 1;
-      const window = releaseWindows.get(row.user_id) ?? boundedReleaseWindow(cursor.last_checked_at, now);
-      releaseWindows.set(row.user_id, window);
-      const episodes = releasedEpisodes(row, window.start, window.end);
-      if (episodes.length) scheduledRows += 1;
-      for (const episode of episodes) {
-        if (isStorableEpisode({ ...episode, trackingStatus: row.tracking_status })) {
-          pendingEpisodes.push({ userId: row.user_id, trackingStatus: row.tracking_status, episode });
-        } else {
-          console.error("release notification skipped: invalid tracked anime metadata", { userId: row.user_id, animeId: episode.animeId });
-        }
-      }
-    }
-    for (let start = 0; start < pendingEpisodes.length; start += RELEASE_UPSERT_BATCH_SIZE) {
-      const batch = pendingEpisodes.slice(start, start + RELEASE_UPSERT_BATCH_SIZE);
-      const inserted = await client.from("release_notifications").upsert(batch.map(({ userId, trackingStatus, episode }) => ({
-        user_id: userId, anime_id: episode.animeId, notification_id: episode.id,
-        notification_type: "episode", title: episode.title, image_url: episode.imageUrl,
-        released_at: episode.releasedAt, tracking_status: trackingStatus,
-        episode_number: episode.episode ?? null
-      })), { onConflict: "user_id,notification_id", ignoreDuplicates: true }).select("user_id,notification_id");
-      if (inserted.error) {
-        for (const { userId } of batch) failedUsers.add(userId);
-        console.error("release notification upsert failed", { code: inserted.error.code });
-        continue;
-      }
-      const createdKeys = new Set((inserted.data ?? []).map((item) => `${item.user_id}:${item.notification_id}`));
-      for (const { userId, episode } of batch) {
-        if (createdKeys.has(`${userId}:${episode.id}`)) {
-          created.push({ userId, id: episode.id, title: episode.title, body: episode.episode ? `Episode ${episode.episode} has aired.` : "A new episode has aired.", animeId: episode.animeId });
-        }
-      }
-    }
-    const seasons = await createSeasonNotifications(client, trackedRows, cursorByUser, now);
-    created.push(...seasons.deliveries);
-    for (const userId of new Set(trackedRows.map((row) => row.user_id))) {
-      if (failedUsers.has(userId)) continue;
-      const saved = await client.from("release_notification_cursors").upsert({ user_id: userId, last_checked_at: releaseWindows.get(userId)?.end.toISOString() ?? now.toISOString(), seen_season_ids: seasons.seenUpdates.get(userId) ?? cursorByUser.get(userId)?.seen_season_ids ?? [], updated_at: now.toISOString() });
-      if (saved.error) {
+    let seasonAlerts = 0;
+    for (let index = 0; index < MAX_USERS_PER_RUN; index += 1) {
+      const userId = await findNextTrackedUser(client, afterUserId);
+      if (!userId || visitedUsers.has(userId)) break;
+      let rows: TrackedRow[];
+      try {
+        rows = await loadTrackedRowsForUser(client, userId);
+      } catch (error) {
         failedUsers.add(userId);
-        console.error("release cursor update failed", { userId, code: saved.error.code });
+        console.error("release user scan failed", { userId, message: error instanceof Error ? error.message : "unknown" });
+        rows = [];
       }
+      if (rows.length && scannedRows > 0 && scannedRows + rows.length > MAX_ROWS_PER_RUN) break;
+      visitedUsers.add(userId);
+      scannedRows += rows.length;
+      if (!failedUsers.has(userId) && rows.length) {
+        try {
+          const result = await processTrackedUser(client, userId, rows, now, pushBudget);
+          delivered += result.delivered;
+          checkedRows += result.checkedRows;
+          scheduledRows += result.scheduledRows;
+          seasonAlerts += result.seasonAlerts;
+          if (result.failed) failedUsers.add(userId);
+        } catch (error) {
+          failedUsers.add(userId);
+          console.error("release user processing failed", { userId, message: error instanceof Error ? error.message : "unknown" });
+        }
+      }
+      const savedPosition = await client.from("push_delivery_settings")
+        .update({ scan_after_user_id: userId }).eq("id", true);
+      if (savedPosition.error) throw savedPosition.error;
+      afterUserId = userId;
     }
-    let pushAttempts = 0;
-    const userPushAttempts = new Map<string, number>();
-    for (const release of created) {
-      const allowance = remainingPushAttempts(pushAttempts, userPushAttempts.get(release.userId) ?? 0);
-      if (!allowance) continue;
-      const subscriptions = await client.from("push_subscriptions")
-        .select("endpoint,p256dh,auth").eq("user_id", release.userId)
-        .or(PUSH_PROVIDER_FILTER)
-        .order("updated_at", { ascending: false })
-        .limit(MAX_PUSH_SUBSCRIPTIONS_PER_RELEASE * 4);
-      if (subscriptions.error) {
-        console.error("push subscription lookup failed", { userId: release.userId, code: subscriptions.error.code });
-        continue;
-      }
-      const selected = (subscriptions.data as Subscription[] ?? [])
-        .filter((entry) => isTrustedPushEndpoint(entry.endpoint)).slice(0, allowance);
-      pushAttempts += selected.length;
-      userPushAttempts.set(release.userId, (userPushAttempts.get(release.userId) ?? 0) + selected.length);
-      for (let start = 0; start < selected.length; start += MAX_PUSH_CONCURRENCY) {
-        await Promise.all(selected.slice(start, start + MAX_PUSH_CONCURRENCY).map(async (subscription) => {
-          try {
-            await webpush.sendNotification(
-              { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
-              JSON.stringify({ title: release.title, body: release.body, url: "/notifications", tag: release.id }),
-              { timeout: PUSH_SEND_TIMEOUT_MS }
-            );
-          } catch (error) {
-            const status = (error as { statusCode?: number }).statusCode;
-            if (status === 404 || status === 410) await client.from("push_subscriptions").delete().eq("endpoint", subscription.endpoint);
-          }
-        }));
-      }
-    }
-    return json({ delivered: created.length, checkedRows, scheduledRows, seasonAlerts: seasons.deliveries.length, failedUsers: failedUsers.size });
+    return json({ delivered, checkedRows, scheduledRows, seasonAlerts, failedUsers: failedUsers.size });
   } catch (error) { console.error("release-push failed", error instanceof Error ? error.message : "unknown"); return json({ error: "Push delivery failed." }, 500); }
 });

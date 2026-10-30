@@ -4,6 +4,9 @@ import {
   isStorableEpisode,
   isTrustedPushEndpoint,
   remainingPushAttempts,
+  MAX_PUSH_ATTEMPTS_PER_RUN,
+  MAX_PUSH_ATTEMPTS_PER_USER,
+  MAX_USERS_PER_RUN,
   PUSH_PROVIDER_FILTER
 } from "../../supabase/functions/_shared/pushSafety";
 
@@ -57,10 +60,11 @@ describe("push delivery safety", () => {
   });
 
   it("caps push attempts per release, account, and invocation", () => {
+    expect(MAX_PUSH_ATTEMPTS_PER_RUN).toBe(MAX_USERS_PER_RUN * MAX_PUSH_ATTEMPTS_PER_USER);
     expect(remainingPushAttempts(0, 0)).toBe(5);
-    expect(remainingPushAttempts(38, 0)).toBe(2);
+    expect(remainingPushAttempts(MAX_PUSH_ATTEMPTS_PER_RUN - 2, 0)).toBe(2);
     expect(remainingPushAttempts(0, 9)).toBe(1);
-    expect(remainingPushAttempts(40, 0)).toBe(0);
+    expect(remainingPushAttempts(MAX_PUSH_ATTEMPTS_PER_RUN, 0)).toBe(0);
     expect(remainingPushAttempts(0, 10)).toBe(0);
   });
 });
