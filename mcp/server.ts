@@ -5,7 +5,10 @@ import {
   type ServerResponse
 } from "node:http";
 import { isIP } from "node:net";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import type { ReadableStream as NodeReadableStream } from "node:stream/web";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import {
   configureTenraiRequestGate,
   TenraiApiError
@@ -419,14 +422,33 @@ export function createBanimeHttpServer(config: McpConfig) {
           }
 
           const mcpServer = createBanimeMcpServer(config, accessToken);
-          const transport = new StreamableHTTPServerTransport({
+          const transport = new WebStandardStreamableHTTPServerTransport({
             sessionIdGenerator: undefined,
-            enableJsonResponse: true
+            enableJsonResponse: true,
+            maxRequestBodySize: config.maxBodyBytes
           });
 
           try {
             await mcpServer.connect(transport);
-            await transport.handleRequest(request, response, parsedBody);
+            const headers = new Headers();
+            for (const [name, value] of Object.entries(request.headers)) {
+              if (typeof value === "string") headers.set(name, value);
+              else if (Array.isArray(value)) headers.set(name, value.join(", "));
+            }
+            const requestedUrl = new URL(request.url ?? "/mcp", config.publicUrl);
+            const webRequest = new Request(new URL(requestedUrl.pathname + requestedUrl.search, config.publicUrl), {
+              method: request.method,
+              headers,
+              body: request.method === "POST" ? JSON.stringify(parsedBody) : undefined
+            });
+            const webResponse = await transport.handleRequest(webRequest, { parsedBody });
+            response.statusCode = webResponse.status;
+            webResponse.headers.forEach((value, name) => response.setHeader(name, value));
+            if (webResponse.body) {
+              await pipeline(Readable.fromWeb(webResponse.body as NodeReadableStream), response);
+            } else {
+              response.end();
+            }
           } finally {
             await mcpServer.close().catch(() => undefined);
           }

@@ -75,6 +75,36 @@ describe("Banime MCP HTTP security", () => {
     expect(response.status).toBe(413);
   });
 
+  it("rejects oversized tool argument structures before schema validation", async () => {
+    const { baseUrl } = await startServer();
+    const args = Object.fromEntries(Array.from({ length: 33 }, (_, index) => [`extra_${index}`, index]));
+    const response = await fetch(`${baseUrl}/mcp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
+      body: JSON.stringify({
+        jsonrpc: "2.0", id: 1, method: "tools/call",
+        params: { name: "search_anime", arguments: { query: "anime", ...args } }
+      })
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("more than the maximum of 32 elements");
+  });
+
+  it("serves a normal MCP tool listing over HTTP after the SDK update", async () => {
+    const { baseUrl } = await startServer();
+    const response = await fetch(`${baseUrl}/mcp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} })
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      result: { tools: expect.arrayContaining([expect.objectContaining({ name: "search_anime" })]) }
+    });
+  });
+
   it("rate limits repeated requests by client identity", async () => {
     const { baseUrl } = await startServer({
       rateLimit: { requests: 1, toolCalls: 1, windowSeconds: 60 }
