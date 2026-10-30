@@ -16,6 +16,7 @@ import {
 } from "./cloudAuthContext";
 import { accountSessionHint } from "../../services/storage/accountSessionHint";
 import { offlineAccount } from "../../services/storage/offlineAccount";
+import type { ScoreScale, ScoreStep } from "../../domain/tracker/score";
 
 const accountAuthEnabled =
   import.meta.env.VITE_ACCOUNT_AUTH_ENABLED === "true";
@@ -197,9 +198,9 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
     [run]
   );
 
-  const updateScoreStep = useCallback(
-    (scoreStep: 0.5 | 1) =>
-      run(() => accountApi.updateScoreStep(scoreStep)),
+  const updateScoringPreferences = useCallback(
+    (scoreStep: ScoreStep, scoreScale: ScoreScale) =>
+      run(() => accountApi.updateScoringPreferences(scoreStep, scoreScale)),
     [run]
   );
 
@@ -260,7 +261,7 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       updateAvatar,
       updateBanner,
       uploadProfileMedia,
-      updateScoreStep,
+      updateScoringPreferences,
       updateFavorites,
       deleteAccount,
       signInWithGoogle,
@@ -280,7 +281,7 @@ export function CloudAuthProvider({ children }: PropsWithChildren) {
       updateAvatar,
       updateBanner,
       uploadProfileMedia,
-      updateScoreStep,
+      updateScoringPreferences,
       updateFavorites,
       deleteAccount,
       signIn,

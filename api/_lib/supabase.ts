@@ -26,6 +26,7 @@ export interface AccountUser {
   bannerId: string;
   bannerUrl?: string;
   scoreStep: 0.5 | 1;
+  scoreScale: 10 | 100;
   favorites: ProfileFavorites;
 }
 
@@ -180,11 +181,18 @@ export async function accountUser(
   user: User,
   client: SupabaseClient
 ): Promise<AccountUser> {
-  const { data } = await client
+  const profileResult = await client
     .from("profiles")
-    .select("username, avatar_id, score_step, favorites")
+    .select("username, avatar_id, score_step, score_scale, favorites")
     .eq("user_id", user.id)
     .maybeSingle();
+  // An app deploy can precede the SQL update. Keep existing profile details usable.
+  const data = profileResult.error?.code === "42703"
+    ? { ...(await client.from("profiles")
+        .select("username, avatar_id, score_step, favorites")
+        .eq("user_id", user.id)
+        .maybeSingle()).data, score_scale: undefined }
+    : profileResult.data;
   const { data: media } = await client
     .from("profiles")
     .select("avatar_path, banner_id, banner_path")
@@ -219,6 +227,7 @@ export async function accountUser(
       typeof media?.banner_id === "string" ? media.banner_id : "banner-01",
     bannerUrl,
     scoreStep: data?.score_step === 1 ? 1 : 0.5,
+    scoreScale: data?.score_scale === 100 ? 100 : 10,
     favorites: normalizeProfileFavorites(data?.favorites)
   };
 }

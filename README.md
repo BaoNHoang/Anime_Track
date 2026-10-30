@@ -123,9 +123,12 @@ rows through Supabase's Data API under the current RLS policy.
   Dropped, or Plan to watch.
 - Users can check off individual episodes, optionally record their watch dates,
   and resume from the next unwatched episode in the Continue watching queue on
-  Home. They can also record a personal score from 1 through 10. Score controls
-  can use whole-number or half-point increments. Private notes can be edited
-  on each tracked title and remain searchable in the library.
+  Home. They can also record a personal score on a 1–10 or 1–100 scale. Score
+  controls can use whole-number or half-point increments; existing scores keep
+  their value when the scale changes. Run `supabase/score-scale.sql` in the
+  Supabase SQL Editor before using 100-point scores on an existing deployment.
+  Private notes can be edited on each tracked title and remain searchable in
+  the library.
 - Marking a title Completed automatically fills its known episode count.
   Progress and scores are validated and cannot exceed their allowed ranges.
 - The library can be searched across titles, studios, genres, and notes. It can

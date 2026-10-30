@@ -87,6 +87,13 @@ export function accountScoreStep(value: unknown): 0.5 | 1 {
   return value;
 }
 
+export function accountScoreScale(value: unknown): 10 | 100 {
+  if (value !== 10 && value !== 100) {
+    throw new ApiError(400, "Score scale must be 10 or 100.");
+  }
+  return value;
+}
+
 export function accountFavorites(value: unknown): ProfileFavorites {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new ApiError(400, "Favorites are invalid.");

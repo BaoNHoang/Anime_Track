@@ -6,6 +6,7 @@ import {
   accountAvatarId,
   accountPassword,
   accountScoreStep,
+  accountScoreScale,
   accountUsername,
   loginIdentifier,
   verificationCode
@@ -53,6 +54,13 @@ describe("account validation", () => {
     expect(accountScoreStep(0.5)).toBe(0.5);
     expect(() => accountScoreStep(0.25)).toThrow();
     expect(() => accountScoreStep("0.5")).toThrow();
+  });
+
+  it("accepts only the supported personal score scales", () => {
+    expect(accountScoreScale(10)).toBe(10);
+    expect(accountScoreScale(100)).toBe(100);
+    expect(() => accountScoreScale(20)).toThrow();
+    expect(() => accountScoreScale("100")).toThrow();
   });
 
   it("requires the exact account deletion confirmation", () => {
