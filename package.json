@@ -19,7 +19,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@supabase/supabase-js": "^2.107.0",
     "@tanstack/react-query": "^5.101.0",
     "@upstash/ratelimit": "^2.0.8",
@@ -28,8 +28,11 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.2",
-    "sharp": "0.35.3",
-    "zod": "^4.4.3"
+    "sharp": "0.35.5",
+    "zod": "4.6.7"
+  },
+  "overrides": {
+    "deepmerge": "4.1.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -48,6 +51,6 @@
     "typescript-eslint": "^8.60.1",
     "vite": "^8.1.5",
     "vite-plugin-pwa": "^1.3.0",
-    "vitest": "^4.1.8"
+    "vitest": "4.1.12"
   }
 }
