@@ -491,6 +491,39 @@ create index if not exists tracked_anime_title_ilike_idx
   on public.tracked_anime
   using gin (anime_title extensions.gin_trgm_ops);
 
+-- Serialize new titles for each account so simultaneous API, MCP, and direct
+-- Data API writes cannot race past the same 5,000-title library quota. An
+-- upsert of an existing title remains valid even when a legacy library is full.
+create or replace function public.enforce_tracked_anime_quota()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(new.user_id::text, 581731)
+  );
+  if exists (
+    select 1 from public.tracked_anime
+    where user_id = new.user_id and anime_id = new.anime_id
+  ) then
+    return new;
+  end if;
+  if (
+    select count(*) from public.tracked_anime where user_id = new.user_id
+  ) >= 5000 then
+    raise exception 'Library can hold at most 5,000 titles.' using errcode = 'P0001';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists enforce_tracked_anime_quota on public.tracked_anime;
+create trigger enforce_tracked_anime_quota
+  before insert on public.tracked_anime
+  for each row execute function public.enforce_tracked_anime_quota();
+
 alter table public.tracked_anime enable row level security;
 
 drop policy if exists "Users can read their own tracked anime"
@@ -692,6 +725,20 @@ create policy "Users can update their own release cursor"
   using ((select auth.uid()) = user_id)
   with check ((select auth.uid()) = user_id);
 
+-- Worker-owned sequel scan positions cannot be reset by a client's cursor sync.
+create table if not exists public.release_season_scan_positions (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  next_offset integer not null default 0 check (next_offset >= 0)
+);
+
+alter table public.release_season_scan_positions enable row level security;
+revoke all on public.release_season_scan_positions from public, anon, authenticated;
+drop policy if exists "Service role can manage sequel scan positions"
+  on public.release_season_scan_positions;
+create policy "Service role can manage sequel scan positions"
+  on public.release_season_scan_positions
+  for all to service_role using (true) with check (true);
+
 create or replace function public.rls_auto_enable()
 returns event_trigger
 language plpgsql
@@ -797,15 +844,21 @@ create policy "Service role can manage VAPID keys" on public.push_vapid_keys
 create table if not exists public.push_delivery_settings (
   id boolean primary key default true check (id),
   job_secret text not null default encode(gen_random_bytes(32), 'hex'),
+  scan_after_user_id uuid,
   created_at timestamptz not null default now(),
   constraint push_delivery_secret_length_check check (char_length(job_secret) = 64)
 );
+alter table public.push_delivery_settings
+  add column if not exists scan_after_user_id uuid;
 insert into public.push_delivery_settings (id) values (true) on conflict (id) do nothing;
 alter table public.push_delivery_settings enable row level security;
 revoke all on public.push_delivery_settings from public, anon, authenticated;
 drop policy if exists "Service role can read push delivery settings" on public.push_delivery_settings;
 create policy "Service role can read push delivery settings" on public.push_delivery_settings
   for select to service_role using (true);
+drop policy if exists "Service role can update push delivery settings" on public.push_delivery_settings;
+create policy "Service role can update push delivery settings" on public.push_delivery_settings
+  for update to service_role using (true) with check (true);
 
 -- The scheduled caller includes a database-only random header. The Edge
 -- Function verifies the same header before reading subscriptions or sending.

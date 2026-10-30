@@ -98,7 +98,11 @@ function failure(
   error: unknown,
   publicMessage = "The tool request could not be completed."
 ): CallToolResult {
+  const quotaError = typeof error === "object" && error !== null &&
+    "code" in error && error.code === "P0001" &&
+    "message" in error && error.message === "Library can hold at most 5,000 titles.";
   const message =
+    quotaError ? "Library can hold at most 5,000 titles. Remove a title before adding another." :
     error instanceof TenraiApiError ? error.message : publicMessage;
   if (error !== undefined && !(error instanceof TenraiApiError)) {
     console.warn("MCP tool failed", {
