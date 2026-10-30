@@ -1,4 +1,5 @@
 import { PROFILE_AVATARS } from "../../domain/account/avatars";
+import type { ScoreScale, ScoreStep } from "../../domain/tracker/score";
 import {
   emptyProfileFavorites,
   normalizeProfileFavorites,
@@ -11,6 +12,8 @@ export interface LocalProfile {
   avatarDataUrl?: string;
   bannerId: string;
   bannerDataUrl?: string;
+  scoreScale: ScoreScale;
+  scoreStep: ScoreStep;
   favorites: ProfileFavorites;
 }
 
@@ -19,6 +22,8 @@ const DEFAULT_PROFILE: LocalProfile = {
   username: "Local profile",
   avatarId: PROFILE_AVATARS[0].id,
   bannerId: "banner-01",
+  scoreScale: 10,
+  scoreStep: 0.5,
   favorites: emptyProfileFavorites()
 };
 
@@ -52,6 +57,8 @@ function readProfile(): LocalProfile {
         parsed.bannerDataUrl.startsWith("data:image/webp;base64,")
           ? parsed.bannerDataUrl
           : undefined,
+      scoreScale: parsed.scoreScale === 100 ? 100 : 10,
+      scoreStep: parsed.scoreStep === 1 ? 1 : 0.5,
       favorites: normalizeProfileFavorites(parsed.favorites)
     };
   } catch {

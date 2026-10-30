@@ -20,6 +20,7 @@ import {
   accountPassword,
   accountRecord,
   accountScoreStep,
+  accountScoreScale,
   accountFavorites,
   accountUsername,
   loginIdentifier,
@@ -707,6 +708,7 @@ async function updatePreferences(
   requireSameOrigin(request);
   const body = accountRecord(await readJson(request));
   const scoreStep = accountScoreStep(body.scoreStep);
+  const scoreScale = accountScoreScale(body.scoreScale);
   const auth = await authenticateRequest(request, response);
   await enforceAuthRateLimit(request, "update-preferences", {
     limit: 20,
@@ -715,7 +717,7 @@ async function updatePreferences(
   });
   const { error } = await auth.client
     .from("profiles")
-    .update({ score_step: scoreStep })
+    .update({ score_step: scoreStep, score_scale: scoreScale })
     .eq("user_id", auth.user.id);
   if (error) throw new ApiError(502, "Scoring preference could not be updated.");
   sendJson(response, 200, {

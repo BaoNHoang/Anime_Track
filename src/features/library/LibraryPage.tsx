@@ -19,6 +19,8 @@ import { LibraryCard } from "./LibraryCard";
 import { RouteSkeleton } from "../../components/LoadingState";
 import { ErrorState } from "../../components/ErrorState";
 import { LibrarySyncControl } from "./LibrarySyncControl";
+import { useLocalProfile } from "../../hooks/useLocalProfile";
+import { displayUserScore } from "../../domain/tracker/score";
 
 type Filter = "all" | TrackingStatus;
 type Sort = "updated" | "title" | "score" | "progress" | "added";
@@ -27,6 +29,8 @@ const LIBRARY_PAGE_SIZE = 60;
 export function LibraryPage() {
   const { isReady, items, syncError, syncStatus } = useTracker();
   const { configured, initialized, user } = useCloudAuth();
+  const { profile: localProfile } = useLocalProfile();
+  const scoreScale = user?.scoreScale ?? localProfile.scoreScale;
   const [searchParams, setSearchParams] = useSearchParams();
   const statusParam = searchParams.get("status");
   const filter: Filter = TRACKING_STATUSES.find((status) => status === statusParam) ?? "all";
@@ -317,10 +321,9 @@ export function LibraryPage() {
               }}
             >
               <option value="0">Any score</option>
-              <option value="6">6+</option>
-              <option value="7">7+</option>
-              <option value="8">8+</option>
-              <option value="9">9+</option>
+              {[6, 7, 8, 9].map((score) => (
+                <option value={score} key={score}>{displayUserScore(score, scoreScale)}+</option>
+              ))}
             </select>
           </label>
           <label>
@@ -358,6 +361,7 @@ export function LibraryPage() {
           {visibleItems.map((item) => (
             <LibraryCard
               item={item}
+              scoreScale={scoreScale}
               key={item.anime.id}
               onEditStart={() =>
                 setFrozenRecentOrder(

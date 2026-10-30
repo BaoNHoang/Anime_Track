@@ -25,6 +25,7 @@ create table if not exists public.profiles (
   banner_id text not null default 'banner-01',
   banner_path text,
   score_step numeric(2, 1) not null default 0.5,
+  score_scale smallint not null default 10,
   favorites jsonb not null default '{"anime":[],"studios":[],"directors":[],"characters":[]}'::jsonb,
   username_normalized text generated always as (lower(username)) stored,
   created_at timestamptz not null default now(),
@@ -41,6 +42,7 @@ create table if not exists public.profiles (
     )
   ),
   constraint profiles_score_step_check check (score_step in (0.5, 1.0)),
+  constraint profiles_score_scale_check check (score_scale in (10, 100)),
   constraint profiles_favorites_check check (
     jsonb_typeof(favorites) = 'object' and octet_length(favorites::text) <= 30000
   ),
@@ -61,6 +63,7 @@ alter table public.profiles
   add column if not exists banner_id text not null default 'banner-01',
   add column if not exists banner_path text,
   add column if not exists score_step numeric(2, 1) not null default 0.5,
+  add column if not exists score_scale smallint not null default 10,
   add column if not exists favorites jsonb not null default '{"anime":[],"studios":[],"directors":[],"characters":[]}'::jsonb;
 
 -- Replace the existing constraint as well as defining it for new projects.
@@ -93,6 +96,15 @@ begin
   ) then
     alter table public.profiles add constraint profiles_score_step_check
       check (score_step in (0.5, 1.0));
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'profiles_score_scale_check'
+      and conrelid = 'public.profiles'::regclass
+  ) then
+    alter table public.profiles add constraint profiles_score_scale_check
+      check (score_scale in (10, 100));
   end if;
 
   if not exists (
@@ -292,7 +304,7 @@ create table if not exists public.tracked_anime (
   tracking_status text not null default 'plan_to_watch',
   anime_title text not null default '',
   anime_type text not null default '',
-  user_score numeric(3, 1),
+  user_score numeric(4, 2),
   progress integer not null default 0,
   added_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -328,9 +340,13 @@ alter table public.tracked_anime
   add column if not exists tracking_status text,
   add column if not exists anime_title text,
   add column if not exists anime_type text,
-  add column if not exists user_score numeric(3, 1),
+  add column if not exists user_score numeric(4, 2),
   add column if not exists progress integer,
   add column if not exists added_at timestamptz;
+
+-- Keep 0.05-point stored values exact for half-point scores on a 100-point scale.
+alter table public.tracked_anime
+  alter column user_score type numeric(4, 2);
 
 update public.tracked_anime
 set

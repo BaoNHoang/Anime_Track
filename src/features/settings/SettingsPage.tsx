@@ -24,6 +24,8 @@ import { previewLibraryImport } from "../../domain/tracker/importPreview";
 import type { TrackedAnime } from "../../domain/tracker/types";
 import { useAppUpdateStatus } from "../../hooks/useAppUpdateStatus";
 import { useCloudAuth } from "../../app/providers/useCloudAuth";
+import { useLocalProfile } from "../../hooks/useLocalProfile";
+import type { ScoreScale, ScoreStep } from "../../domain/tracker/score";
 import { usePwaInstall } from "../../hooks/usePwaInstall";
 import { useTheme } from "../../app/providers/useTheme";
 import { useTracker } from "../../app/providers/useTracker";
@@ -39,7 +41,10 @@ import {
 
 export function SettingsPage() {
   const { items, canManage, importItems, undoImport } = useTracker();
-  const { configured, user, updateScoreStep } = useCloudAuth();
+  const { configured, user, updateScoringPreferences } = useCloudAuth();
+  const { profile: localProfile, updateProfile } = useLocalProfile();
+  const scoreStep = user?.scoreStep ?? localProfile.scoreStep;
+  const scoreScale = user?.scoreScale ?? localProfile.scoreScale;
   const { canInstall, installed, install, isIos } = usePwaInstall();
   const { theme, setTheme, colorScheme, setColorScheme, animeTheme, setAnimeTheme } = useTheme();
   const { region, setRegion } = useWatchProvider();
@@ -96,11 +101,17 @@ export function SettingsPage() {
     }
   };
 
-  const saveScoreStep = async (scoreStep: 0.5 | 1) => {
-    if (user?.scoreStep === scoreStep) return;
+  const saveScoringPreferences = async (nextStep: ScoreStep, nextScale: ScoreScale) => {
+    if (scoreStep === nextStep && scoreScale === nextScale) return;
+    if (!configured) {
+      updateProfile({ scoreStep: nextStep, scoreScale: nextScale });
+      setScoreMessage("Scoring preference updated on this device.");
+      return;
+    }
+    if (!user) return;
     setScoreSaving(true);
     setScoreMessage(undefined);
-    const result = await updateScoreStep(scoreStep);
+    const result = await updateScoringPreferences(nextStep, nextScale);
     setScoreSaving(false);
     setScoreMessage(
       result.error ?? result.message ?? "Scoring preference updated."
@@ -322,26 +333,54 @@ export function SettingsPage() {
             <SlidersHorizontal size={22} />
           </span>
           <div className="settings-card__content">
-            <h2>Personal score increments</h2>
-            <p>Choose the level of precision used when you score anime.</p>
-            <div className="score-step-options" aria-label="Personal score increment">
+            <h2>Personal scores</h2>
+            <p>Choose a 10- or 100-point scale. Existing scores keep their value when you switch.</p>
+            <div className="score-step-options" role="group" aria-label="Personal score scale">
               <button
-                className={user?.scoreStep === 1 ? "is-active" : ""}
-                onClick={() => void saveScoreStep(1)}
-                disabled={scoreSaving}
+                type="button"
+                className={scoreScale === 10 ? "is-active" : ""}
+                aria-pressed={scoreScale === 10}
+                onClick={() => void saveScoringPreferences(scoreStep, 10)}
+                disabled={scoreSaving || (configured && !user)}
               >
-                <strong>Whole numbers</strong>
-                <span>1, 2, 3 ... 10</span>
+                <strong>Out of 10</strong>
+                <span>1 to 10</span>
               </button>
               <button
-                className={user?.scoreStep !== 1 ? "is-active" : ""}
-                onClick={() => void saveScoreStep(0.5)}
-                disabled={scoreSaving}
+                type="button"
+                className={scoreScale === 100 ? "is-active" : ""}
+                aria-pressed={scoreScale === 100}
+                onClick={() => void saveScoringPreferences(scoreStep, 100)}
+                disabled={scoreSaving || (configured && !user)}
               >
-                <strong>Half steps</strong>
-                <span>1, 1.5, 2 ... 10</span>
+                <strong>Out of 100</strong>
+                <span>1 to 100</span>
               </button>
             </div>
+            <p>Score increment</p>
+            <div className="score-step-options" role="group" aria-label="Personal score increment">
+              <button
+                type="button"
+                className={scoreStep === 1 ? "is-active" : ""}
+                aria-pressed={scoreStep === 1}
+                onClick={() => void saveScoringPreferences(1, scoreScale)}
+                disabled={scoreSaving || (configured && !user)}
+              >
+                <strong>Whole numbers</strong>
+                <span>1, 2, 3 ... {scoreScale}</span>
+              </button>
+              <button
+                type="button"
+                className={scoreStep === 0.5 ? "is-active" : ""}
+                aria-pressed={scoreStep === 0.5}
+                onClick={() => void saveScoringPreferences(0.5, scoreScale)}
+                disabled={scoreSaving || (configured && !user)}
+              >
+                <strong>Half steps</strong>
+                <span>1, 1.5, 2 ... {scoreScale}</span>
+              </button>
+            </div>
+            {configured && !user && <p className="settings-hint">Sign in to change scoring preferences.</p>}
             {scoreMessage && <p className="settings-hint">{scoreMessage}</p>}
           </div>
         </article>

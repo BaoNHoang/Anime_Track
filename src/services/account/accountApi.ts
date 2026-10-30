@@ -1,4 +1,5 @@
 import type { ProfileFavorites } from "../../domain/account/favorites";
+import type { ScoreScale, ScoreStep } from "../../domain/tracker/score";
 
 export interface AccountUser {
   id: string;
@@ -9,7 +10,8 @@ export interface AccountUser {
   avatarUrl?: string;
   bannerId: string;
   bannerUrl?: string;
-  scoreStep: 0.5 | 1;
+  scoreStep: ScoreStep;
+  scoreScale: ScoreScale;
   favorites: ProfileFavorites;
 }
 
@@ -144,10 +146,10 @@ export const accountApi = {
       method: "POST",
       body: { kind, dataUrl }
     }),
-  updateScoreStep: (scoreStep: 0.5 | 1) =>
+  updateScoringPreferences: (scoreStep: ScoreStep, scoreScale: ScoreScale) =>
     request("/api/auth/preferences", {
       method: "POST",
-      body: { scoreStep }
+      body: { scoreStep, scoreScale }
     }),
   updateFavorites: (favorites: ProfileFavorites) =>
     request("/api/auth/favorites", {

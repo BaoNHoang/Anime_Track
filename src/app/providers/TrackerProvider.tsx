@@ -18,7 +18,7 @@ import {
 } from "../../domain/tracker/episodes";
 import { startRewatch as createRewatch } from "../../domain/tracker/rewatch";
 import { undoEpisodeUpdate } from "../../domain/tracker/undoEpisode";
-import { normalizeUserScore } from "../../domain/tracker/score";
+import { normalizeStoredUserScore } from "../../domain/tracker/score";
 import {
   createProfileSummary,
   type ProfileSummary
@@ -289,7 +289,7 @@ export function TrackerProvider({ children }: PropsWithChildren) {
           "userScore" in updates
             ? {
                 ...updates,
-                userScore: normalizeUserScore(updates.userScore)
+                userScore: normalizeStoredUserScore(updates.userScore)
               }
             : updates;
         const episodeHistory = "episodeHistory" in normalizedUpdates

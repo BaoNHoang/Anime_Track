@@ -4,12 +4,15 @@ import {
   type TrackedAnime
 } from "../../domain/tracker/types";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
+import { displayUserScore, type ScoreScale } from "../../domain/tracker/score";
 
 export function LibraryCard({
   item,
+  scoreScale,
   onEditStart
 }: {
   item: TrackedAnime;
+  scoreScale: ScoreScale;
   onEditStart?: () => void;
 }) {
   const { openAnime } = useAnimePanel();
@@ -37,7 +40,7 @@ export function LibraryCard({
               {item.previousWatches?.length ? `Rewatch ${item.previousWatches.length} | ` : ""}
               {item.progress}
               {item.anime.episodes ? ` / ${item.anime.episodes}` : " episodes"}
-              {item.userScore !== undefined ? `  |  ${item.userScore}/10` : ""}
+              {item.userScore !== undefined ? `  |  ${displayUserScore(item.userScore, scoreScale)}/${scoreScale}` : ""}
             </span>
           </span>
         </span>

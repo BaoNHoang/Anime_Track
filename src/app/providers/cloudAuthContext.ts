@@ -4,6 +4,7 @@ import type {
   PasskeyMetadata
 } from "../../services/account/accountApi";
 import type { ProfileFavorites } from "../../domain/account/favorites";
+import type { ScoreScale, ScoreStep } from "../../domain/tracker/score";
 
 export interface AuthActionResult {
   error?: string;
@@ -48,7 +49,7 @@ export interface CloudAuthContextValue {
     kind: "avatar" | "banner",
     dataUrl: string
   ) => Promise<AuthActionResult>;
-  updateScoreStep: (scoreStep: 0.5 | 1) => Promise<AuthActionResult>;
+  updateScoringPreferences: (scoreStep: ScoreStep, scoreScale: ScoreScale) => Promise<AuthActionResult>;
   updateFavorites: (favorites: ProfileFavorites) => Promise<AuthActionResult>;
   deleteAccount: (confirmation: string) => Promise<AuthActionResult>;
   signInWithGoogle: () => void;

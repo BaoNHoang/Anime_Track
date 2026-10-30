@@ -28,8 +28,8 @@ import { useCloudAuth } from "../../app/providers/useCloudAuth";
 import { useLocalProfile } from "../../hooks/useLocalProfile";
 import { MAX_FAVORITES_PER_KIND } from "../../domain/account/favorites";
 import {
-  MAX_USER_SCORE,
   MIN_USER_SCORE,
+  displayUserScore,
   normalizeUserScore
 } from "../../domain/tracker/score";
 import { watchedEpisodeNumbers } from "../../domain/tracker/episodes";
@@ -56,7 +56,8 @@ export function AnimeDetailPanel() {
   const { configured, user, updateFavorites } = useCloudAuth();
   const { profile: localProfile, updateProfile } = useLocalProfile();
   const tracked = anime ? getTracked(anime.id) : undefined;
-  const scoreStep = user?.scoreStep ?? 0.5;
+  const scoreStep = user?.scoreStep ?? localProfile.scoreStep;
+  const scoreScale = user?.scoreScale ?? localProfile.scoreScale;
   const [scoreDraft, setScoreDraft] = useState<{
     animeId: number;
     value: string;
@@ -70,7 +71,7 @@ export function AnimeDetailPanel() {
   const scoreValue =
     scoreDraft && scoreDraft.animeId === anime?.id
       ? scoreDraft.value
-      : tracked?.userScore?.toString() ?? "";
+      : tracked?.userScore === undefined ? "" : String(displayUserScore(tracked.userScore, scoreScale));
   const notesValue = anime && notesDraft?.animeId === anime.id
     ? notesDraft.value
     : tracked?.notes ?? "";
@@ -122,8 +123,15 @@ export function AnimeDetailPanel() {
 
   const saveScore = () => {
     if (!anime || !tracked) return;
+    const originalScore = tracked.userScore === undefined
+      ? ""
+      : String(displayUserScore(tracked.userScore, scoreScale));
+    if (scoreValue === originalScore) {
+      setScoreDraft(undefined);
+      return;
+    }
     const nextScore = scoreValue
-      ? normalizeUserScore(Number(scoreValue), scoreStep)
+      ? normalizeUserScore(Number(scoreValue), scoreStep, scoreScale)
       : undefined;
     setScoreDraft(undefined);
     if (nextScore === tracked.userScore) return;
@@ -442,10 +450,10 @@ export function AnimeDetailPanel() {
                 <input
                   type="number"
                   min={MIN_USER_SCORE}
-                  max={MAX_USER_SCORE}
+                  max={scoreScale}
                   step={scoreStep}
                   value={scoreValue}
-                  placeholder="Not scored"
+                  placeholder={`Not scored (1–${scoreScale})`}
                   inputMode="decimal"
                   onFocus={() =>
                     setScoreDraft({ animeId: anime.id, value: scoreValue })

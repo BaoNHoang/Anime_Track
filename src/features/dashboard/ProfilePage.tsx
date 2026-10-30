@@ -16,6 +16,7 @@ import { ProfileSettings } from "./ProfileSettings";
 import type { FavoriteKind } from "../../domain/account/favorites";
 import type { TrackedAnime } from "../../domain/tracker/types";
 import { LibrarySyncControl } from "../library/LibrarySyncControl";
+import { displayUserScore } from "../../domain/tracker/score";
 
 const GENRE_COLORS = [
   "var(--genre-1)",
@@ -32,6 +33,7 @@ export function ProfilePage() {
   const { items, profileSummary, syncError, syncStatus } = useTracker();
   const { configured, initialized, user } = useCloudAuth();
   const { profile: localProfile } = useLocalProfile();
+  const scoreScale = user?.scoreScale ?? localProfile.scoreScale;
   const showPersonalTracking = initialized && (!configured || Boolean(user));
   const displayProfile = user ?? (!configured ? localProfile : undefined);
   const stats = profileSummary?.stats ?? {
@@ -153,7 +155,7 @@ export function ProfilePage() {
               <span style={{ width: `${completionPercent}%` }} />
             </div>
             <p className="watch-summary__lifetime">
-              {stats.episodesWatched} episodes watched · {stats.daysWatched.toFixed(1)} days · {stats.averageScore?.toFixed(1) ?? "—"} mean score
+              {stats.episodesWatched} episodes watched · {stats.daysWatched.toFixed(1)} days · {stats.averageScore === undefined ? "—" : `${displayUserScore(stats.averageScore, scoreScale)}/${scoreScale}`} mean score
             </p>
             <Link className="watch-summary__review" to="/year-in-review">
               View year in review
