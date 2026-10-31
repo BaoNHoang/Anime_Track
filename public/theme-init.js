@@ -19,6 +19,6 @@
   document.documentElement.dataset.colorScheme =
     colorScheme === "ocean" || colorScheme === "wisteria" ? colorScheme : "sakura";
   document.documentElement.dataset.animeTheme =
-    animeTheme === "aot" || animeTheme === "one-piece" || animeTheme === "demon-slayer"
+    animeTheme === "aot" || animeTheme === "one-piece" || animeTheme === "demon-slayer" || animeTheme === "mushoku-tensei"
       ? animeTheme : "seasonal";
 })();

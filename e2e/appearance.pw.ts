@@ -21,6 +21,11 @@ test("anime backgrounds persist and seasonal mode restores poster rotation", asy
   await expect(page.locator("html")).toHaveAttribute("data-anime-theme", "aot");
   await backgrounds.getByRole("button", { name: /One Piece/ }).click();
   await expect(page.locator("html")).toHaveAttribute("data-anime-theme", "one-piece");
+  await backgrounds.getByRole("button", { name: /Mushoku Tensei/ }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-anime-theme", "mushoku-tensei");
+  await expect(page.locator(".ambient-backdrop--anime")).toHaveCSS("background-image", /mushoku-tensei-fields\.webp/);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-anime-theme", "mushoku-tensei");
   await backgrounds.getByRole("button", { name: /Seasonal/ }).click();
   await expect(page.locator("html")).toHaveAttribute("data-anime-theme", "seasonal");
   await expect(page.locator(".ambient-backdrop--anime")).toHaveCount(0);
