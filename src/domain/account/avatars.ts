@@ -18,14 +18,23 @@ const ATTACK_ON_TITAN_AVATARS = [
   { id: "aot-armin", label: "Armin Arlert", src: "/avatars/aot/armin.webp" }
 ] as const;
 
+const MUSHOKU_TENSEI_AVATARS = [
+  { id: "mushoku-rudeus", label: "Rudeus Greyrat", src: "/avatars/mushoku-tensei/rudeus.webp" },
+  { id: "mushoku-eris", label: "Eris Boreas Greyrat", src: "/avatars/mushoku-tensei/eris.webp" },
+  { id: "mushoku-roxy", label: "Roxy Migurdia", src: "/avatars/mushoku-tensei/roxy.webp" },
+  { id: "mushoku-sylphiette", label: "Sylphiette", src: "/avatars/mushoku-tensei/sylphiette.webp" }
+] as const;
+
 export const PROFILE_AVATAR_GROUPS = [
   { id: "aot", label: "Attack on Titan", avatars: ATTACK_ON_TITAN_AVATARS },
+  { id: "mushoku-tensei", label: "Mushoku Tensei", avatars: MUSHOKU_TENSEI_AVATARS },
   { id: "original", label: "Banime originals", avatars: ORIGINAL_PROFILE_AVATARS }
 ] as const;
 
 export const PROFILE_AVATARS = [
   ...ORIGINAL_PROFILE_AVATARS,
-  ...ATTACK_ON_TITAN_AVATARS
+  ...ATTACK_ON_TITAN_AVATARS,
+  ...MUSHOKU_TENSEI_AVATARS
 ] as const;
 
 export type ProfileAvatarId = (typeof PROFILE_AVATARS)[number]["id"];

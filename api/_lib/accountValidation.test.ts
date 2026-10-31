@@ -37,6 +37,12 @@ describe("profile picture validation", () => {
     }
   });
 
+  it("accepts the Mushoku Tensei presets for signed-in accounts", () => {
+    for (const id of ["mushoku-rudeus", "mushoku-eris", "mushoku-roxy", "mushoku-sylphiette"]) {
+      expect(accountAvatarId(id)).toBe(id);
+    }
+  });
+
   it("rejects unknown profile pictures", () => {
     expect(() => accountAvatarId("aot-unknown")).toThrow("Profile picture is invalid.");
   });

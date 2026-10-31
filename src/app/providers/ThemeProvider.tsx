@@ -34,7 +34,7 @@ function getInitialColorScheme(): ColorScheme {
 
 function getInitialAnimeTheme(): AnimeTheme {
   const saved = savedPreference(ANIME_THEME_KEY);
-  return saved === "aot" || saved === "one-piece" || saved === "demon-slayer"
+  return saved === "aot" || saved === "one-piece" || saved === "demon-slayer" || saved === "mushoku-tensei"
     ? saved : "seasonal";
 }
 

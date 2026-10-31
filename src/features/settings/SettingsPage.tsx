@@ -311,7 +311,8 @@ export function SettingsPage() {
                 { id: "seasonal", name: "Seasonal", detail: "Rotating posters" },
                 { id: "aot", name: "Attack on Titan", detail: "Walls at dusk" },
                 { id: "one-piece", name: "One Piece", detail: "Open sea" },
-                { id: "demon-slayer", name: "Demon Slayer", detail: "Wisteria night" }
+                { id: "demon-slayer", name: "Demon Slayer", detail: "Wisteria night" },
+                { id: "mushoku-tensei", name: "Mushoku Tensei", detail: "Fantasy fields" }
               ] as const).map((option) => (
                 <button
                   key={option.id}

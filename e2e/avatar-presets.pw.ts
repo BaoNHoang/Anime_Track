@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("selects an Attack on Titan avatar and keeps it after reload", async ({ page }) => {
+test("selects themed avatars and keeps them after reload", async ({ page }) => {
   let avatarId = "male-01";
   const user = () => ({
     id: "avatar-test-user", email: "avatar@example.test", username: "Avatar test",
@@ -31,4 +31,14 @@ test("selects an Attack on Titan avatar and keeps it after reload", async ({ pag
   await expect(page.locator(".account-avatar img")).toHaveAttribute("src", "/avatars/aot/mikasa.webp");
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(group.getByRole("button", { name: "Use Mikasa Ackerman profile picture" })).toHaveAttribute("aria-pressed", "true", { timeout: 30_000 });
+
+  const mushoku = page.getByRole("group", { name: "Mushoku Tensei profile pictures" });
+  const sylphiette = mushoku.getByRole("button", { name: "Use Sylphiette profile picture" });
+  await expect(sylphiette).toBeVisible();
+  await expect.poll(() => sylphiette.locator("img").evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  await sylphiette.click();
+  await expect(sylphiette).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".account-avatar img")).toHaveAttribute("src", "/avatars/mushoku-tensei/sylphiette.webp");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(mushoku.getByRole("button", { name: "Use Sylphiette profile picture" })).toHaveAttribute("aria-pressed", "true", { timeout: 30_000 });
 });

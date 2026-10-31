@@ -231,6 +231,38 @@
   --focus: #d8a9e8;
 }
 
+:root[data-anime-theme="mushoku-tensei"] {
+  --canvas: #edf1e6;
+  --surface: #fafcf5;
+  --surface-raised: #ffffff;
+  --surface-muted: #e3eadb;
+  --ink: #273b31;
+  --muted: #5d7164;
+  --border: #c7d5c3;
+  --border-strong: #9db89e;
+  --accent: #4b815d;
+  --accent-hover: #356848;
+  --accent-soft: #dcebdd;
+  --chrome: #223e32;
+  --focus: #4b815d;
+}
+
+:root[data-theme="dark"][data-anime-theme="mushoku-tensei"] {
+  --canvas: #111e1b;
+  --surface: #1a2b26;
+  --surface-raised: #22352e;
+  --surface-muted: #2b4036;
+  --ink: #f3f6e9;
+  --muted: #bacfbd;
+  --border: #365447;
+  --border-strong: #56816a;
+  --accent: #a7d69a;
+  --accent-hover: #c8e6b7;
+  --accent-soft: #2b4c37;
+  --chrome: #0c1714;
+  --focus: #a7d69a;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -364,6 +396,10 @@ h3,
 
 :root[data-anime-theme="demon-slayer"] .ambient-backdrop--anime {
   background-image: url("/themes/demon-slayer-wisteria.webp");
+}
+
+:root[data-anime-theme="mushoku-tensei"] .ambient-backdrop--anime {
+  background-image: url("/themes/mushoku-tensei-fields.webp");
 }
 
 :root .ambient-backdrop--anime::after,
@@ -3110,7 +3146,7 @@ h3,
 
 .anime-theme-options {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 9px;
   margin-top: 13px;
 }
@@ -3143,6 +3179,9 @@ h3,
 }
 .anime-theme-option--demon-slayer .anime-theme-option__scene {
   background: url("/themes/demon-slayer-wisteria.webp") center/cover;
+}
+.anime-theme-option--mushoku-tensei .anime-theme-option__scene {
+  background: url("/themes/mushoku-tensei-fields.webp") center/cover;
 }
 
 @media (max-width: 700px) {
@@ -4759,10 +4798,12 @@ h3,
 
 .avatar-collection + .avatar-collection { margin-top: 20px; }
 .avatar-collection h4 { margin: 0 0 9px; color: var(--muted); font-size: 11px; font-weight: 700; }
-.avatar-collection--aot .avatar-picker { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.avatar-collection--aot .avatar-picker,
+.avatar-collection--mushoku-tensei .avatar-picker { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 @media (max-width: 580px) {
-  .avatar-collection--aot .avatar-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .avatar-collection--aot .avatar-picker,
+  .avatar-collection--mushoku-tensei .avatar-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .avatar-picker button {

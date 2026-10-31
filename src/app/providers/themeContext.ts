@@ -2,7 +2,7 @@ import { createContext } from "react";
 
 export type Theme = "light" | "dark";
 export type ColorScheme = "sakura" | "ocean" | "wisteria";
-export type AnimeTheme = "seasonal" | "aot" | "one-piece" | "demon-slayer";
+export type AnimeTheme = "seasonal" | "aot" | "one-piece" | "demon-slayer" | "mushoku-tensei";
 
 export interface ThemeContextValue {
   theme: Theme;
