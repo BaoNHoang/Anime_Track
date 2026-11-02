@@ -51,6 +51,12 @@ test.beforeEach(async ({ page }) => {
   await mockCatalog(page);
 });
 
+test("shows the custom connected-bubble icon in both map labels", async ({ page }) => {
+  await page.goto("/discover?view=map&anime=1", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("button", { name: "Anime map" }).locator("svg circle")).toHaveCount(6);
+  await expect(page.locator(".anime-map__eyebrow svg circle")).toHaveCount(6);
+});
+
 test("keeps the selected poster and connected titles inside the map", async ({ page }) => {
   await page.goto("/discover?view=map&anime=1", { waitUntil: "domcontentloaded" });
   const canvas = page.locator(".anime-map__canvas");

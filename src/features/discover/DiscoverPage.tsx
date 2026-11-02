@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Compass, Search, X } from "../../components/OwnedIcons";
+import { AnimeMap, ChevronLeft, ChevronRight, Search, X } from "../../components/OwnedIcons";
 import { lazy, Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnimeCard } from "../../components/AnimeCard";
@@ -165,7 +165,7 @@ export function DiscoverPage() {
 
       <div className="discover-view-switch" role="group" aria-label="Discover view">
         <button type="button" className={view === "list" ? "is-active" : ""} aria-pressed={view === "list"} onClick={() => changeView("list")}>Browse list</button>
-        <button type="button" className={view === "map" ? "is-active" : ""} aria-pressed={view === "map"} onClick={() => changeView("map")}><Compass size={16} /> Anime map</button>
+        <button type="button" className={view === "map" ? "is-active" : ""} aria-pressed={view === "map"} onClick={() => changeView("map")}><AnimeMap size={16} /> Anime map</button>
       </div>
 
       {view === "map" ? <Suspense fallback={<div className="anime-map__message" role="status">Opening the anime map…</div>}><AnimeConnectionMap currentResults={result.data?.items} /></Suspense> : <>
