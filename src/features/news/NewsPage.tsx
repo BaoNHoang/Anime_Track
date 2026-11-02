@@ -1,7 +1,6 @@
 import {
   ExternalLink,
   MessageCircle,
-  Newspaper,
   PlayCircle
 } from "../../components/OwnedIcons";
 import { ErrorState } from "../../components/ErrorState";
@@ -42,9 +41,6 @@ export function NewsPage() {
         <>
           <section className="news-intro" aria-labelledby="news-heading">
             <div>
-              <span className="news-intro__eyebrow">
-                <Newspaper size={14} /> Anime news desk
-              </span>
               <h2 id="news-heading">The stories shaping this season.</h2>
               <p>Fresh announcements, casting updates, and moments worth putting on your watchlist.</p>
             </div>

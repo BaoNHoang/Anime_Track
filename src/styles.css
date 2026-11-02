@@ -4054,7 +4054,6 @@ h3,
   gap: 20px;
 }
 
-.news-intro__eyebrow,
 .news-label,
 .news-card__anime {
   display: inline-flex;
@@ -4069,7 +4068,7 @@ h3,
 
 .news-intro h2 {
   max-width: 680px;
-  margin: 6px 0 8px;
+  margin: 0 0 8px;
   font-size: clamp(28px, 4vw, 46px);
   line-height: 1.04;
   letter-spacing: -0.045em;
