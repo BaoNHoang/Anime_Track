@@ -35,6 +35,7 @@ export const ChevronLeft = (props: NamedIconProps) => <Icon {...props}><path d="
 export const ChevronRight = (props: NamedIconProps) => <Icon {...props}><path d="m9.5 5 7 7-7 7"/></Icon>;
 export const ArrowUp = (props: NamedIconProps) => <Icon {...props}><path d="m6 10 6-6 6 6M12 4v16"/></Icon>;
 export const ArrowDown = (props: NamedIconProps) => <Icon {...props}><path d="m6 14 6 6 6-6M12 20V4"/></Icon>;
+export const AnimeMap = (props: NamedIconProps) => <Icon {...props}><path d="m9 9.5-3.2-3.2m8.5 3.4 3.3-2.6m-8.5 7.5-2.9 3.1m7.8-3.2 4.2 3.3"/><circle cx="11.5" cy="12" r="3.2"/><circle cx="4.5" cy="5" r="1.7"/><circle cx="19" cy="6" r="1.8"/><circle cx="5" cy="19" r="1.6"/><circle cx="19.5" cy="19" r="1.6"/><circle cx="11.5" cy="12" r="0.7" fill="currentColor" stroke="none"/></Icon>;
 export const Compass = (props: NamedIconProps) => <Icon {...props}><circle cx="12" cy="12" r="9"/><path d="m15.8 8.2-2.1 5.5-5.5 2.1 2.1-5.5 5.5-2.1Z"/></Icon>;
 export const Database = (props: NamedIconProps) => <Icon {...props}><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/></Icon>;
 export const Download = (props: NamedIconProps) => <Icon {...props}><path d="M12 3v12m-4-4 4 4 4-4M5 20h14"/></Icon>;

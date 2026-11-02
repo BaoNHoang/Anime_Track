@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Compass, Search, Shuffle, X } from "../../components/OwnedIcons";
+import { AnimeMap, Search, Shuffle, X } from "../../components/OwnedIcons";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import { useTracker } from "../../app/providers/useTracker";
@@ -175,7 +175,7 @@ export function AnimeConnectionMap({ currentResults = EMPTY_ANIME }: { currentRe
     <section className="anime-map" aria-labelledby="anime-map-title">
       <div className="anime-map__intro">
         <div>
-          <span className="anime-map__eyebrow"><Compass size={15} /> A different way to discover</span>
+          <span className="anime-map__eyebrow"><AnimeMap size={15} /> A different way to discover</span>
           <h2 id="anime-map-title">Follow the connections</h2>
           <p>Pick a genre to uncover other studios, then follow a show that catches your eye.</p>
         </div>
