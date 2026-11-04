@@ -11,8 +11,7 @@ import {
 } from "../../hooks/useAnimeQueries";
 import { ANIME_DECADES, type AnimeDecade } from "../../services/tenrai/animeService";
 import { sampleTopAnime } from "../../domain/anime/sampleTopAnime";
-import type { Anime } from "../../domain/anime/types";
-import type { AnimePage } from "../../domain/anime/types";
+import type { Anime, AnimePage } from "../../domain/anime/types";
 import { AiringSchedule } from "./AiringSchedule";
 import { Recommendations } from "./Recommendations";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -52,7 +51,7 @@ function HomeShelf({
   title: string;
   result: {
     data?: AnimePage;
-    isLoading: boolean;
+    isPending: boolean;
     isError: boolean;
     refetch: () => unknown;
   };
@@ -61,7 +60,7 @@ function HomeShelf({
   return (
     <section className="home-section">
       <SectionHeader title={title} />
-      {result.isLoading && <LoadingState cards={limit} layout="season" label={`Loading ${title}`} />}
+      {result.isPending && <LoadingState cards={limit} layout="season" label={`Loading ${title}`} />}
       {result.isError && <ErrorState onRetry={() => void result.refetch()} />}
       {result.data && (
         <div className="home-season-grid">
@@ -160,18 +159,7 @@ export function DashboardPage() {
       <div className="home-feed">
         <Recommendations candidates={recommendationCandidates} />
 
-        <section className="home-section">
-          <SectionHeader title="Current season" />
-          {season.isPending && <LoadingState cards={10} layout="season" label="Loading current season" />}
-          {season.isError && <ErrorState onRetry={() => season.refetch()} />}
-          {season.data && (
-            <div className="home-season-grid">
-              {season.data.items.slice(0, 10).map((anime) => (
-                <SeasonTile anime={anime} key={anime.id} />
-              ))}
-            </div>
-          )}
-        </section>
+        <HomeShelf title="Current season" result={season} limit={10} />
 
         <HomeShelf title="Coming soon" result={upcoming} />
 
