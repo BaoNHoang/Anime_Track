@@ -55,6 +55,7 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
     } } });
   });
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Continue watching" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Current season" })).toBeVisible();
   await expect(page.locator(".home-page").getByRole("link", { name: /^Browse/ })).toHaveCount(0);
   const airing = page.locator(".home-airing-rail");

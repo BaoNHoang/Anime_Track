@@ -13,7 +13,6 @@ import { ANIME_DECADES, type AnimeDecade } from "../../services/tenrai/animeServ
 import { sampleTopAnime } from "../../domain/anime/sampleTopAnime";
 import type { Anime } from "../../domain/anime/types";
 import type { AnimePage } from "../../domain/anime/types";
-import { ContinueWatching } from "./ContinueWatching";
 import { AiringSchedule } from "./AiringSchedule";
 import { Recommendations } from "./Recommendations";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -159,8 +158,6 @@ export function DashboardPage() {
       </aside>
 
       <div className="home-feed">
-        <ContinueWatching />
-
         <Recommendations candidates={recommendationCandidates} />
 
         <section className="home-section">
