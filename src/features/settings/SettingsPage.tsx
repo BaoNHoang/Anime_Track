@@ -46,7 +46,7 @@ export function SettingsPage() {
   const scoreStep = user?.scoreStep ?? localProfile.scoreStep;
   const scoreScale = user?.scoreScale ?? localProfile.scoreScale;
   const { canInstall, installed, install, isIos } = usePwaInstall();
-  const { theme, setTheme, colorScheme, setColorScheme, animeTheme, setAnimeTheme } = useTheme();
+  const { theme, setTheme, colorScheme, setColorScheme, animeTheme, holidaySeason, setAnimeTheme } = useTheme();
   const { region, setRegion } = useWatchProvider();
   const { lastChecked, intervalMinutes } = useAppUpdateStatus();
   const importInput = useRef<HTMLInputElement>(null);
@@ -305,10 +305,10 @@ export function SettingsPage() {
               ))}
             </div>
             <h3 className="appearance-subtitle">Anime-inspired backgrounds</h3>
-            <p>Original scenery inspired by favorite worlds. Seasonal keeps the rotating anime posters.</p>
+            <p>Seasonal automatically shows Halloween in October, Thanksgiving in November, and Christmas in December. Other months keep rotating anime posters. Your chosen anime background stays fixed.</p>
             <div className="anime-theme-options" role="group" aria-label="Anime-inspired background">
               {([
-                { id: "seasonal", name: "Seasonal", detail: "Rotating posters" },
+                { id: "seasonal", name: "Seasonal auto", detail: holidaySeason ? `${holidaySeason[0].toUpperCase()}${holidaySeason.slice(1)} scene` : "Rotating posters" },
                 { id: "aot", name: "Attack on Titan", detail: "Walls at dusk" },
                 { id: "one-piece", name: "One Piece", detail: "Open sea" },
                 { id: "demon-slayer", name: "Demon Slayer", detail: "Wisteria night" },

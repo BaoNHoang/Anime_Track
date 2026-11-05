@@ -6,8 +6,8 @@ const ROTATION_MS = 12_000;
 const BACKDROP_COUNT = 2;
 
 export function AmbientBackdrop() {
-  const { animeTheme } = useTheme();
-  const season = useCurrentSeason(animeTheme === "seasonal");
+  const { animeTheme, holidaySeason } = useTheme();
+  const season = useCurrentSeason(animeTheme === "seasonal" && !holidaySeason);
   const [activeIndex, setActiveIndex] = useState(0);
   const [failedImages, setFailedImages] = useState<string[]>([]);
   const images = useMemo(() => {
@@ -35,6 +35,8 @@ export function AmbientBackdrop() {
   }, [animeTheme, availableImages.length]);
 
   if (animeTheme !== "seasonal") return <div className="ambient-backdrop ambient-backdrop--anime" aria-hidden="true" />;
+
+  if (holidaySeason) return <div className="ambient-backdrop ambient-backdrop--anime ambient-backdrop--holiday" aria-hidden="true" />;
 
   if (availableImages.length === 0) {
     return null;
