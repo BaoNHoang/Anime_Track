@@ -263,6 +263,18 @@
   --focus: #a7d69a;
 }
 
+:root[data-holiday-season="halloween"] {
+  --holiday-backdrop: url("/themes/holiday-halloween.webp");
+}
+
+:root[data-holiday-season="thanksgiving"] {
+  --holiday-backdrop: url("/themes/holiday-thanksgiving.webp");
+}
+
+:root[data-holiday-season="christmas"] {
+  --holiday-backdrop: url("/themes/holiday-christmas.webp");
+}
+
 * {
   box-sizing: border-box;
 }
@@ -385,6 +397,8 @@ h3,
 }
 
 .ambient-backdrop--anime { background-size: cover; background-position: center; }
+
+.ambient-backdrop--holiday { background-image: var(--holiday-backdrop); }
 
 :root[data-anime-theme="aot"] .ambient-backdrop--anime {
   background-image: url("/themes/aot-walls.webp");
@@ -3029,6 +3043,9 @@ h3,
 .anime-theme-option__label small { color: var(--muted); font-size: 9px; }
 .anime-theme-option--seasonal .anime-theme-option__scene {
   background: linear-gradient(135deg, #2d3546 0 35%, #e86f85 35% 57%, #f5c873 57% 73%, #496c9c 73%);
+}
+:root[data-holiday-season] .anime-theme-option--seasonal .anime-theme-option__scene {
+  background: var(--holiday-backdrop) center/cover;
 }
 .anime-theme-option--aot .anime-theme-option__scene {
   background: url("/themes/aot-walls.webp") center/cover;

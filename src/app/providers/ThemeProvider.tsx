@@ -6,6 +6,7 @@ import {
   type PropsWithChildren
 } from "react";
 import { ThemeContext, type AnimeTheme, type ColorScheme, type Theme } from "./themeContext";
+import { getHolidaySeason, millisecondsUntilNextLocalDay } from "../../domain/appearance/holidaySeason";
 
 const THEME_KEY = "banime:theme";
 const COLOR_SCHEME_KEY = "banime:color-scheme";
@@ -42,11 +43,39 @@ export function ThemeProvider({ children }: PropsWithChildren) {
   const [theme, setThemeState] = useState<Theme>(getInitialTheme);
   const [colorScheme, setColorSchemeState] = useState<ColorScheme>(getInitialColorScheme);
   const [animeTheme, setAnimeThemeState] = useState<AnimeTheme>(getInitialAnimeTheme);
+  const [holidaySeason, setHolidaySeason] = useState(() => getHolidaySeason(new Date()));
+
+  useEffect(() => {
+    let timer: number;
+    const refresh = () => {
+      window.clearTimeout(timer);
+      const now = new Date();
+      setHolidaySeason(getHolidaySeason(now));
+      timer = window.setTimeout(refresh, millisecondsUntilNextLocalDay(now) + 100);
+    };
+    const onVisibilityChange = () => {
+      if (!document.hidden) refresh();
+    };
+
+    refresh();
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     document.documentElement.dataset.colorScheme = colorScheme;
     document.documentElement.dataset.animeTheme = animeTheme;
+    if (holidaySeason) {
+      document.documentElement.dataset.holidaySeason = holidaySeason;
+    } else {
+      delete document.documentElement.dataset.holidaySeason;
+    }
     document.querySelector('meta[name="theme-color"]')?.setAttribute(
       "content",
       getComputedStyle(document.documentElement).getPropertyValue("--chrome").trim()
@@ -58,7 +87,7 @@ export function ThemeProvider({ children }: PropsWithChildren) {
     } catch {
       // The selection still works for this session if storage is unavailable.
     }
-  }, [theme, colorScheme, animeTheme]);
+  }, [theme, colorScheme, animeTheme, holidaySeason]);
 
   const setTheme = useCallback((nextTheme: Theme) => {
     setThemeState(nextTheme);
@@ -77,8 +106,8 @@ export function ThemeProvider({ children }: PropsWithChildren) {
   }, []);
 
   const value = useMemo(
-    () => ({ theme, colorScheme, animeTheme, setTheme, setColorScheme, setAnimeTheme, toggleTheme }),
-    [animeTheme, colorScheme, setAnimeTheme, setColorScheme, setTheme, theme, toggleTheme]
+    () => ({ theme, colorScheme, animeTheme, holidaySeason, setTheme, setColorScheme, setAnimeTheme, toggleTheme }),
+    [animeTheme, colorScheme, holidaySeason, setAnimeTheme, setColorScheme, setTheme, theme, toggleTheme]
   );
 
   return (

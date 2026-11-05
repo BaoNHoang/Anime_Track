@@ -1,4 +1,5 @@
 import { createContext } from "react";
+import type { HolidaySeason } from "../../domain/appearance/holidaySeason";
 
 export type Theme = "light" | "dark";
 export type ColorScheme = "sakura" | "ocean" | "wisteria";
@@ -8,6 +9,7 @@ export interface ThemeContextValue {
   theme: Theme;
   colorScheme: ColorScheme;
   animeTheme: AnimeTheme;
+  holidaySeason: HolidaySeason | null;
   setTheme: (theme: Theme) => void;
   setColorScheme: (colorScheme: ColorScheme) => void;
   setAnimeTheme: (animeTheme: AnimeTheme) => void;
