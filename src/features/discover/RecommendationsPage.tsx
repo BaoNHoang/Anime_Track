@@ -38,8 +38,6 @@ export function RecommendationsPage() {
   return <div className="page-stack">
     <h1>For you</h1>
     <LibraryTools />
-    <p>Recommendations reflect your completed shows, personal scores, genres, and favorite studios. Titles already in your library are excluded.</p>
-    {genre ? <p className="recommendation-source">Exploring more {genre} anime alongside current and popular shows.</p> : null}
     {popular.isPending && <p role="status">Finding recommendations…</p>}
     {popular.isError && <button className="button" onClick={() => void popular.refetch()}>Retry recommendations</button>}
     {facet.isFetching && genre ? <p role="status">Finding more {genre} anime…</p> : null}
