@@ -6376,7 +6376,12 @@ h3,
     transition-duration: 0.01ms !important;
   }
 }
+.library-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 12px; }
+.library-toolbar .filter-chips { min-width: 0; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 3px; scrollbar-width: thin; }
+.library-toolbar .filter-chips > a { flex: 0 0 auto; white-space: nowrap; }
 .library-sync { display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; }
+.library-toolbar .library-sync { flex-direction: column; align-items: flex-end; }
+.library-toolbar .library-sync [role="alert"] { max-width: min(240px, 40vw); overflow-wrap: anywhere; text-align: right; }
 .library-sync [role="alert"] { color: var(--danger); font-size: 0.82rem; }
 .tracking-notes textarea { width: 100%; min-height: 88px; resize: vertical; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; color: var(--ink); background: var(--canvas); font: inherit; line-height: 1.5; }
 .tracking-notes textarea:focus-visible { border-color: var(--focus); outline: 3px solid color-mix(in srgb, var(--focus) 18%, transparent); }
