@@ -56,6 +56,20 @@ test("profile counts open matching library filters", async ({ page }) => {
 
   await summary.getByRole("link", { name: "1 Completed" }).click();
   await expect(page).toHaveURL(/\/library\?status=completed$/);
+  const toolbar = page.locator(".library-toolbar");
+  const libraryLinks = toolbar.getByRole("navigation", { name: "Library tools" });
+  const syncButton = toolbar.getByRole("button", { name: "Sync now" });
+  await expect(libraryLinks).toBeVisible();
+  await expect(toolbar).toHaveCSS("display", "grid");
+  // Local-only mode has no cloud Sync button; check alignment when account sync is enabled.
+  if (await syncButton.count()) {
+    await expect(syncButton).toBeVisible();
+    const linksBox = await libraryLinks.boundingBox();
+    const syncBox = await syncButton.boundingBox();
+    expect(syncBox!.y).toBeGreaterThanOrEqual(linksBox!.y - 1);
+    expect(syncBox!.y).toBeLessThan(linksBox!.y + linksBox!.height);
+    expect(syncBox!.x).toBeGreaterThanOrEqual(linksBox!.x + linksBox!.width);
+  }
   const libraryGrid = page.locator(".library-grid");
   await expect(libraryGrid.getByRole("button", { name: /Already completed/ })).toBeVisible();
   await expect(libraryGrid.getByRole("button", { name: /Currently watching/ })).toHaveCount(0);

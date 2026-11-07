@@ -226,8 +226,10 @@ export function LibraryPage() {
 
   return (
     <div className="page-stack">
-      <LibraryTools />
-      <LibrarySyncControl />
+      <div className="library-toolbar">
+        <LibraryTools />
+        <LibrarySyncControl />
+      </div>
       <h1 className="visually-hidden">Library</h1>
 
       <section className="query-panel" id="library-results">
