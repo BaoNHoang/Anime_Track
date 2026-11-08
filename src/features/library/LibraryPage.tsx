@@ -170,7 +170,6 @@ export function LibraryPage() {
     setMinimumScore("0");
     setSort("updated");
     setFrozenRecentOrder(undefined);
-    setPage(1);
   };
   const totalPages = Math.max(
     1,
@@ -228,7 +227,7 @@ export function LibraryPage() {
     <div className="page-stack">
       <div className="library-toolbar">
         <LibraryTools />
-        <LibrarySyncControl />
+        <LibrarySyncControl compact={false} />
       </div>
       <h1 className="visually-hidden">Library</h1>
 
@@ -260,10 +259,7 @@ export function LibraryPage() {
         <div className="filter-chips filter-chips--library">
           <button
             className={filter === "all" ? "is-active" : ""}
-            onClick={() => {
-              setFilter("all");
-              setPage(1);
-            }}
+            onClick={() => setFilter("all")}
           >
             All <span>{items.length}</span>
           </button>
@@ -271,10 +267,7 @@ export function LibraryPage() {
             <button
               key={status}
               className={filter === status ? "is-active" : ""}
-              onClick={() => {
-                setFilter(status);
-                setPage(1);
-              }}
+              onClick={() => setFilter(status)}
             >
               {STATUS_LABELS[status]}
               <span>{statusCounts[status]}</span>

@@ -65,7 +65,9 @@ test("profile counts open matching library filters", async ({ page }) => {
   if (await syncButton.count()) {
     await expect(syncButton).toBeVisible();
     const linksBox = await libraryLinks.boundingBox();
+    const libraryButton = await libraryLinks.getByRole("link", { name: "Library" }).boundingBox();
     const syncBox = await syncButton.boundingBox();
+    expect(syncBox!.height).toBe(libraryButton!.height);
     expect(syncBox!.y).toBeGreaterThanOrEqual(linksBox!.y - 1);
     expect(syncBox!.y).toBeLessThan(linksBox!.y + linksBox!.height);
     expect(syncBox!.x).toBeGreaterThanOrEqual(linksBox!.x + linksBox!.width);
