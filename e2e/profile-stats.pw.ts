@@ -53,6 +53,10 @@ test("profile counts open matching library filters", async ({ page }) => {
   await expect(page.locator(".activity-item__copy strong").first()).toHaveCSS("font-size", "15px");
   await expect(page.locator(".profile-favorites__items strong").first()).toHaveCSS("font-size", "12px");
   await expect(page.locator(".profile-favorites__groups h3")).toHaveText(["Anime"]);
+  const profileSyncButton = page.getByRole("button", { name: "Sync now" });
+  const profileSyncBox = await profileSyncButton.count()
+    ? await profileSyncButton.boundingBox()
+    : null;
 
   await summary.getByRole("link", { name: "1 Completed" }).click();
   await expect(page).toHaveURL(/\/library\?status=completed$/);
@@ -67,6 +71,7 @@ test("profile counts open matching library filters", async ({ page }) => {
     const linksBox = await libraryLinks.boundingBox();
     const libraryButton = await libraryLinks.getByRole("link", { name: "Library" }).boundingBox();
     const syncBox = await syncButton.boundingBox();
+    expect(syncBox!.height).toBe(profileSyncBox?.height);
     expect(syncBox!.height).toBe(libraryButton!.height);
     expect(syncBox!.y).toBeGreaterThanOrEqual(linksBox!.y - 1);
     expect(syncBox!.y).toBeLessThan(linksBox!.y + linksBox!.height);

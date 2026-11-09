@@ -227,7 +227,7 @@ export function LibraryPage() {
     <div className="page-stack">
       <div className="library-toolbar">
         <LibraryTools />
-        <LibrarySyncControl compact={false} />
+        <LibrarySyncControl />
       </div>
       <h1 className="visually-hidden">Library</h1>
 
