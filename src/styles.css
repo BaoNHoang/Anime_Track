@@ -6383,6 +6383,42 @@ h3,
 .library-toolbar .library-sync { flex-direction: column; align-items: flex-end; }
 .library-toolbar .library-sync [role="alert"] { max-width: min(240px, 40vw); overflow-wrap: anywhere; text-align: right; }
 .library-sync [role="alert"] { color: var(--danger); font-size: 0.82rem; }
+.discover-query-panel { gap: 12px; }
+.discover-feed-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.discover-more-feeds {
+  max-width: 190px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.discover-more-feeds[data-active="true"] { border-color: var(--chrome); color: #fff; background: var(--chrome); }
+.discover-more-feeds:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.discover-quick-filters { grid-template-columns: repeat(3, minmax(0, 1fr)) auto auto; }
+.discover-quick-filters > button { white-space: nowrap; }
+.discover-more-filters[aria-expanded="true"] { border-color: var(--border-strong); color: var(--ink); background: var(--surface-muted); }
+.discover-advanced-filters {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.discover-advanced-filters__checkbox { display: flex; min-height: 40px; align-items: center; gap: 8px; }
+.discover-advanced-filters__checkbox > span { margin: 0; font-size: 11px; }
+.discover-advanced-filters__checkbox > input { accent-color: var(--accent); }
+@media (max-width: 1000px) {
+  .discover-quick-filters, .discover-advanced-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .discover-quick-filters > label:nth-child(3) { grid-column: 1 / -1; }
+  .discover-quick-filters > .discover-more-filters:last-child { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .discover-feed-row .filter-chips { max-width: 100%; flex-wrap: nowrap; overflow-x: auto; }
+  .discover-advanced-filters { grid-template-columns: 1fr; }
+}
 .tracking-notes textarea { width: 100%; min-height: 88px; resize: vertical; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; color: var(--ink); background: var(--canvas); font: inherit; line-height: 1.5; }
 .tracking-notes textarea:focus-visible { border-color: var(--focus); outline: 3px solid color-mix(in srgb, var(--focus) 18%, transparent); }
 .tracking-notes__actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 8px; }
