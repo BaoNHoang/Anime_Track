@@ -30,6 +30,8 @@ const feeds: Array<{ value: AnimeBrowsePreset; label: string }> = [
   { value: "movies", label: "Movies" },
   { value: "favorites", label: "Most favorited" }
 ];
+const featuredFeeds = feeds.slice(0, 3);
+const moreFeeds = feeds.slice(3);
 
 export function DiscoverPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -62,6 +64,7 @@ export function DiscoverPage() {
   const [genre, setGenre] = useState("all");
   const [minimumScore, setMinimumScore] = useState("0");
   const [sort, setSort] = useState<Sort>("default");
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [pageState, setPageState] = useState(() => ({ source: urlQuery, value: 1 }));
   const page = pageState.source === urlQuery ? pageState.value : 1;
   const debouncedQuery = useDebouncedValue(query.trim(), 500);
@@ -123,6 +126,7 @@ export function DiscoverPage() {
     setMinimumScore("0");
     setSort("default");
     setYear(""); setSeason(""); setStudio(""); setMaxEpisodes(""); setHideTracked(false);
+    setShowMoreFilters(false);
   };
   const updateQuery = (value: string) => {
     setQueryState({ source: urlQuery, value });
@@ -157,6 +161,9 @@ export function DiscoverPage() {
     genre !== "all" ||
     minimumScore !== "0" ||
     sort !== "default" || Boolean(year || season || studio || maxEpisodes || hideTracked);
+  const moreFilterCount = [minimumScore !== "0", Boolean(year), Boolean(season), Boolean(studio), Boolean(maxEpisodes), hideTracked]
+    .filter(Boolean).length;
+  const selectedMoreFeed = moreFeeds.some((option) => option.value === feed) ? feed : "";
 
   return (
     <div className="page-stack">
@@ -170,7 +177,7 @@ export function DiscoverPage() {
 
       {view === "map" ? <Suspense fallback={<div className="anime-map__message" role="status">Opening the anime map…</div>}><AnimeConnectionMap currentResults={result.data?.items} /></Suspense> : <>
 
-      <section className="query-panel">
+      <section className="query-panel discover-query-panel">
         <div className="search-box">
           <Search size={20} />
           <input
@@ -187,20 +194,35 @@ export function DiscoverPage() {
         </div>
 
         {!isSearching && (
-          <div className="filter-chips" aria-label="Browse categories">
-            {feeds.map((option) => (
-              <button
-                key={option.value}
-                className={feed === option.value ? "is-active" : ""}
-                onClick={() => updateFeed(option.value)}
-              >
-                {option.label}
-              </button>
-            ))}
+          <div className="discover-feed-row" role="group" aria-label="Browse categories">
+            <div className="filter-chips">
+              {featuredFeeds.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={feed === option.value ? "is-active" : ""}
+                  onClick={() => updateFeed(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <select
+              className="discover-more-feeds"
+              aria-label="More browse categories"
+              data-active={selectedMoreFeed !== ""}
+              value={selectedMoreFeed}
+              onChange={(event) => updateFeed(event.target.value as AnimeBrowsePreset)}
+            >
+              <option value="" disabled>More categories</option>
+              {moreFeeds.map((option) => (
+                <option value={option.value} key={option.value}>{option.label}</option>
+              ))}
+            </select>
           </div>
         )}
 
-        <div className="query-controls">
+        <div className="query-controls discover-quick-filters">
           <label>
             <span>Type</span>
             <select value={type} onChange={(event) => setType(event.target.value)}>
@@ -220,6 +242,32 @@ export function DiscoverPage() {
             </select>
           </label>
           <label>
+            <span>Sort</span>
+            <select value={sort} onChange={(event) => setSort(event.target.value as Sort)}>
+              <option value="default">Default order</option>
+              <option value="score">Highest score</option>
+              <option value="popularity">Most popular</option>
+              <option value="title">Title A-Z</option>
+              <option value="year">Newest year</option>
+            </select>
+          </label>
+          <button
+            className="clear-filters discover-more-filters"
+            type="button"
+            aria-expanded={showMoreFilters}
+            aria-controls="discover-more-filters"
+            onClick={() => setShowMoreFilters((current) => !current)}
+          >
+            More filters{moreFilterCount ? ` (${moreFilterCount})` : ""}
+          </button>
+          {hasFilters && (
+            <button className="clear-filters" type="button" onClick={clearFilters}>
+              Clear filters
+            </button>
+          )}
+        </div>
+        {showMoreFilters && <div className="query-controls discover-advanced-filters" id="discover-more-filters">
+          <label>
             <span>Minimum score</span>
             <select
               value={minimumScore}
@@ -232,27 +280,12 @@ export function DiscoverPage() {
               <option value="9">9+</option>
             </select>
           </label>
-          <label>
-            <span>Sort</span>
-            <select value={sort} onChange={(event) => setSort(event.target.value as Sort)}>
-              <option value="default">Default order</option>
-              <option value="score">Highest score</option>
-              <option value="popularity">Most popular</option>
-              <option value="title">Title A-Z</option>
-              <option value="year">Newest year</option>
-            </select>
-          </label>
           <label><span>Year</span><input type="number" min="1900" max="2100" value={year} onChange={(e) => setYear(e.target.value)} /></label>
           <label><span>Season</span><select value={season} onChange={(e) => setSeason(e.target.value)}><option value="">Any</option>{["winter", "spring", "summer", "fall"].map((s) => <option key={s}>{s}</option>)}</select></label>
           <label><span>Studio</span><input value={studio} onChange={(e) => setStudio(e.target.value)} /></label>
           <label><span>Maximum episodes</span><input type="number" min="1" max="100000" value={maxEpisodes} onChange={(e) => setMaxEpisodes(e.target.value)} /></label>
-          <label><span>Hide library titles</span><input type="checkbox" checked={hideTracked} onChange={(e) => setHideTracked(e.target.checked)} /></label>
-          {hasFilters && (
-            <button className="clear-filters" onClick={clearFilters}>
-              Clear filters
-            </button>
-          )}
-        </div>
+          <label className="discover-advanced-filters__checkbox"><input type="checkbox" checked={hideTracked} onChange={(e) => setHideTracked(e.target.checked)} /><span>Hide library titles</span></label>
+        </div>}
       </section>
 
       <section id="discover-results">
