@@ -109,7 +109,8 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
   }
   expect(decadeRequests).toHaveLength(8);
   await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Discover" }).click();
-  await page.getByRole("button", { name: "1990s", exact: true }).click();
+  const moreCategories = page.getByRole("combobox", { name: "More browse categories" });
+  await moreCategories.selectOption("1990s");
   await expect(page).toHaveURL(/\/discover\?feed=1990s$/);
-  await expect(page.getByRole("button", { name: "1990s", exact: true })).toHaveClass(/is-active/);
+  await expect(moreCategories).toHaveValue("1990s");
 });
