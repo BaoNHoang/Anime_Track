@@ -26,7 +26,17 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
       decadeRequests.push(url.searchParams.toString());
     }
   });
-  const airingData = nextBroadcasts();
+  const airingData = nextBroadcasts().map((anime) => ({
+    ...anime,
+    images: { jpg: {
+      image_url: `https://cdn.myanimelist.net/images/anime/home-test-${anime.mal_id}.jpg`,
+      large_image_url: ""
+    } }
+  }));
+  await page.route("https://cdn.myanimelist.net/images/anime/home-test-*.jpg", (route) => route.fulfill({
+    contentType: "image/svg+xml",
+    body: '<svg xmlns="http://www.w3.org/2000/svg" width="140" height="200"><rect width="140" height="200" fill="#456"/></svg>'
+  }));
   await page.route("**/v1/seasons/now?*", (route) => route.fulfill({ json: {
     data: airingData, pagination: { current_page: 1, has_next_page: false }
   } }));
@@ -61,6 +71,10 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Continue watching" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Current season" })).toBeVisible();
+  const season = page.locator(".home-section").filter({ has: page.getByRole("heading", { name: "Current season", exact: true }) });
+  await expect(season.locator('img[loading="eager"][fetchpriority="high"]')).toHaveCount(2);
+  await expect(season.locator('img[loading="lazy"]')).toHaveCount(8);
+  expect(decadeRequests).toHaveLength(0);
   await expect(page.locator(".home-page").getByRole("link", { name: /^Browse/ })).toHaveCount(0);
   const airing = page.locator(".home-airing-rail");
   await expect(airing.getByRole("heading", { name: "Airing next" })).toBeVisible();
@@ -91,7 +105,6 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
   }
   await expect(page.getByRole("heading", { name: "Coming soon" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Latest headlines" })).toHaveCount(0);
-  expect(decadeRequests).toHaveLength(0);
   for (const decade of ["2020s", "2010s", "2000s", "1990s"]) {
     const shelf = page.locator(".home-decade").filter({ has: page.getByRole("heading", { name: `Top anime of the ${decade}` }) });
     await shelf.scrollIntoViewIfNeeded();
@@ -100,6 +113,7 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
   }
   expect(decadeRequests).toHaveLength(8);
   expect(new Set(decadeRequests).size).toBe(8);
+  await expect(page.locator('img[fetchpriority="high"]')).toHaveCount(2);
 
   const nineties = page.locator(".home-decade").filter({ has: page.getByRole("heading", { name: "Top anime of the 1990s" }) });
   const before = await nineties.locator(".home-season-tile > div > button").allTextContents();

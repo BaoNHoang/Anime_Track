@@ -21,14 +21,19 @@ function hasBroadcastTime(anime: Anime) {
   return Boolean(anime.broadcast?.day && anime.broadcast.time && anime.broadcast.timezone);
 }
 
-function SeasonTile({ anime }: { anime: Anime }) {
+function SeasonTile({ anime, priority = false }: { anime: Anime; priority?: boolean }) {
   const { openAnime } = useAnimePanel();
   const title = anime.titleEnglish || anime.title;
 
   return (
     <article className="home-season-tile">
       <button type="button" onClick={() => openAnime(anime)}>
-        <ImageWithFallback src={anime.imageUrl} fallbackSrc={anime.largeImageUrl} loading="lazy" />
+        <ImageWithFallback
+          src={anime.imageUrl}
+          fallbackSrc={anime.largeImageUrl}
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : undefined}
+        />
       </button>
       <div>
         <button type="button" onClick={() => openAnime(anime)} title={title}>
@@ -46,7 +51,8 @@ function SeasonTile({ anime }: { anime: Anime }) {
 function HomeShelf({
   title,
   result,
-  limit = 5
+  limit = 5,
+  priorityPosters = 0
 }: {
   title: string;
   result: {
@@ -56,6 +62,7 @@ function HomeShelf({
     refetch: () => unknown;
   };
   limit?: number;
+  priorityPosters?: number;
 }) {
   return (
     <section className="home-section">
@@ -64,8 +71,8 @@ function HomeShelf({
       {result.isError && <ErrorState onRetry={() => void result.refetch()} />}
       {result.data && (
         <div className="home-season-grid">
-          {result.data.items.slice(0, limit).map((anime) => (
-            <SeasonTile anime={anime} key={anime.id} />
+          {result.data.items.slice(0, limit).map((anime, index) => (
+            <SeasonTile anime={anime} key={anime.id} priority={index < priorityPosters} />
           ))}
         </div>
       )}
@@ -159,7 +166,7 @@ export function DashboardPage() {
       <div className="home-feed">
         <Recommendations candidates={recommendationCandidates} />
 
-        <HomeShelf title="Current season" result={season} limit={10} />
+        <HomeShelf title="Current season" result={season} limit={10} priorityPosters={2} />
 
         <HomeShelf title="Coming soon" result={upcoming} />
 
