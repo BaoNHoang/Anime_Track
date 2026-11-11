@@ -27,7 +27,7 @@ function SeasonTile({ anime, priority = false }: { anime: Anime; priority?: bool
 
   return (
     <article className="home-season-tile">
-      <button type="button" onClick={() => openAnime(anime)}>
+      <button type="button" onClick={() => openAnime(anime)} aria-label={`View ${title}`}>
         <ImageWithFallback
           src={anime.imageUrl}
           fallbackSrc={anime.largeImageUrl}

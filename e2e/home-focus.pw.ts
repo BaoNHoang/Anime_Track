@@ -74,6 +74,7 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
   const season = page.locator(".home-section").filter({ has: page.getByRole("heading", { name: "Current season", exact: true }) });
   await expect(season.locator('img[loading="eager"][fetchpriority="high"]')).toHaveCount(2);
   await expect(season.locator('img[loading="lazy"]')).toHaveCount(8);
+  await expect(season.getByRole("button", { name: "View Next broadcast test 1", exact: true })).toBeVisible();
   expect(decadeRequests).toHaveLength(0);
   await expect(page.locator(".home-page").getByRole("link", { name: /^Browse/ })).toHaveCount(0);
   const airing = page.locator(".home-airing-rail");
@@ -140,7 +141,9 @@ for (const state of ["scheduled", "empty"] as const) {
     }
     let releaseCatalog!: () => void;
     const catalogReady = new Promise<void>((resolve) => { releaseCatalog = resolve; });
-    const data = state === "scheduled" ? nextBroadcasts().slice(0, 1) : [];
+    const data = state === "scheduled"
+      ? nextBroadcasts().slice(0, 1).map((anime) => ({ ...anime, title_english: "Scheduled English title" }))
+      : [];
     await page.route("**/api/auth/session", (route) => route.fulfill({ json: { user: null } }));
     for (const endpoint of ["**/v1/seasons/now?*", "**/v1/top/anime?*"]) {
       await page.route(endpoint, async (route) => {
@@ -160,5 +163,12 @@ for (const state of ["scheduled", "empty"] as const) {
     await expect(placeholder).toHaveCount(0);
     await expect(page.locator(state === "scheduled" ? ".airing-next-list" : ".schedule-empty")).toBeVisible();
     expect(Math.abs((await feed.boundingBox())!.y - before)).toBeLessThanOrEqual(1);
+    if (state === "scheduled") {
+      const poster = page.getByRole("button", { name: "View Scheduled English title", exact: true });
+      await expect(poster.locator(".poster-placeholder")).toBeVisible();
+      await poster.focus();
+      await page.keyboard.press("Enter");
+      await expect(page.getByRole("dialog", { name: "Scheduled English title", exact: true })).toBeVisible();
+    }
   });
 }
