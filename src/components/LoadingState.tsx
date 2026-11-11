@@ -46,7 +46,7 @@ export function CompactListSkeleton({
   label
 }: SkeletonProps & {
   items?: number;
-  variant?: "airing" | "news" | "ranking" | "search" | "favorite";
+  variant?: "airing" | "search" | "favorite";
 }) {
   return (
     <LoadingRegion
@@ -55,13 +55,12 @@ export function CompactListSkeleton({
     >
       {Array.from({ length: items }, (_, index) => (
         <div className="compact-skeleton__item" key={index}>
-          {variant === "ranking" && <span className="skeleton compact-skeleton__rank" />}
           <span className="skeleton compact-skeleton__image" />
           <span className="compact-skeleton__copy">
             <span className="skeleton compact-skeleton__title" />
             <span className="skeleton compact-skeleton__meta" />
           </span>
-          <span className="skeleton compact-skeleton__action" />
+          {variant !== "airing" && <span className="skeleton compact-skeleton__action" />}
         </div>
       ))}
     </LoadingRegion>

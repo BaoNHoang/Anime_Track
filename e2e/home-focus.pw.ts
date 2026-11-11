@@ -1,16 +1,7 @@
 import { expect, test } from "@playwright/test";
 
-test("home fits upcoming broadcasts beside the shelves and opens decade feeds", async ({ page }, testInfo) => {
-  let detailModuleRequests = 0;
-  const decadeRequests: string[] = [];
-  page.on("request", (request) => {
-    if (request.url().includes("AnimeDetailPanel.tsx")) detailModuleRequests += 1;
-    const url = new URL(request.url());
-    if (url.pathname === "/v1/anime" && url.searchParams.has("start_date")) {
-      decadeRequests.push(url.searchParams.toString());
-    }
-  });
-  const airingData = Array.from({ length: 12 }, (_, index) => {
+function nextBroadcasts() {
+  return Array.from({ length: 12 }, (_, index) => {
     const nextDay = new Date(Date.now() + (index + 1) * 24 * 60 * 60 * 1000);
     const broadcastDay = new Intl.DateTimeFormat("en-US", {
       weekday: "long", timeZone: "UTC"
@@ -23,6 +14,29 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
       broadcast: { day: broadcastDay, time: "12:00", timezone: "UTC" }
     };
   });
+}
+
+test("home fits upcoming broadcasts beside the shelves and opens decade feeds", async ({ page }, testInfo) => {
+  let detailModuleRequests = 0;
+  const decadeRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("AnimeDetailPanel.tsx")) detailModuleRequests += 1;
+    const url = new URL(request.url());
+    if (url.pathname === "/v1/anime" && url.searchParams.has("start_date")) {
+      decadeRequests.push(url.searchParams.toString());
+    }
+  });
+  const airingData = nextBroadcasts().map((anime) => ({
+    ...anime,
+    images: { jpg: {
+      image_url: `https://cdn.myanimelist.net/images/anime/home-test-${anime.mal_id}.jpg`,
+      large_image_url: ""
+    } }
+  }));
+  await page.route("https://cdn.myanimelist.net/images/anime/home-test-*.jpg", (route) => route.fulfill({
+    contentType: "image/svg+xml",
+    body: '<svg xmlns="http://www.w3.org/2000/svg" width="140" height="200"><rect width="140" height="200" fill="#456"/></svg>'
+  }));
   await page.route("**/v1/seasons/now?*", (route) => route.fulfill({ json: {
     data: airingData, pagination: { current_page: 1, has_next_page: false }
   } }));
@@ -57,6 +71,11 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Continue watching" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Current season" })).toBeVisible();
+  const season = page.locator(".home-section").filter({ has: page.getByRole("heading", { name: "Current season", exact: true }) });
+  await expect(season.locator('img[loading="eager"][fetchpriority="high"]')).toHaveCount(2);
+  await expect(season.locator('img[loading="lazy"]')).toHaveCount(8);
+  await expect(season.getByRole("button", { name: "View Next broadcast test 1", exact: true })).toBeVisible();
+  expect(decadeRequests).toHaveLength(0);
   await expect(page.locator(".home-page").getByRole("link", { name: /^Browse/ })).toHaveCount(0);
   const airing = page.locator(".home-airing-rail");
   await expect(airing.getByRole("heading", { name: "Airing next" })).toBeVisible();
@@ -87,7 +106,6 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
   }
   await expect(page.getByRole("heading", { name: "Coming soon" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Latest headlines" })).toHaveCount(0);
-  expect(decadeRequests).toHaveLength(0);
   for (const decade of ["2020s", "2010s", "2000s", "1990s"]) {
     const shelf = page.locator(".home-decade").filter({ has: page.getByRole("heading", { name: `Top anime of the ${decade}` }) });
     await shelf.scrollIntoViewIfNeeded();
@@ -96,6 +114,7 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
   }
   expect(decadeRequests).toHaveLength(8);
   expect(new Set(decadeRequests).size).toBe(8);
+  await expect(page.locator('img[fetchpriority="high"]')).toHaveCount(2);
 
   const nineties = page.locator(".home-decade").filter({ has: page.getByRole("heading", { name: "Top anime of the 1990s" }) });
   const before = await nineties.locator(".home-season-tile > div > button").allTextContents();
@@ -114,3 +133,42 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
   await expect(page).toHaveURL(/\/discover\?feed=1990s$/);
   await expect(moreCategories).toHaveValue("1990s");
 });
+
+for (const state of ["scheduled", "empty"] as const) {
+  test(`Home preserves shelf position when the airing placeholder becomes ${state}`, async ({ page }, testInfo) => {
+    if (testInfo.project.name === "desktop-chromium") {
+      await page.setViewportSize({ width: 800, height: 900 });
+    }
+    let releaseCatalog!: () => void;
+    const catalogReady = new Promise<void>((resolve) => { releaseCatalog = resolve; });
+    const data = state === "scheduled"
+      ? nextBroadcasts().slice(0, 1).map((anime) => ({ ...anime, title_english: "Scheduled English title" }))
+      : [];
+    await page.route("**/api/auth/session", (route) => route.fulfill({ json: { user: null } }));
+    for (const endpoint of ["**/v1/seasons/now?*", "**/v1/top/anime?*"]) {
+      await page.route(endpoint, async (route) => {
+        await catalogReady;
+        await route.fulfill({ json: { data, pagination: { current_page: 1, has_next_page: false } } });
+      });
+    }
+    await page.route("**/v1/anime?*", (route) => route.fulfill({ json: {
+      data: [], pagination: { current_page: 1, has_next_page: false }
+    } }));
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const placeholder = page.getByRole("status").filter({ hasText: "Loading airing schedule" });
+    await expect(placeholder).toBeVisible();
+    const feed = page.locator(".home-feed");
+    const before = (await feed.boundingBox())!.y;
+    releaseCatalog();
+    await expect(placeholder).toHaveCount(0);
+    await expect(page.locator(state === "scheduled" ? ".airing-next-list" : ".schedule-empty")).toBeVisible();
+    expect(Math.abs((await feed.boundingBox())!.y - before)).toBeLessThanOrEqual(1);
+    if (state === "scheduled") {
+      const poster = page.getByRole("button", { name: "View Scheduled English title", exact: true });
+      await expect(poster.locator(".poster-placeholder")).toBeVisible();
+      await poster.focus();
+      await page.keyboard.press("Enter");
+      await expect(page.getByRole("dialog", { name: "Scheduled English title", exact: true })).toBeVisible();
+    }
+  });
+}

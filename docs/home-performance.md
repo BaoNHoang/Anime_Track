@@ -44,6 +44,38 @@ samples and inspect their request counts before attributing a change to code.
 The elevated lab LCP and CLS merit investigation, but a bundle-size reduction
 alone is not proof that either metric improved.
 
+## Home loading fixes
+
+The P1 audit at `daa59b5` reproduced a mobile layout shift when the five-row
+airing placeholder became a horizontal strip. A trace attributed a 302 px
+upward movement of the Home feed to that transition. The placeholder now shares
+the real airing list's responsive geometry, and partial, empty, and error states
+reserve the same rail footprint on mobile and tablet. Unused compact news and
+ranking skeleton variants were removed; search and favorite skeletons remain.
+
+The first two Current season posters now use eager loading and high fetch
+priority through the existing image component. Other posters remain lazy. These
+two posters can sit below recommendations for signed-in users, so the policy is
+bounded rather than a guarantee that they are always above the fold.
+
+Same three-run cold mobile profile, before and after the two loading fixes:
+
+| Measure | P1 audit | Loading fixes |
+| --- | ---: | ---: |
+| First contentful paint | 2,144 ms | 1,588 ms |
+| Largest contentful paint | 4,124 ms | 3,884 ms |
+| Cumulative layout shift | 0.241 | 0.010 |
+| Long-task blocking, TBT-like proxy | 329 ms | 74 ms |
+| Discover navigation readiness | 922 ms | 416 ms |
+| Home catalog requests | 3 | 3 |
+
+The deterministic delayed-response browser checks also confirm stable shelf
+position through a partial or empty airing response on mobile and tablet.
+All three new lab samples reported CLS 0.010. LCP still needs improvement;
+the smaller LCP change and other timing differences are not proof of an isolated
+image-priority benefit because catalog, image, CPU, and network timing vary.
+These results do not establish real-user INP or production Core Web Vitals.
+
 ## Decade-shelf request check
 
 The desktop and Pixel 7 browser checks now count the four shelves' catalog
