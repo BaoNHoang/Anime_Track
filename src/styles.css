@@ -2467,12 +2467,15 @@ h3,
   background: var(--surface-muted);
 }
 
-.airing-next-list {
+.airing-next-list,
+.compact-skeleton--airing {
   display: grid;
+  align-content: start;
   gap: 8px;
 }
 
-.airing-next-item {
+.airing-next-item,
+.compact-skeleton--airing .compact-skeleton__item {
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr);
   min-width: 0;
@@ -2493,7 +2496,8 @@ h3,
   background: var(--surface-raised);
 }
 
-.airing-next-item__poster {
+.airing-next-item__poster,
+.compact-skeleton--airing .compact-skeleton__image {
   display: block;
   width: 52px;
   min-height: 78px;
@@ -3252,7 +3256,7 @@ h3,
   margin-top: 7px;
 }
 
-.compact-skeleton {
+.compact-skeleton:where(:not(.compact-skeleton--airing)) {
   display: grid;
   gap: 10px;
 }
@@ -3295,53 +3299,6 @@ h3,
 .compact-skeleton__action {
   width: 24px;
   height: 8px;
-}
-
-.compact-skeleton--news {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 18px;
-}
-
-.compact-skeleton--news .compact-skeleton__item {
-  grid-template-columns: 76px minmax(0, 1fr) 30px;
-  min-height: 76px;
-  border-width: 0 0 1px;
-  border-radius: 0;
-  padding: 8px;
-}
-
-.compact-skeleton--news .compact-skeleton__image {
-  width: 76px;
-  height: 58px;
-  border-radius: 4px;
-}
-
-.compact-skeleton--ranking {
-  gap: 0;
-}
-
-.compact-skeleton--ranking .compact-skeleton__item {
-  grid-template-columns: 24px 44px minmax(0, 1fr);
-  min-height: 76px;
-  border-width: 0 0 1px;
-  border-radius: 0;
-  background: transparent;
-}
-
-.compact-skeleton__rank {
-  width: 16px;
-  height: 18px;
-  margin: auto;
-}
-
-.compact-skeleton--ranking .compact-skeleton__image {
-  width: 44px;
-  height: 58px;
-  border-radius: 4px;
-}
-
-.compact-skeleton--ranking .compact-skeleton__action {
-  display: none;
 }
 
 .compact-skeleton--search {
@@ -5661,13 +5618,19 @@ h3,
     padding-right: 0;
   }
 
-  .airing-next-list {
+  .airing-next-list,
+  .compact-skeleton--airing {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-airing-rail > :is(.airing-next-list, .schedule-empty, .error-state) {
+    min-height: 256px;
   }
 }
 
 @media (max-width: 580px) {
-  .airing-next-list {
+  .airing-next-list,
+  .compact-skeleton--airing {
     grid-template-columns: none;
     grid-auto-columns: minmax(220px, 78vw);
     grid-auto-flow: column;
@@ -5679,6 +5642,10 @@ h3,
 
   .airing-next-item {
     scroll-snap-align: start;
+  }
+
+  .home-airing-rail > :is(.airing-next-list, .schedule-empty, .error-state) {
+    min-height: 88px;
   }
 }
 
@@ -6256,10 +6223,6 @@ h3,
 
   .notification-item__copy strong {
     white-space: normal;
-  }
-
-  .compact-skeleton--news {
-    grid-template-columns: 1fr;
   }
 
   .route-skeleton {

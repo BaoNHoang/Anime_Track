@@ -1,16 +1,7 @@
 import { expect, test } from "@playwright/test";
 
-test("home fits upcoming broadcasts beside the shelves and opens decade feeds", async ({ page }, testInfo) => {
-  let detailModuleRequests = 0;
-  const decadeRequests: string[] = [];
-  page.on("request", (request) => {
-    if (request.url().includes("AnimeDetailPanel.tsx")) detailModuleRequests += 1;
-    const url = new URL(request.url());
-    if (url.pathname === "/v1/anime" && url.searchParams.has("start_date")) {
-      decadeRequests.push(url.searchParams.toString());
-    }
-  });
-  const airingData = Array.from({ length: 12 }, (_, index) => {
+function nextBroadcasts() {
+  return Array.from({ length: 12 }, (_, index) => {
     const nextDay = new Date(Date.now() + (index + 1) * 24 * 60 * 60 * 1000);
     const broadcastDay = new Intl.DateTimeFormat("en-US", {
       weekday: "long", timeZone: "UTC"
@@ -23,6 +14,19 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
       broadcast: { day: broadcastDay, time: "12:00", timezone: "UTC" }
     };
   });
+}
+
+test("home fits upcoming broadcasts beside the shelves and opens decade feeds", async ({ page }, testInfo) => {
+  let detailModuleRequests = 0;
+  const decadeRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("AnimeDetailPanel.tsx")) detailModuleRequests += 1;
+    const url = new URL(request.url());
+    if (url.pathname === "/v1/anime" && url.searchParams.has("start_date")) {
+      decadeRequests.push(url.searchParams.toString());
+    }
+  });
+  const airingData = nextBroadcasts();
   await page.route("**/v1/seasons/now?*", (route) => route.fulfill({ json: {
     data: airingData, pagination: { current_page: 1, has_next_page: false }
   } }));
@@ -114,3 +118,33 @@ test("home fits upcoming broadcasts beside the shelves and opens decade feeds", 
   await expect(page).toHaveURL(/\/discover\?feed=1990s$/);
   await expect(moreCategories).toHaveValue("1990s");
 });
+
+for (const state of ["scheduled", "empty"] as const) {
+  test(`Home preserves shelf position when the airing placeholder becomes ${state}`, async ({ page }, testInfo) => {
+    if (testInfo.project.name === "desktop-chromium") {
+      await page.setViewportSize({ width: 800, height: 900 });
+    }
+    let releaseCatalog!: () => void;
+    const catalogReady = new Promise<void>((resolve) => { releaseCatalog = resolve; });
+    const data = state === "scheduled" ? nextBroadcasts().slice(0, 1) : [];
+    await page.route("**/api/auth/session", (route) => route.fulfill({ json: { user: null } }));
+    for (const endpoint of ["**/v1/seasons/now?*", "**/v1/top/anime?*"]) {
+      await page.route(endpoint, async (route) => {
+        await catalogReady;
+        await route.fulfill({ json: { data, pagination: { current_page: 1, has_next_page: false } } });
+      });
+    }
+    await page.route("**/v1/anime?*", (route) => route.fulfill({ json: {
+      data: [], pagination: { current_page: 1, has_next_page: false }
+    } }));
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const placeholder = page.getByRole("status").filter({ hasText: "Loading airing schedule" });
+    await expect(placeholder).toBeVisible();
+    const feed = page.locator(".home-feed");
+    const before = (await feed.boundingBox())!.y;
+    releaseCatalog();
+    await expect(placeholder).toHaveCount(0);
+    await expect(page.locator(state === "scheduled" ? ".airing-next-list" : ".schedule-empty")).toBeVisible();
+    expect(Math.abs((await feed.boundingBox())!.y - before)).toBeLessThanOrEqual(1);
+  });
+}
