@@ -34,6 +34,10 @@ test("previews, applies, and undoes a library import", async ({ page }) => {
   await page.route("**/api/library/*", (route) => route.fulfill({ json: {} }));
 
   await page.goto("/settings", { waitUntil: "domcontentloaded" });
+  const libraryTools = page.getByRole("navigation", { name: "Library tools" });
+  const importTab = libraryTools.getByRole("link", { name: "Import / export" });
+  await expect(importTab).toHaveAttribute("aria-current", "page");
+  await expect(importTab).toBeInViewport();
   await expect(page.getByRole("button", { name: "Choose import file" })).toBeVisible();
   await page.locator('input[type="file"]').setInputFiles({
     name: "example.json", mimeType: "application/json",
@@ -47,4 +51,7 @@ test("previews, applies, and undoes a library import", async ({ page }) => {
   await expect(page.getByText("Imported 1 new")).toBeVisible();
   await page.getByRole("button", { name: "Undo last import" }).click();
   await expect(page.getByText("Import undone.")).toBeVisible();
+  await libraryTools.getByRole("link", { name: "Library", exact: true }).click();
+  await expect(page).toHaveURL(/\/library$/);
+  await expect(libraryTools.getByRole("link", { name: "Library", exact: true })).toHaveAttribute("aria-current", "page");
 });
