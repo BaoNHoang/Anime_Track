@@ -3607,11 +3607,6 @@ h3,
   background: var(--warning);
 }
 
-.watch-planner {
-  gap: 28px;
-}
-
-.watch-planner__header,
 .watch-planner__controls,
 .watch-planner__overview,
 .watch-planner__continue > div:first-child {
@@ -3621,23 +3616,16 @@ h3,
   gap: 18px;
 }
 
-.watch-planner__header h1,
-.watch-planner__header p,
 .watch-planner__continue h2,
 .watch-planner__continue p {
   margin: 0;
 }
 
-.watch-planner__header p,
 .watch-planner__continue p,
 .watch-planner__overview p,
 .watch-planner__day > p {
   color: var(--muted);
   font-size: 12px;
-}
-
-.watch-planner__header p {
-  margin-top: 7px;
 }
 
 .watch-planner__pick {
@@ -5650,7 +5638,6 @@ h3,
 }
 
 @media (max-width: 720px) {
-  .watch-planner__header,
   .watch-planner__continue > div:first-child {
     align-items: flex-start;
     flex-direction: column;

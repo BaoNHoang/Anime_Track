@@ -54,8 +54,8 @@ export function CustomListsPage() {
     }
   };
   return <div className="page-stack">
-    <h1>Custom lists</h1><LibraryTools />
-    <p>Organize titles from your library. Lists sync with your account. A list disappears when its last title is removed.</p>
+    <LibraryTools />
+    <h1 className="visually-hidden">Custom lists</h1>
     {!isReady ? <p role="status">Loading your library…</p> : <>
       <div className="query-panel library-tool-form">
         <label>List name <input maxLength={80} value={name} onChange={(e) => setName(e.target.value)} /></label>
