@@ -30,7 +30,6 @@ import { usePwaInstall } from "../../hooks/usePwaInstall";
 import { useTheme } from "../../app/providers/useTheme";
 import { useTracker } from "../../app/providers/useTracker";
 import { useWatchProvider } from "../../app/providers/useWatchProvider";
-import { LibraryTools } from "../library/LibraryTools";
 import { getStreamingRegionLabel, STREAMING_REGIONS } from "../../domain/watch/providers";
 import { enrichTrackedAnimeFromTenrai } from "../../services/tenrai/trackerEnrichment";
 import {
@@ -262,7 +261,6 @@ export function SettingsPage() {
   return (
     <div className="page-stack settings-page">
       <h1 className="visually-hidden">Settings</h1>
-      <LibraryTools />
 
       <section className="settings-grid">
         <article className="settings-card">

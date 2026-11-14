@@ -64,20 +64,9 @@ export function WatchCalendarPage() {
   }
 
   return (
-    <div className="page-stack watch-planner">
-      <header className="watch-planner__header">
-        <div>
-          <h1>Watch planner</h1>
-          <p>
-            Your next seven days of anime, in {Intl.DateTimeFormat().resolvedOptions().timeZone}.
-          </p>
-        </div>
-        <button className="button" onClick={pickForTonight} disabled={!watchable.length}>
-          <Shuffle size={16} /> Pick something for tonight
-        </button>
-      </header>
-
+    <div className="page-stack">
       <LibraryTools />
+      <h1 className="visually-hidden">Watch calendar</h1>
 
       {pick && (
         <section className="watch-planner__pick" aria-live="polite">
@@ -117,11 +106,14 @@ export function WatchCalendarPage() {
         <button className="button button--ghost" onClick={() => setOffset((value) => value + 7)}>
           Next week <ChevronRight size={16} />
         </button>
+        <button className="button" onClick={pickForTonight} disabled={!watchable.length}>
+          <Shuffle size={16} /> Pick something for tonight
+        </button>
         <span>{dayHeading.format(today)} – {dayHeading.format(days[6])}</span>
       </div>
 
       {!isReady ? (
-        <p role="status">Loading your watch planner…</p>
+        <p role="status">Loading your watch calendar…</p>
       ) : (
         <section className="watch-planner__week" aria-label="Seven day watch plan">
           {days.map((day, index) => {

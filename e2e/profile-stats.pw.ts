@@ -64,6 +64,7 @@ test("profile counts open matching library filters", async ({ page }) => {
   const libraryLinks = toolbar.getByRole("navigation", { name: "Library tools" });
   const syncButton = toolbar.getByRole("button", { name: "Sync now" });
   await expect(libraryLinks).toBeVisible();
+  await expect(libraryLinks.getByRole("link")).toHaveText(["Library", "Watch calendar", "Custom lists", "For you"]);
   await expect(toolbar).toHaveCSS("display", "grid");
   // Local-only mode has no cloud Sync button; check alignment when account sync is enabled.
   if (await syncButton.count()) {

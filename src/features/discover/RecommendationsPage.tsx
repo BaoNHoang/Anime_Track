@@ -36,8 +36,8 @@ export function RecommendationsPage() {
   }, [items, popular.data, season.data, facet.data, user, configured, profile, variety, page]);
 
   return <div className="page-stack">
-    <h1>For you</h1>
     <LibraryTools />
+    <h1 className="visually-hidden">For you</h1>
     {popular.isPending && <p role="status">Finding recommendations…</p>}
     {popular.isError && <button className="button" onClick={() => void popular.refetch()}>Retry recommendations</button>}
     {facet.isFetching && genre ? <p role="status">Finding more {genre} anime…</p> : null}

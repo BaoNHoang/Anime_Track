@@ -15,7 +15,7 @@ export function LibraryTools() {
 
   return <nav className="library-tabs" aria-label="Library tools" ref={navigation}>
     {[["/library", "Library"], ["/calendar", "Watch calendar"], ["/lists", "Custom lists"],
-      ["/recommendations", "For you"], ["/settings", "Import / export"]].map(([to, label]) =>
+      ["/recommendations", "For you"]].map(([to, label]) =>
       <NavLink className="library-tabs__tab" end key={to} to={to}>{label}</NavLink>)}
   </nav>;
 }
