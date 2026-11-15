@@ -9,7 +9,7 @@ import { SectionHeader } from "../../components/SectionHeader";
 import type { Anime } from "../../domain/anime/types";
 import { recommendationGenres } from "../../domain/recommendations/recommendationGenres";
 import { sampleRecommendations } from "../../domain/recommendations/sampleRecommendations";
-import { useAnimeFacet } from "../../hooks/useAnimeQueries";
+import { useAnimeGenre } from "../../hooks/useAnimeQueries";
 import { useLocalProfile } from "../../hooks/useLocalProfile";
 
 export function Recommendations({ candidates }: { candidates: Anime[] }) {
@@ -20,17 +20,15 @@ export function Recommendations({ candidates }: { candidates: Anime[] }) {
   const [visitSeed] = useState(() => Math.floor(Math.random() * 2 ** 32));
   const genres = useMemo(() => recommendationGenres(items), [items]);
   const genre = genres[visitSeed % genres.length];
-  const facet = useAnimeFacet(isReady && genre ? {
-    kind: "genre", label: genre, key: `genre:${genre.toLocaleLowerCase()}`
-  } : undefined);
+  const genreFeed = useAnimeGenre(isReady ? genre : undefined);
   const recommendations = useMemo(
     () => sampleRecommendations(
       items,
-      [...candidates, ...(facet.data?.items ?? [])],
+      [...candidates, ...(genreFeed.data?.items ?? [])],
       (user ?? (!configured ? profile : undefined))?.favorites.studios ?? [],
       visitSeed
     ),
-    [candidates, configured, facet.data?.items, items, profile, user, visitSeed]
+    [candidates, configured, genreFeed.data?.items, items, profile, user, visitSeed]
   );
 
   if (!isReady || (!items.length && configured && !user)) return null;

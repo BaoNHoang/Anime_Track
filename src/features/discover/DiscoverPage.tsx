@@ -1,5 +1,5 @@
-import { AnimeMap, ChevronLeft, ChevronRight, Search, X } from "../../components/OwnedIcons";
-import { lazy, Suspense, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Search, X } from "../../components/OwnedIcons";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnimeCard } from "../../components/AnimeCard";
 import { ErrorState } from "../../components/ErrorState";
@@ -9,10 +9,6 @@ import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { useTracker } from "../../app/providers/useTracker";
 import { LibraryTools } from "../library/LibraryTools";
 import type { AnimeBrowsePreset } from "../../services/tenrai/animeService";
-
-const AnimeConnectionMap = lazy(() => import("./AnimeConnectionMap").then((module) => ({
-  default: module.AnimeConnectionMap
-})));
 
 type Sort = "default" | "score" | "popularity" | "title" | "year";
 
@@ -35,18 +31,6 @@ const moreFeeds = feeds.slice(3);
 
 export function DiscoverPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const view = searchParams.get("view") === "map" ? "map" : "list";
-  const changeView = (nextView: "list" | "map") => {
-    if (nextView === view) return;
-    const next = new URLSearchParams(searchParams);
-    if (nextView === "map") {
-      next.set("view", "map");
-      next.set("mapSeed", String(Math.floor(Math.random() * 1_000_000) + 1));
-    } else {
-      for (const key of ["view", "anime", "facet", "bridge", "mapPage", "mapSeed", "mapFilter"]) next.delete(key);
-    }
-    setSearchParams(next);
-  };
   const urlQuery = searchParams.get("q") ?? "";
   const [queryState, setQueryState] = useState(() => ({
     source: urlQuery,
@@ -68,8 +52,8 @@ export function DiscoverPage() {
   const [pageState, setPageState] = useState(() => ({ source: urlQuery, value: 1 }));
   const page = pageState.source === urlQuery ? pageState.value : 1;
   const debouncedQuery = useDebouncedValue(query.trim(), 500);
-  const search = useAnimeSearch(debouncedQuery, page, view === "list");
-  const browse = useAnimeBrowse(feed, page, view === "list");
+  const search = useAnimeSearch(debouncedQuery, page);
+  const browse = useAnimeBrowse(feed, page);
   const isSearching = debouncedQuery.length >= 2;
   const result = isSearching ? search : browse;
 
@@ -169,13 +153,6 @@ export function DiscoverPage() {
     <div className="page-stack">
       <h1 className="visually-hidden">Discover anime</h1>
       <LibraryTools />
-
-      <div className="discover-view-switch" role="group" aria-label="Discover view">
-        <button type="button" className={view === "list" ? "is-active" : ""} aria-pressed={view === "list"} onClick={() => changeView("list")}>Browse list</button>
-        <button type="button" className={view === "map" ? "is-active" : ""} aria-pressed={view === "map"} onClick={() => changeView("map")}><AnimeMap size={16} /> Anime map</button>
-      </div>
-
-      {view === "map" ? <Suspense fallback={<div className="anime-map__message" role="status">Opening the anime map…</div>}><AnimeConnectionMap currentResults={result.data?.items} /></Suspense> : <>
 
       <section className="query-panel discover-query-panel">
         <div className="search-box">
@@ -348,8 +325,6 @@ export function DiscoverPage() {
           </nav>
         )}
       </section>
-
-      </>}
 
     </div>
   );

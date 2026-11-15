@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Anime } from "../anime/types.js";
 import type { TrackedAnime } from "../tracker/types.js";
-import { sampleRecommendations } from "./sampleRecommendations.js";
+import { sampleRecommendations, shuffleRecommendations } from "./sampleRecommendations.js";
 
 function anime(id: number): Anime {
   return {
@@ -16,6 +16,15 @@ const library: TrackedAnime[] = [{
 }];
 
 describe("Home recommendation sampling", () => {
+  it("shuffles the recommendation page repeatably without changing its ranked source", () => {
+    const source = [1, 2, 3, 4, 5, 6];
+    const shuffled = shuffleRecommendations(source, 7);
+    expect(shuffled).toEqual(shuffleRecommendations(source, 7));
+    expect(shuffled).not.toEqual(shuffleRecommendations(source, 8));
+    expect([...shuffled].sort()).toEqual(source);
+    expect(source).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+
   it("includes genre-feed candidates while excluding tracked titles", () => {
     const picks = sampleRecommendations(library, [anime(1), anime(2), anime(3)], [], 7);
     expect(picks.map(({ anime: item }) => item.id).sort()).toEqual([2, 3]);

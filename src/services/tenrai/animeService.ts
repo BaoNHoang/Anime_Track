@@ -7,16 +7,14 @@ import type {
   TenraiRelationResponse
 } from "./dto";
 import { mapTenraiAnime } from "./mapper";
-import type { ConnectionFacet } from "../../domain/anime/connectionMap";
 
 const SHORT_LIST_CACHE_MS = 15 * 60 * 1000;
 const POPULAR_LIST_CACHE_MS = 6 * 60 * 60 * 1000;
 
-interface CatalogFacetResponse {
+interface CatalogGenreResponse {
   data: Array<{
     mal_id: number;
     name?: string;
-    titles?: Array<{ type?: string; title?: string }>;
   }>;
 }
 
@@ -191,32 +189,28 @@ export async function getTopDecadeAnime(
   return dedupeAnimeById(pages.flatMap((page) => page.data.map(mapTenraiAnime))).slice(0, 50);
 }
 
-export async function browseAnimeByFacet(
-  facet: Pick<ConnectionFacet, "kind" | "label">,
+export async function browseAnimeByGenre(
+  genre: string,
   page = 1,
   signal?: AbortSignal
 ): Promise<AnimePage> {
-  const name = facet.label.trim();
+  const name = genre.trim();
   if (!name || !Number.isSafeInteger(page) || page < 1 || page > 1000) {
-    throw new Error("Invalid anime map request.");
+    throw new Error("Invalid anime genre request.");
   }
-  const lookup = facet.kind === "genre"
-    ? "/genres/anime"
-    : `/producers?${new URLSearchParams({ q: name, limit: "10" })}`;
-  const list = await tenraiGet<CatalogFacetResponse>(lookup, {
+  const list = await tenraiGet<CatalogGenreResponse>("/genres/anime", {
     signal,
     cacheMs: 24 * 60 * 60 * 1000,
     cacheStorage: "local"
   });
   const match = list.data.find((item) =>
     Number.isSafeInteger(item.mal_id) && item.mal_id > 0 &&
-    (item.name ?? item.titles?.find((title) => title.type === "Default")?.title ??
-      item.titles?.[0]?.title)?.toLocaleLowerCase() === name.toLocaleLowerCase()
+    item.name?.toLocaleLowerCase() === name.toLocaleLowerCase()
   );
-  if (!match) throw new Error("This studio or genre is not available in the catalog.");
+  if (!match) throw new Error("This genre is not available in the catalog.");
 
   const params = new URLSearchParams({
-    [facet.kind === "genre" ? "genres" : "producers"]: String(match.mal_id),
+    genres: String(match.mal_id),
     limit: "24",
     sfw: "true",
     order_by: "popularity",

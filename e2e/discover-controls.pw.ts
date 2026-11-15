@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("Discover keeps extra categories and filters available without crowding the page", async ({ page }) => {
   await page.goto("/discover?feed=1990s", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("group", { name: "Discover view" })).toHaveCount(0);
 
   const moreCategories = page.getByRole("combobox", { name: "More browse categories" });
   const moreFilters = page.getByRole("button", { name: "More filters" });

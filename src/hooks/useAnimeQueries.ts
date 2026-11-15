@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getAnimeById,
   browseAnime,
-  browseAnimeByFacet,
+  browseAnimeByGenre,
   getCurrentSeason,
   getTopAnimeCacheMs,
   getTopAnime,
@@ -11,7 +11,6 @@ import {
   type AnimeDecade,
   type AnimeBrowsePreset
 } from "../services/tenrai/animeService";
-import type { ConnectionFacet } from "../domain/anime/connectionMap";
 
 const DISCOVERY_QUERY_GC_MS = 30 * 60 * 1000;
 
@@ -40,22 +39,21 @@ export function useTopAnime(
   });
 }
 
-export function useAnimeSearch(query: string, page = 1, enabled = true) {
+export function useAnimeSearch(query: string, page = 1) {
   return useQuery({
     queryKey: ["anime", "search", query, page],
     queryFn: ({ signal }) => searchAnime(query, page, signal),
-    enabled: enabled && query.trim().length >= 2,
+    enabled: query.trim().length >= 2,
     staleTime: 30 * 60 * 1000,
     gcTime: DISCOVERY_QUERY_GC_MS,
     placeholderData: (previousData) => previousData
   });
 }
 
-export function useAnimeBrowse(preset: AnimeBrowsePreset, page = 1, enabled = true) {
+export function useAnimeBrowse(preset: AnimeBrowsePreset, page = 1) {
   return useQuery({
     queryKey: ["anime", "browse", preset, page],
     queryFn: ({ signal }) => browseAnime(preset, page, signal),
-    enabled,
     staleTime: 6 * 60 * 60 * 1000,
     gcTime: DISCOVERY_QUERY_GC_MS,
     placeholderData: (previousData) => previousData
@@ -72,11 +70,11 @@ export function useTopDecadeAnime(decade: AnimeDecade, enabled = true) {
   });
 }
 
-export function useAnimeFacet(facet?: ConnectionFacet, page = 1) {
+export function useAnimeGenre(genre?: string, page = 1) {
   return useQuery({
-    queryKey: ["anime", "facet", facet?.key, page],
-    queryFn: ({ signal }) => browseAnimeByFacet(facet as ConnectionFacet, page, signal),
-    enabled: Boolean(facet),
+    queryKey: ["anime", "genre", genre?.toLocaleLowerCase(), page],
+    queryFn: ({ signal }) => browseAnimeByGenre(genre as string, page, signal),
+    enabled: Boolean(genre),
     staleTime: 6 * 60 * 60 * 1000,
     gcTime: DISCOVERY_QUERY_GC_MS
   });
