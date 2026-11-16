@@ -24,6 +24,7 @@ test("selects themed avatars and keeps them after reload", async ({ page }) => {
   const mikasa = group.getByRole("button", { name: "Use Mikasa Ackerman profile picture" });
   await expect(eren).toBeVisible();
   await expect(mikasa).toBeVisible();
+  await eren.scrollIntoViewIfNeeded();
   await expect.poll(() => eren.locator("img").evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
 
   await mikasa.click();
@@ -35,6 +36,7 @@ test("selects themed avatars and keeps them after reload", async ({ page }) => {
   const mushoku = page.getByRole("group", { name: "Mushoku Tensei profile pictures" });
   const sylphiette = mushoku.getByRole("button", { name: "Use Sylphiette profile picture" });
   await expect(sylphiette).toBeVisible();
+  await sylphiette.scrollIntoViewIfNeeded();
   await expect.poll(() => sylphiette.locator("img").evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
   await sylphiette.click();
   await expect(sylphiette).toHaveAttribute("aria-pressed", "true");

@@ -13,8 +13,8 @@ implementation decisions and history in `docs/engineering-history.md`.
   green, sky blue, and warm yellow only where status meaning requires them.
 - Use green, blue, and gold only for meaningful status categories.
 - Keep corners at 8px or less and rely on borders before shadows.
-- Use Yu Gothic UI or Meiryo UI for headings, with Aptos or Segoe UI Variable
-  for controls and body copy.
+- Use self-hosted Manrope Variable for headings, body copy, controls, and code
+  text, with weights from 200 to 800 and a sans-serif fallback for missing glyphs.
 
 ## Layout
 
