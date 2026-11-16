@@ -6,6 +6,7 @@ import {
   APP_UPDATE_INTERVAL_MS,
   recordAppUpdateCheck
 } from "./services/pwa/updateStatus";
+import "@fontsource-variable/manrope";
 import "./styles.css";
 
 const updateServiceWorker = registerSW({

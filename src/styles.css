@@ -1,11 +1,11 @@
 :root {
   color-scheme: light;
-  font-family: Aptos, "Segoe UI Variable", "Segoe UI", sans-serif;
+  --font-family: "Manrope Variable", Manrope, sans-serif;
+  font-family: var(--font-family);
   color: #171822;
   background: #f0f1f6;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --font-display: "Yu Gothic UI", "Meiryo UI", Aptos, sans-serif;
   --canvas: #f0f1f6;
   --surface: #fbfbfe;
   --surface-raised: #ffffff;
@@ -301,8 +301,16 @@ body.panel-open {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: inherit;
 }
 
 button,
@@ -339,13 +347,6 @@ h2,
 h3,
 p {
   margin-top: 0;
-}
-
-h1,
-h2,
-h3,
-.brand strong {
-  font-family: var(--font-display);
 }
 
 :focus-visible {
@@ -2105,7 +2106,7 @@ h3,
   color: #ffffff;
   background: rgba(10, 12, 20, 0.78);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 800;
 }
 
 .profile-favorites__items img,
@@ -2122,7 +2123,7 @@ h3,
   place-items: center;
   color: var(--muted);
   font-size: 24px;
-  font-weight: 850;
+  font-weight: 800;
 }
 
 .profile-favorites__items strong {
@@ -2302,7 +2303,7 @@ h3,
   border-radius: 5px;
   color: var(--muted);
   background: var(--surface-muted);
-  font-weight: 850;
+  font-weight: 800;
 }
 
 .favorite-result-image img {
@@ -4038,7 +4039,6 @@ h3,
 }
 
 .account-auth__rail strong {
-  font-family: var(--font-display);
   font-size: 22px;
 }
 
@@ -4988,7 +4988,7 @@ h3,
 .year-review__header > div:first-child > span {
   color: var(--accent);
   font-size: 9px;
-  font-weight: 850;
+  font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -5033,7 +5033,6 @@ h3,
 }
 
 .year-review__lead strong {
-  font-family: var(--font-display);
   font-size: 28px;
   line-height: 1;
 }
@@ -5146,8 +5145,7 @@ h3,
 
 .year-review__favorites section > div > span {
   color: var(--accent);
-  font-family: var(--font-display);
-  font-weight: 850;
+  font-weight: 800;
 }
 
 .year-review__favorites strong {
