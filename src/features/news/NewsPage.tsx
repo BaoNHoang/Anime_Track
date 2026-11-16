@@ -39,20 +39,7 @@ export function NewsPage() {
 
       {leadStory ? (
         <>
-          <section className="news-intro" aria-labelledby="news-heading">
-            <div>
-              <h2 id="news-heading">The stories shaping this season.</h2>
-              <p>Fresh announcements, casting updates, and moments worth putting on your watchlist.</p>
-            </div>
-            {news.articlesRefreshing && (
-              <span className="section-status section-status--skeleton" role="status">
-                <span className="visually-hidden">Refreshing stories</span>
-                <span className="skeleton" aria-hidden="true" />
-              </span>
-            )}
-          </section>
-
-          <section className="news-lead-grid" aria-label="Latest anime stories">
+          <section className="news-lead-grid" aria-label="Latest anime stories" aria-busy={news.articlesRefreshing}>
             <article className="news-lead">
               <ImageWithFallback
                 src={leadStory.imageUrl}
@@ -62,7 +49,7 @@ export function NewsPage() {
               />
               <div className="news-lead__body">
                 <span className="news-label">Lead story · {leadStory.animeTitle}</span>
-                <h3>{leadStory.title}</h3>
+                <h2>{leadStory.title}</h2>
                 <p>{leadStory.excerpt}</p>
                 <div className="news-lead__meta">
                   <span>By {leadStory.author}</span>
