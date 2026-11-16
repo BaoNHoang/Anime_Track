@@ -154,7 +154,7 @@ export function DiscoverPage() {
       <h1 className="visually-hidden">Discover anime</h1>
       <LibraryTools />
 
-      <section className="query-panel discover-query-panel">
+      <section className="query-panel query-panel--compact">
         <div className="search-box">
           <Search size={20} />
           <input

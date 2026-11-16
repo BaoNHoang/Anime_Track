@@ -231,7 +231,7 @@ export function LibraryPage() {
       </div>
       <h1 className="visually-hidden">Library</h1>
 
-      <section className="query-panel" id="library-results">
+      <section className="query-panel query-panel--compact" id="library-results">
         <div className="search-box">
           <Search size={18} />
           <input
