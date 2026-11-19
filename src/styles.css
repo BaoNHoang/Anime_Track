@@ -1835,6 +1835,10 @@ p {
   min-width: 0;
 }
 
+.dashboard-workspace .section-header h2 {
+  font-size: 16px;
+}
+
 .dashboard-new-episodes {
   padding-left: 24px;
   border-left: 1px solid var(--border);
@@ -1889,17 +1893,18 @@ p {
 
 .profile-release__copy strong {
   overflow: hidden;
-  font-size: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.activity-item__watch,
 .profile-release__copy span,
 .profile-release__copy time {
   color: var(--muted);
   font-size: 12px;
 }
 
+.activity-item__copy time,
 .profile-release__copy time {
   font-size: 11px;
 }
@@ -1968,24 +1973,25 @@ p {
   text-align: left;
 }
 
+.activity-item__copy strong,
+.profile-release__copy strong {
+  font-size: 13px;
+}
+
 .activity-item__copy strong {
   display: -webkit-box;
   overflow: hidden;
-  font-size: 15px;
   line-height: 1.45;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 
 .activity-item__watch {
-  color: var(--muted);
-  font-size: 13px;
   line-height: 1.4;
 }
 
 .activity-item__copy time {
   color: var(--muted);
-  font-size: 12px;
   font-weight: 700;
 }
 
