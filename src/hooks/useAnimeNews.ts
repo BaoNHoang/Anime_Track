@@ -46,6 +46,7 @@ export function useAnimeNews() {
 
   return {
     articles,
+    sourceAnime: featuredAnime,
     promos: promos.data ?? [],
     articlesLoading:
       season.isPending || (articles.length === 0 && articleQueriesPending),

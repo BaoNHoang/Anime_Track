@@ -116,6 +116,7 @@ rows through Supabase's Data API under the current RLS policy.
   currently airing title.
 - News uses equal-weight article cards and links to the original publisher.
   Banime also builds a trailer feed from current catalog trailer metadata.
+  View anime opens the existing details drawer to add or update the title in your library.
 
 ### Personal anime tracking
 
