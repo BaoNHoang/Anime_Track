@@ -7,6 +7,8 @@ import { ErrorState } from "../../components/ErrorState";
 import { useAnimeNews } from "../../hooks/useAnimeNews";
 import { NewsGridSkeleton, PromoGridSkeleton } from "../../components/LoadingState";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
+import { useAnimePanel } from "../../app/providers/useAnimePanel";
+import type { Anime } from "../../domain/anime/types";
 
 const publishedAtFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -18,8 +20,25 @@ function formatPublishedAt(value: string) {
   return publishedAtFormatter.format(new Date(value));
 }
 
+function ViewAnimeButton({ anime }: { anime?: Anime }) {
+  const { openAnime } = useAnimePanel();
+  if (!anime) return null;
+
+  return (
+    <button
+      className="news-anime-action"
+      type="button"
+      aria-label={`View anime: ${anime.titleEnglish || anime.title}`}
+      onClick={() => openAnime(anime)}
+    >
+      View anime
+    </button>
+  );
+}
+
 export function NewsPage() {
   const news = useAnimeNews();
+  const animeById = new Map(news.sourceAnime.map((anime) => [anime.id, anime]));
   const leadStory = news.articles[0];
   const briefingStories = news.articles.slice(1, 5);
   const moreStories = news.articles.slice(5);
@@ -56,9 +75,12 @@ export function NewsPage() {
                   <span>{formatPublishedAt(leadStory.publishedAt)}</span>
                   <span><MessageCircle size={13} /> {leadStory.comments}</span>
                 </div>
-                <a href={leadStory.url} target="_blank" rel="noreferrer" className="news-read-link">
-                  Read the story <ExternalLink size={15} />
-                </a>
+                <div className="news-lead__actions">
+                  <a href={leadStory.url} target="_blank" rel="noreferrer" className="news-read-link">
+                    Read the story <ExternalLink size={15} />
+                  </a>
+                  <ViewAnimeButton anime={animeById.get(leadStory.animeId)} />
+                </div>
               </div>
             </article>
 
@@ -68,11 +90,14 @@ export function NewsPage() {
                 <small>{briefingStories.length} more updates</small>
               </div>
               {briefingStories.map((article) => (
-                <a className="briefing-story" href={article.url} target="_blank" rel="noreferrer" key={article.url}>
-                  <span className="briefing-story__anime">{article.animeTitle}</span>
-                  <strong>{article.title}</strong>
-                  <span className="briefing-story__meta">{formatPublishedAt(article.publishedAt)} · {article.comments} comments</span>
-                </a>
+                <article className="briefing-story" key={article.url}>
+                  <a className="briefing-story__link" href={article.url} target="_blank" rel="noreferrer">
+                    <span className="briefing-story__anime">{article.animeTitle}</span>
+                    <strong>{article.title}</strong>
+                    <span className="briefing-story__meta">{formatPublishedAt(article.publishedAt)} · {article.comments} comments</span>
+                  </a>
+                  <ViewAnimeButton anime={animeById.get(article.animeId)} />
+                </article>
               ))}
             </aside>
           </section>
@@ -95,6 +120,7 @@ export function NewsPage() {
                       <div className="news-card__footer">
                         <span>{formatPublishedAt(article.publishedAt)}</span>
                         <span><MessageCircle size={13} /> {article.comments}</span>
+                        <ViewAnimeButton anime={animeById.get(article.animeId)} />
                         <a href={article.url} target="_blank" rel="noreferrer" aria-label={`Read ${article.title}`}>
                           <ExternalLink size={15} />
                         </a>
