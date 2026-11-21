@@ -19,6 +19,7 @@ import {
   prepareLatestNews,
   selectNewsAnime
 } from "./newsService";
+import { groupNewsByAnime } from "../../domain/news/groupNewsByAnime";
 
 describe("Tenrai news service", () => {
   beforeEach(() => {
@@ -99,6 +100,26 @@ describe("Tenrai news service", () => {
     expect(feed.map((entry) => entry.imageUrl)).toEqual([
       "https://cdn.example.test/unique.jpg", "https://cdn.example.test/poster.jpg", undefined
     ]);
+  });
+
+  it("keeps quieter titles in the bounded feed and groups extras in newest-first order", () => {
+    const article = (id: number, animeId: number) => ({
+      id, animeId, animeTitle: `Anime ${animeId}`, animeImageUrl: "", title: `Story ${id}`,
+      url: `https://myanimelist.net/news/${id}`, publishedAt: new Date(id * 60_000).toISOString(),
+      author: "editor", excerpt: "Details", comments: 0
+    });
+    const feed = prepareLatestNews([
+      ...Array.from({ length: 30 }, (_, index) => article(index + 10, 1)),
+      article(1, 2), article(2, 3)
+    ]);
+    expect(feed).toHaveLength(24);
+    const groups = groupNewsByAnime(feed);
+    expect(groups.map((group) => group.article.animeId)).toEqual([1, 3, 2]);
+    expect(groups[0].article.id).toBe(39);
+    expect(groups[0].related.map((entry) => entry.id)).toEqual(
+      Array.from({ length: 21 }, (_, index) => 38 - index)
+    );
+    expect(groups[1].related).toEqual([]);
   });
 
   it("builds the promo feed from supported seasonal trailer data", async () => {

@@ -9,6 +9,8 @@ import { NewsGridSkeleton, PromoGridSkeleton } from "../../components/LoadingSta
 import { ImageWithFallback } from "../../components/ImageWithFallback";
 import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import type { Anime } from "../../domain/anime/types";
+import type { AnimeNewsArticle } from "../../domain/news/types";
+import { groupNewsByAnime } from "../../domain/news/groupNewsByAnime";
 
 const publishedAtFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -36,12 +38,32 @@ function ViewAnimeButton({ anime }: { anime?: Anime }) {
   );
 }
 
+function RelatedStories({ articles }: { articles: AnimeNewsArticle[] }) {
+  if (!articles.length) return null;
+
+  return (
+    <details className="news-related">
+      <summary>More about this title ({articles.length})</summary>
+      <ul>
+        {articles.map((article) => (
+          <li key={article.url}>
+            <a href={article.url} target="_blank" rel="noreferrer">{article.title}</a>
+            <time dateTime={article.publishedAt}>{formatPublishedAt(article.publishedAt)}</time>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 export function NewsPage() {
   const news = useAnimeNews();
   const animeById = new Map(news.sourceAnime.map((anime) => [anime.id, anime]));
-  const leadStory = news.articles[0];
-  const briefingStories = news.articles.slice(1, 5);
-  const moreStories = news.articles.slice(5);
+  const groups = groupNewsByAnime(news.articles);
+  const leadGroup = groups[0];
+  const leadStory = leadGroup?.article;
+  const briefingStories = groups.slice(1, 5);
+  const moreStories = groups.slice(5);
 
   return (
     <div className="page-stack">
@@ -81,6 +103,7 @@ export function NewsPage() {
                   </a>
                   <ViewAnimeButton anime={animeById.get(leadStory.animeId)} />
                 </div>
+                <RelatedStories articles={leadGroup.related} />
               </div>
             </article>
 
@@ -89,7 +112,7 @@ export function NewsPage() {
                 <span>Today’s briefing</span>
                 <small>{briefingStories.length} more updates</small>
               </div>
-              {briefingStories.map((article) => (
+              {briefingStories.map(({ article, related }) => (
                 <article className="briefing-story" key={article.url}>
                   <a className="briefing-story__link" href={article.url} target="_blank" rel="noreferrer">
                     <span className="briefing-story__anime">{article.animeTitle}</span>
@@ -97,6 +120,7 @@ export function NewsPage() {
                     <span className="briefing-story__meta">{formatPublishedAt(article.publishedAt)} · {article.comments} comments</span>
                   </a>
                   <ViewAnimeButton anime={animeById.get(article.animeId)} />
+                  <RelatedStories articles={related} />
                 </article>
               ))}
             </aside>
@@ -111,7 +135,7 @@ export function NewsPage() {
                 </div>
               </div>
               <div className="news-grid">
-                {moreStories.map((article) => (
+                {moreStories.map(({ article, related }) => (
                   <article className="news-card" key={article.url}>
                     <div className="news-card__body">
                       <span className="news-card__anime">{article.animeTitle}</span>
@@ -125,6 +149,7 @@ export function NewsPage() {
                           <ExternalLink size={15} />
                         </a>
                       </div>
+                      <RelatedStories articles={related} />
                     </div>
                   </article>
                 ))}

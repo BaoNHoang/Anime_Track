@@ -119,6 +119,7 @@ rows through Supabase's Data API under the current RLS policy.
   View anime opens the existing details drawer to add or update the title in your library.
   Headlines mix up to eight unique current-season, upcoming, and popular titles;
   title news stays cached for 15 minutes between visits.
+  Each anime gets one main story, with additional headlines under More about this title.
 
 ### Personal anime tracking
 
