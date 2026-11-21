@@ -185,8 +185,19 @@ export function NewsPage() {
                 {moreStories.map(({ article, related }) => (
                   <article className="news-card" key={article.url}>
                     <div className="news-card__body">
-                      <span className="news-card__anime">{article.animeTitle}</span>
-                      <h3>{article.title}</h3>
+                      <div className="news-card__heading">
+                        {!previewHidden(article) && (article.imageUrl || article.animeImageUrl) && (
+                          <span className="news-card__thumbnail">
+                            <ImageWithFallback src={article.imageUrl} fallbackSrc={article.animeImageUrl}
+                              loading="lazy" decoding="async"
+                              fallback={<span className="small-image-fallback" aria-hidden="true" />} />
+                          </span>
+                        )}
+                        <div>
+                          <span className="news-card__anime">{article.animeTitle}</span>
+                          <h3>{article.title}</h3>
+                        </div>
+                      </div>
                       {previewHidden(article)
                         ? <RevealPreviewButton article={article} onReveal={revealPreview} />
                         : <p>{article.excerpt}</p>}

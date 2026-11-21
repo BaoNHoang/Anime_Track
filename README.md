@@ -122,6 +122,7 @@ rows through Supabase's Data API under the current RLS policy.
   Each anime gets one main story, with additional headlines under More about this title.
   Hide article previews remembers this browser's preference and hides story images
   and excerpts until individually revealed. Headlines and trailers can still contain spoilers.
+  Regular story cards use compact, lazy-loaded thumbnails with anime-poster fallbacks.
 
 ### Personal anime tracking
 
