@@ -10,8 +10,22 @@ import {
 import { tenraiGet } from "./client";
 import { getCurrentSeason } from "./animeService";
 import type { TenraiNewsResponse } from "./newsDto";
+import type { Anime } from "../../domain/anime/types";
+import { dedupeAnimeById } from "../../domain/anime/dedupe";
+import { groupNewsByAnime } from "../../domain/news/groupNewsByAnime";
 
 const NEWS_CACHE_MS = 15 * 60 * 1000;
+
+export function selectNewsAnime(feeds: Anime[][], limit = 8): Anime[] {
+  const candidates: Anime[] = [];
+  const longestFeed = Math.max(0, ...feeds.map((feed) => feed.length));
+  for (let index = 0; index < longestFeed; index += 1) {
+    for (const feed of feeds) {
+      if (feed[index]) candidates.push(feed[index]);
+    }
+  }
+  return dedupeAnimeById(candidates).slice(0, limit);
+}
 
 export function prepareLatestNews(
   articles: AnimeNewsArticle[],
@@ -20,18 +34,20 @@ export function prepareLatestNews(
   const seenUrls = new Set<string>();
   const seenImages = new Set<string>();
 
-  return [...articles]
+  const newestFirst = [...articles]
+    .sort((left, right) => Date.parse(right.publishedAt) - Date.parse(left.publishedAt))
     .filter((article) => {
       if (seenUrls.has(article.url)) return false;
       seenUrls.add(article.url);
       return true;
-    })
-    .sort(
-      (left, right) =>
-        new Date(right.publishedAt).getTime() -
-        new Date(left.publishedAt).getTime()
-    )
+    });
+  const mainStories = groupNewsByAnime(newestFirst).map((group) => group.article);
+  const mainUrls = new Set(mainStories.map((article) => article.url));
+
+  // Reserve one place per title before filling the bounded feed with extras.
+  return [...mainStories, ...newestFirst.filter((article) => !mainUrls.has(article.url))]
     .slice(0, limit)
+    .sort((left, right) => Date.parse(right.publishedAt) - Date.parse(left.publishedAt))
     .map((article) => {
       const imageUrl = article.imageUrl || article.animeImageUrl;
       if (!imageUrl || seenImages.has(imageUrl)) {
@@ -50,7 +66,7 @@ export async function getNewsForAnime(
 ): Promise<AnimeNewsArticle[]> {
   const response = await tenraiGet<TenraiNewsResponse>(
     `/anime/${animeId}/news`,
-    { signal, cacheMs: NEWS_CACHE_MS }
+    { signal, cacheMs: NEWS_CACHE_MS, cacheStorage: "local" }
   );
 
   return response.data

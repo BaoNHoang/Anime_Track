@@ -16,13 +16,31 @@ vi.mock("./client", () => ({
 import {
   getNewsForAnime,
   getPopularPromos,
-  prepareLatestNews
+  prepareLatestNews,
+  selectNewsAnime
 } from "./newsService";
+import { groupNewsByAnime } from "../../domain/news/groupNewsByAnime";
 
 describe("Tenrai news service", () => {
   beforeEach(() => {
     getCurrentSeasonMock.mockReset();
     tenraiGetMock.mockReset();
+  });
+
+  it("balances source feeds within eight unique title requests", () => {
+    const anime = (id: number) => ({
+      id, title: `Anime ${id}`, imageUrl: "", largeImageUrl: "", synopsis: "",
+      status: "", type: "TV", genres: [], studios: [], url: ""
+    });
+    const seasonal = Array.from({ length: 18 }, (_, index) => anime(index + 1));
+    const upcoming = Array.from({ length: 24 }, (_, index) => anime(index + 101));
+    const popular = Array.from({ length: 24 }, (_, index) => anime(index + 201));
+    expect(selectNewsAnime([seasonal, upcoming, popular]).map((item) => item.id))
+      .toEqual([1, 101, 201, 2, 102, 202, 3, 103]);
+    expect(selectNewsAnime([seasonal, seasonal, []]).map((item) => item.id))
+      .toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(selectNewsAnime([[], upcoming, []])).toHaveLength(8);
+    expect(selectNewsAnime([[], [], []])).toEqual([]);
   });
 
   it("loads title news from Tenrai", async () => {
@@ -49,7 +67,7 @@ describe("Tenrai news service", () => {
 
     expect(tenraiGetMock).toHaveBeenCalledWith(
       "/anime/1/news",
-      expect.objectContaining({ cacheMs: 15 * 60 * 1000 })
+      expect.objectContaining({ cacheMs: 15 * 60 * 1000, cacheStorage: "local" })
     );
     expect(articles).toEqual([
       expect.objectContaining({
@@ -82,6 +100,26 @@ describe("Tenrai news service", () => {
     expect(feed.map((entry) => entry.imageUrl)).toEqual([
       "https://cdn.example.test/unique.jpg", "https://cdn.example.test/poster.jpg", undefined
     ]);
+  });
+
+  it("keeps quieter titles in the bounded feed and groups extras in newest-first order", () => {
+    const article = (id: number, animeId: number) => ({
+      id, animeId, animeTitle: `Anime ${animeId}`, animeImageUrl: "", title: `Story ${id}`,
+      url: `https://myanimelist.net/news/${id}`, publishedAt: new Date(id * 60_000).toISOString(),
+      author: "editor", excerpt: "Details", comments: 0
+    });
+    const feed = prepareLatestNews([
+      ...Array.from({ length: 30 }, (_, index) => article(index + 10, 1)),
+      article(1, 2), article(2, 3)
+    ]);
+    expect(feed).toHaveLength(24);
+    const groups = groupNewsByAnime(feed);
+    expect(groups.map((group) => group.article.animeId)).toEqual([1, 3, 2]);
+    expect(groups[0].article.id).toBe(39);
+    expect(groups[0].related.map((entry) => entry.id)).toEqual(
+      Array.from({ length: 21 }, (_, index) => 38 - index)
+    );
+    expect(groups[1].related).toEqual([]);
   });
 
   it("builds the promo feed from supported seasonal trailer data", async () => {
