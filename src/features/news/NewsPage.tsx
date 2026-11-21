@@ -11,6 +11,17 @@ import { useAnimePanel } from "../../app/providers/useAnimePanel";
 import type { Anime } from "../../domain/anime/types";
 import type { AnimeNewsArticle } from "../../domain/news/types";
 import { groupNewsByAnime } from "../../domain/news/groupNewsByAnime";
+import { useState } from "react";
+
+const HIDE_PREVIEWS_KEY = "banime:news:hide-previews:v1";
+
+function readHiddenPreviews() {
+  try {
+    return localStorage.getItem(HIDE_PREVIEWS_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
 
 const publishedAtFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -56,8 +67,33 @@ function RelatedStories({ articles }: { articles: AnimeNewsArticle[] }) {
   );
 }
 
+function RevealPreviewButton({ article, onReveal }: {
+  article: AnimeNewsArticle;
+  onReveal: (url: string) => void;
+}) {
+  return (
+    <button className="news-anime-action news-preview-reveal" type="button"
+      aria-label={`Reveal preview: ${article.title}`} onClick={() => onReveal(article.url)}>
+      Reveal image and excerpt
+    </button>
+  );
+}
+
 export function NewsPage() {
   const news = useAnimeNews();
+  const [hidePreviews, setHidePreviews] = useState(readHiddenPreviews);
+  const [revealedStories, setRevealedStories] = useState<Set<string>>(() => new Set());
+  const previewHidden = (article: AnimeNewsArticle) => hidePreviews && !revealedStories.has(article.url);
+  const revealPreview = (url: string) => setRevealedStories((current) => new Set([...current, url]));
+  const toggleHiddenPreviews = (hidden: boolean) => {
+    setHidePreviews(hidden);
+    setRevealedStories(new Set());
+    try {
+      localStorage.setItem(HIDE_PREVIEWS_KEY, String(hidden));
+    } catch {
+      // The current-page preference still works when storage is unavailable.
+    }
+  };
   const animeById = new Map(news.sourceAnime.map((anime) => [anime.id, anime]));
   const groups = groupNewsByAnime(news.articles);
   const leadGroup = groups[0];
@@ -68,6 +104,15 @@ export function NewsPage() {
   return (
     <div className="page-stack">
       <h1 className="visually-hidden">Anime news</h1>
+
+      <div className="news-controls">
+        <label>
+          <input type="checkbox" checked={hidePreviews} aria-describedby="news-preview-note"
+            onChange={(event) => toggleHiddenPreviews(event.target.checked)} />
+          Hide article previews
+        </label>
+        <p id="news-preview-note">Headlines and trailers may still contain spoilers.</p>
+      </div>
 
       {news.articlesLoading && <NewsGridSkeleton />}
 
@@ -81,17 +126,19 @@ export function NewsPage() {
       {leadStory ? (
         <>
           <section className="news-lead-grid" aria-label="Latest anime stories" aria-busy={news.articlesRefreshing}>
-            <article className="news-lead">
-              <ImageWithFallback
+            <article className={`news-lead${previewHidden(leadStory) ? " news-lead--preview-hidden" : ""}`}>
+              {!previewHidden(leadStory) && <ImageWithFallback
                 src={leadStory.imageUrl}
                 fallbackSrc={leadStory.animeImageUrl}
                 decoding="async"
                 fallback={<div className="news-lead__fallback" aria-hidden="true" />}
-              />
+              />}
               <div className="news-lead__body">
                 <span className="news-label">Lead story · {leadStory.animeTitle}</span>
                 <h2>{leadStory.title}</h2>
-                <p>{leadStory.excerpt}</p>
+                {previewHidden(leadStory)
+                  ? <RevealPreviewButton article={leadStory} onReveal={revealPreview} />
+                  : <p>{leadStory.excerpt}</p>}
                 <div className="news-lead__meta">
                   <span>By {leadStory.author}</span>
                   <span>{formatPublishedAt(leadStory.publishedAt)}</span>
@@ -140,7 +187,9 @@ export function NewsPage() {
                     <div className="news-card__body">
                       <span className="news-card__anime">{article.animeTitle}</span>
                       <h3>{article.title}</h3>
-                      <p>{article.excerpt}</p>
+                      {previewHidden(article)
+                        ? <RevealPreviewButton article={article} onReveal={revealPreview} />
+                        : <p>{article.excerpt}</p>}
                       <div className="news-card__footer">
                         <span>{formatPublishedAt(article.publishedAt)}</span>
                         <span><MessageCircle size={13} /> {article.comments}</span>
