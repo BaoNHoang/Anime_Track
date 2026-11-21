@@ -1,16 +1,25 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { useCurrentSeason } from "./useAnimeQueries";
+import { useCurrentSeason, useTopAnime } from "./useAnimeQueries";
 import {
   getNewsForAnime,
   getPopularPromos,
-  prepareLatestNews
+  prepareLatestNews,
+  selectNewsAnime
 } from "../services/tenrai/newsService";
 
 const NEWS_REFRESH_MS = 15 * 60 * 1000;
 
 export function useAnimeNews() {
   const season = useCurrentSeason();
-  const featuredAnime = season.data?.items.slice(0, 8) ?? [];
+  const upcoming = useTopAnime("upcoming");
+  const popular = useTopAnime("bypopularity");
+  const catalogQueries = [season, upcoming, popular];
+  const catalogPending = catalogQueries.some((query) => query.isPending);
+  // Settle the bounded source feeds first so partial arrivals cannot start
+  // article requests for titles that will immediately leave the selection.
+  const featuredAnime = catalogPending ? [] : selectNewsAnime(
+    catalogQueries.map((query) => query.data?.items ?? [])
+  );
   const articleQueries = useQueries({
     queries: featuredAnime.map((anime) => ({
       queryKey: ["anime", "news", "title", anime.id],
@@ -49,18 +58,18 @@ export function useAnimeNews() {
     sourceAnime: featuredAnime,
     promos: promos.data ?? [],
     articlesLoading:
-      season.isPending || (articles.length === 0 && articleQueriesPending),
+      catalogPending || (articles.length === 0 && articleQueriesPending),
     articlesRefreshing:
       articles.length > 0 &&
-      (season.isFetching || articleQueries.some((query) => query.isFetching)),
+      (catalogQueries.some((query) => query.isFetching) || articleQueries.some((query) => query.isFetching)),
     articlesError:
-      season.isError ||
+      catalogQueries.every((query) => query.isError) ||
       (articleQueries.length > 0 &&
         articleQueries.every((query) => query.isError)),
     promosLoading: promos.isPending,
     promosError: promos.isError,
     refetchArticles: async () => {
-      await season.refetch();
+      await Promise.all(catalogQueries.map((query) => query.refetch()));
       await Promise.all(articleQueries.map((query) => query.refetch()));
     },
     refetchPromos: promos.refetch

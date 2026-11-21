@@ -117,6 +117,8 @@ rows through Supabase's Data API under the current RLS policy.
 - News uses equal-weight article cards and links to the original publisher.
   Banime also builds a trailer feed from current catalog trailer metadata.
   View anime opens the existing details drawer to add or update the title in your library.
+  Headlines mix up to eight unique current-season, upcoming, and popular titles;
+  title news stays cached for 15 minutes between visits.
 
 ### Personal anime tracking
 

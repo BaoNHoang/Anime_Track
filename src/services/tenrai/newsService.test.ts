@@ -16,13 +16,30 @@ vi.mock("./client", () => ({
 import {
   getNewsForAnime,
   getPopularPromos,
-  prepareLatestNews
+  prepareLatestNews,
+  selectNewsAnime
 } from "./newsService";
 
 describe("Tenrai news service", () => {
   beforeEach(() => {
     getCurrentSeasonMock.mockReset();
     tenraiGetMock.mockReset();
+  });
+
+  it("balances source feeds within eight unique title requests", () => {
+    const anime = (id: number) => ({
+      id, title: `Anime ${id}`, imageUrl: "", largeImageUrl: "", synopsis: "",
+      status: "", type: "TV", genres: [], studios: [], url: ""
+    });
+    const seasonal = Array.from({ length: 18 }, (_, index) => anime(index + 1));
+    const upcoming = Array.from({ length: 24 }, (_, index) => anime(index + 101));
+    const popular = Array.from({ length: 24 }, (_, index) => anime(index + 201));
+    expect(selectNewsAnime([seasonal, upcoming, popular]).map((item) => item.id))
+      .toEqual([1, 101, 201, 2, 102, 202, 3, 103]);
+    expect(selectNewsAnime([seasonal, seasonal, []]).map((item) => item.id))
+      .toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(selectNewsAnime([[], upcoming, []])).toHaveLength(8);
+    expect(selectNewsAnime([[], [], []])).toEqual([]);
   });
 
   it("loads title news from Tenrai", async () => {
@@ -49,7 +66,7 @@ describe("Tenrai news service", () => {
 
     expect(tenraiGetMock).toHaveBeenCalledWith(
       "/anime/1/news",
-      expect.objectContaining({ cacheMs: 15 * 60 * 1000 })
+      expect.objectContaining({ cacheMs: 15 * 60 * 1000, cacheStorage: "local" })
     );
     expect(articles).toEqual([
       expect.objectContaining({

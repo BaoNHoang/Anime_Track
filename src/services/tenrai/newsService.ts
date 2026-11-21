@@ -10,8 +10,21 @@ import {
 import { tenraiGet } from "./client";
 import { getCurrentSeason } from "./animeService";
 import type { TenraiNewsResponse } from "./newsDto";
+import type { Anime } from "../../domain/anime/types";
+import { dedupeAnimeById } from "../../domain/anime/dedupe";
 
 const NEWS_CACHE_MS = 15 * 60 * 1000;
+
+export function selectNewsAnime(feeds: Anime[][], limit = 8): Anime[] {
+  const candidates: Anime[] = [];
+  const longestFeed = Math.max(0, ...feeds.map((feed) => feed.length));
+  for (let index = 0; index < longestFeed; index += 1) {
+    for (const feed of feeds) {
+      if (feed[index]) candidates.push(feed[index]);
+    }
+  }
+  return dedupeAnimeById(candidates).slice(0, limit);
+}
 
 export function prepareLatestNews(
   articles: AnimeNewsArticle[],
@@ -50,7 +63,7 @@ export async function getNewsForAnime(
 ): Promise<AnimeNewsArticle[]> {
   const response = await tenraiGet<TenraiNewsResponse>(
     `/anime/${animeId}/news`,
-    { signal, cacheMs: NEWS_CACHE_MS }
+    { signal, cacheMs: NEWS_CACHE_MS, cacheStorage: "local" }
   );
 
   return response.data
