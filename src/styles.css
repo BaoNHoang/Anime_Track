@@ -3712,46 +3712,6 @@ p {
 .briefing-story strong { display: -webkit-box; overflow: hidden; font-size: 12px; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .briefing-story__meta { margin-top: 6px; }
 
-.news-related {
-  width: 100%;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-}
-
-.news-related summary {
-  min-height: 32px;
-  align-content: center;
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.news-related ul {
-  display: grid;
-  gap: 12px;
-  margin: 8px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.news-related a {
-  color: var(--ink);
-  font-size: 12px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
-.news-related a:hover { text-decoration: underline; }
-
-.news-related time {
-  display: block;
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 11px;
-}
-
 .news-card,
 .promo-card {
   display: flex;

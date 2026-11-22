@@ -19,7 +19,6 @@ import {
   prepareLatestNews,
   selectNewsAnime
 } from "./newsService";
-import { groupNewsByAnime } from "../../domain/news/groupNewsByAnime";
 
 describe("Tenrai news service", () => {
   beforeEach(() => {
@@ -79,10 +78,10 @@ describe("Tenrai news service", () => {
     ]);
   });
 
-  it("sorts newest first and replaces repeated artwork with a story marker", () => {
+  it("sorts newest first, deduplicates URLs, and avoids repeated artwork", () => {
     const article = (url: string, publishedAt: string, imageUrl?: string) => ({
       id: Number(url.at(-1)),
-      animeId: 1,
+      animeId: Number(url.at(-1)),
       animeTitle: "Signal", animeImageUrl: "https://cdn.example.test/poster.jpg",
       title: url, url, publishedAt, author: "editor", imageUrl,
       excerpt: "Details", comments: 0
@@ -102,7 +101,7 @@ describe("Tenrai news service", () => {
     ]);
   });
 
-  it("keeps quieter titles in the bounded feed and groups extras in newest-first order", () => {
+  it("keeps only the newest headline per anime without crowding out quieter titles", () => {
     const article = (id: number, animeId: number) => ({
       id, animeId, animeTitle: `Anime ${animeId}`, animeImageUrl: "", title: `Story ${id}`,
       url: `https://myanimelist.net/news/${id}`, publishedAt: new Date(id * 60_000).toISOString(),
@@ -112,14 +111,8 @@ describe("Tenrai news service", () => {
       ...Array.from({ length: 30 }, (_, index) => article(index + 10, 1)),
       article(1, 2), article(2, 3)
     ]);
-    expect(feed).toHaveLength(24);
-    const groups = groupNewsByAnime(feed);
-    expect(groups.map((group) => group.article.animeId)).toEqual([1, 3, 2]);
-    expect(groups[0].article.id).toBe(39);
-    expect(groups[0].related.map((entry) => entry.id)).toEqual(
-      Array.from({ length: 21 }, (_, index) => 38 - index)
-    );
-    expect(groups[1].related).toEqual([]);
+    expect(feed.map((article) => article.animeId)).toEqual([1, 3, 2]);
+    expect(feed.map((article) => article.id)).toEqual([39, 2, 1]);
   });
 
   it("builds the promo feed from supported seasonal trailer data", async () => {

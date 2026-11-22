@@ -119,7 +119,7 @@ rows through Supabase's Data API under the current RLS policy.
   View anime opens the existing details drawer to add or update the title in your library.
   Headlines mix up to eight unique current-season, upcoming, and popular titles;
   title news stays cached for 15 minutes between visits.
-  Each anime gets one main story, with additional headlines under More about this title.
+  Each anime gets its latest headline so repeated coverage does not crowd the feed.
   Hide article previews remembers this browser's preference and hides story images
   and excerpts until individually revealed. Headlines and trailers can still contain spoilers.
   Regular story cards use compact, lazy-loaded thumbnails with anime-poster fallbacks.
