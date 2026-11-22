@@ -12,7 +12,6 @@ import { getCurrentSeason } from "./animeService";
 import type { TenraiNewsResponse } from "./newsDto";
 import type { Anime } from "../../domain/anime/types";
 import { dedupeAnimeById } from "../../domain/anime/dedupe";
-import { groupNewsByAnime } from "../../domain/news/groupNewsByAnime";
 
 const NEWS_CACHE_MS = 15 * 60 * 1000;
 
@@ -32,22 +31,18 @@ export function prepareLatestNews(
   limit = 24
 ): AnimeNewsArticle[] {
   const seenUrls = new Set<string>();
+  const seenAnimeIds = new Set<number>();
   const seenImages = new Set<string>();
 
-  const newestFirst = [...articles]
+  return [...articles]
     .sort((left, right) => Date.parse(right.publishedAt) - Date.parse(left.publishedAt))
     .filter((article) => {
-      if (seenUrls.has(article.url)) return false;
+      if (seenUrls.has(article.url) || seenAnimeIds.has(article.animeId)) return false;
       seenUrls.add(article.url);
+      seenAnimeIds.add(article.animeId);
       return true;
-    });
-  const mainStories = groupNewsByAnime(newestFirst).map((group) => group.article);
-  const mainUrls = new Set(mainStories.map((article) => article.url));
-
-  // Reserve one place per title before filling the bounded feed with extras.
-  return [...mainStories, ...newestFirst.filter((article) => !mainUrls.has(article.url))]
+    })
     .slice(0, limit)
-    .sort((left, right) => Date.parse(right.publishedAt) - Date.parse(left.publishedAt))
     .map((article) => {
       const imageUrl = article.imageUrl || article.animeImageUrl;
       if (!imageUrl || seenImages.has(imageUrl)) {

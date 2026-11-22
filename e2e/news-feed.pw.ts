@@ -51,26 +51,16 @@ test("news balances three cached catalogs without exceeding eight title requests
   expect(newsRequests()).toHaveLength(11);
 });
 
-test("news shows one headline per title and expands related stories without more requests", async ({ page }) => {
-  const requests = await mockNewsFeeds(page, 2);
+test("news keeps one headline per title without expandable related stories", async ({ page }) => {
+  await mockNewsFeeds(page, 2);
   await page.goto("/news");
   await expect(page.getByRole("button", { name: /^View anime:/ })).toHaveCount(8, { timeout: 15_000 });
   const mainStories = page.locator(".news-lead, .briefing-story, .news-card");
   await expect(mainStories).toHaveCount(8);
-  await expect(page.locator(".news-related")).toHaveCount(8);
-  const lead = page.locator(".news-lead");
-  const extra = lead.getByRole("link", { name: "Follow-up 1-1", exact: true });
-  await expect(extra).toBeHidden();
-  const before = requests.length;
-  const summary = lead.locator("summary");
-  await summary.focus();
-  await page.keyboard.press("Enter");
-  await expect(extra).toBeVisible();
-  await expect(extra).toHaveAttribute("href", "https://myanimelist.net/news/11");
-  await expect(extra).toHaveAttribute("target", "_blank");
-  await summary.click();
-  await expect(extra).toBeHidden();
-  expect(requests).toHaveLength(before);
+  await expect(page.locator("main details")).toHaveCount(0);
+  await expect(page.getByText(/Follow-up/)).toHaveCount(0);
+  await expect(page.getByText(/More about this title/)).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
 });
 
 test("hidden previews persist and only revealed stories load images and show excerpts", async ({ page }) => {
