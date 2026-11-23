@@ -101,7 +101,7 @@ describe("Tenrai news service", () => {
     ]);
   });
 
-  it("keeps only the newest headline per anime without crowding out quieter titles", () => {
+  it("keeps three recent stories per anime and mixes titles without repeated runs", () => {
     const article = (id: number, animeId: number) => ({
       id, animeId, animeTitle: `Anime ${animeId}`, animeImageUrl: "", title: `Story ${id}`,
       url: `https://myanimelist.net/news/${id}`, publishedAt: new Date(id * 60_000).toISOString(),
@@ -111,8 +111,10 @@ describe("Tenrai news service", () => {
       ...Array.from({ length: 30 }, (_, index) => article(index + 10, 1)),
       article(1, 2), article(2, 3)
     ]);
-    expect(feed.map((article) => article.animeId)).toEqual([1, 3, 2]);
-    expect(feed.map((article) => article.id)).toEqual([39, 2, 1]);
+    expect(feed.map((article) => article.animeId)).toEqual([1, 3, 1, 2, 1]);
+    expect(feed.map((article) => article.id)).toEqual([39, 2, 38, 1, 37]);
+    expect(prepareLatestNews(Array.from({ length: 100 }, (_, index) => article(index, index))))
+      .toHaveLength(72);
   });
 
   it("builds the promo feed from supported seasonal trailer data", async () => {

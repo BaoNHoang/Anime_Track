@@ -14,8 +14,11 @@ import type { Anime } from "../../domain/anime/types";
 import { dedupeAnimeById } from "../../domain/anime/dedupe";
 
 const NEWS_CACHE_MS = 15 * 60 * 1000;
+export const NEWS_SOURCE_BATCH_SIZE = 8;
+export const MAX_NEWS_SOURCES = 24;
+const MAX_STORIES_PER_ANIME = 3;
 
-export function selectNewsAnime(feeds: Anime[][], limit = 8): Anime[] {
+export function selectNewsAnime(feeds: Anime[][], limit = NEWS_SOURCE_BATCH_SIZE): Anime[] {
   const candidates: Anime[] = [];
   const longestFeed = Math.max(0, ...feeds.map((feed) => feed.length));
   for (let index = 0; index < longestFeed; index += 1) {
@@ -28,29 +31,37 @@ export function selectNewsAnime(feeds: Anime[][], limit = 8): Anime[] {
 
 export function prepareLatestNews(
   articles: AnimeNewsArticle[],
-  limit = 24
+  limit = MAX_NEWS_SOURCES * MAX_STORIES_PER_ANIME
 ): AnimeNewsArticle[] {
   const seenUrls = new Set<string>();
-  const seenAnimeIds = new Set<number>();
+  const storiesPerAnime = new Map<number, number>();
   const seenImages = new Set<string>();
 
-  return [...articles]
+  const candidates = [...articles]
     .sort((left, right) => Date.parse(right.publishedAt) - Date.parse(left.publishedAt))
     .filter((article) => {
-      if (seenUrls.has(article.url) || seenAnimeIds.has(article.animeId)) return false;
+      const count = storiesPerAnime.get(article.animeId) ?? 0;
+      if (seenUrls.has(article.url) || count >= MAX_STORIES_PER_ANIME) return false;
       seenUrls.add(article.url);
-      seenAnimeIds.add(article.animeId);
+      storiesPerAnime.set(article.animeId, count + 1);
       return true;
     })
-    .slice(0, limit)
-    .map((article) => {
-      const imageUrl = article.imageUrl || article.animeImageUrl;
-      if (!imageUrl || seenImages.has(imageUrl)) {
-        return { ...article, imageUrl: undefined };
-      }
-      seenImages.add(imageUrl);
-      return { ...article, imageUrl };
-    });
+    .slice(0, limit);
+  const feed: AnimeNewsArticle[] = [];
+  while (candidates.length) {
+    // Prefer the newest story from another title to avoid long repeated runs.
+    const next = candidates.findIndex((article) => article.animeId !== feed.at(-1)?.animeId);
+    const [article] = candidates.splice(Math.max(0, next), 1);
+    feed.push(article);
+  }
+  return feed.map((article) => {
+    const imageUrl = article.imageUrl || article.animeImageUrl;
+    if (!imageUrl || seenImages.has(imageUrl)) {
+      return { ...article, imageUrl: undefined };
+    }
+    seenImages.add(imageUrl);
+    return { ...article, imageUrl };
+  });
 }
 
 export async function getNewsForAnime(

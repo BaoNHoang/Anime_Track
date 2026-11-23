@@ -117,9 +117,10 @@ rows through Supabase's Data API under the current RLS policy.
 - News uses equal-weight article cards and links to the original publisher.
   Banime also builds a trailer feed from current catalog trailer metadata.
   View anime opens the existing details drawer to add or update the title in your library.
-  Headlines mix up to eight unique current-season, upcoming, and popular titles;
-  title news stays cached for 15 minutes between visits.
-  Each anime gets its latest headline so repeated coverage does not crowd the feed.
+  News starts with eight current-season, upcoming, and popular titles. Load more news
+  adds eight titles at a time, up to 24, while title news stays cached for 15 minutes.
+  Up to three distinct stories per anime appear as full cards, with titles mixed
+  to reduce repeated runs. New batches append without reshuffling earlier stories.
   Hide article previews remembers this browser's preference and hides story images
   and excerpts until individually revealed. Headlines and trailers can still contain spoilers.
   Regular story cards use compact, lazy-loaded thumbnails with anime-poster fallbacks.

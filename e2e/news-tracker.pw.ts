@@ -49,8 +49,8 @@ test("news stories open the matching anime panel and can add it to the library",
   await expect(page.getByRole("button", { name: /^View anime:/ })).toHaveCount(6);
   expect(detailsRequested).toEqual([]);
   const dialog = page.getByRole("dialog");
-  for (const [selector, index] of [[".news-lead", 0], [".briefing-story", 1], [".news-card", 5]] as const) {
-    const story = page.locator(selector).first();
+  for (const index of [0, 1, 5]) {
+    const story = index === 0 ? page.locator(".news-lead") : page.locator(".news-card").nth(index - 1);
     const link = story.getByRole("link").first();
     await expect(link).toHaveAttribute("href", `https://myanimelist.net/news/${index + 1}`);
     await expect(link).toHaveAttribute("target", "_blank");
