@@ -77,8 +77,7 @@ export function NewsPage() {
   };
   const animeById = new Map(news.sourceAnime.map((anime) => [anime.id, anime]));
   const leadStory = news.articles[0];
-  const briefingStories = news.articles.slice(1, 5);
-  const moreStories = news.articles.slice(5);
+  const moreStories = news.articles.slice(1);
 
   return (
     <div className="page-stack">
@@ -104,7 +103,7 @@ export function NewsPage() {
 
       {leadStory ? (
         <>
-          <section className="news-lead-grid" aria-label="Latest anime stories" aria-busy={news.articlesRefreshing}>
+          <section aria-label="Latest anime stories" aria-busy={news.articlesRefreshing}>
             <article className={`news-lead${previewHidden(leadStory) ? " news-lead--preview-hidden" : ""}`}>
               {!previewHidden(leadStory) && <ImageWithFallback
                 src={leadStory.imageUrl}
@@ -131,31 +130,13 @@ export function NewsPage() {
                 </div>
               </div>
             </article>
-
-            <aside className="news-briefing" aria-label="Today's briefing">
-              <div className="news-briefing__heading">
-                <span>Today’s briefing</span>
-                <small>{briefingStories.length} more updates</small>
-              </div>
-              {briefingStories.map((article) => (
-                <article className="briefing-story" key={article.url}>
-                  <a className="briefing-story__link" href={article.url} target="_blank" rel="noreferrer">
-                    <span className="briefing-story__anime">{article.animeTitle}</span>
-                    <strong>{article.title}</strong>
-                    <span className="briefing-story__meta">{formatPublishedAt(article.publishedAt)} · {article.comments} comments</span>
-                  </a>
-                  <ViewAnimeButton anime={animeById.get(article.animeId)} />
-                </article>
-              ))}
-            </aside>
           </section>
 
           {moreStories.length > 0 && (
             <section>
               <div className="section-header">
                 <div>
-                  <span className="news-label">Keep reading</span>
-                  <h2>More from the feed</h2>
+                  <h2>More anime news</h2>
                 </div>
               </div>
               <div className="news-grid">
@@ -172,7 +153,7 @@ export function NewsPage() {
                         )}
                         <div>
                           <span className="news-card__anime">{article.animeTitle}</span>
-                          <h3>{article.title}</h3>
+                          <h3><a href={article.url} target="_blank" rel="noreferrer">{article.title}</a></h3>
                         </div>
                       </div>
                       {previewHidden(article)
@@ -183,7 +164,7 @@ export function NewsPage() {
                         <span><MessageCircle size={13} /> {article.comments}</span>
                         <ViewAnimeButton anime={animeById.get(article.animeId)} />
                         <a href={article.url} target="_blank" rel="noreferrer" aria-label={`Read ${article.title}`}>
-                          <ExternalLink size={15} />
+                          Read story <ExternalLink size={13} />
                         </a>
                       </div>
                     </div>
@@ -201,6 +182,18 @@ export function NewsPage() {
             <p>Tenrai may still be refreshing this season's news.</p>
           </div>
         )
+      )}
+
+      {news.articles.length > 0 && news.articlesError && (
+        <ErrorState message="Some news could not be loaded." onRetry={() => void news.refetchArticles()} />
+      )}
+      {(news.hasMoreArticles || (news.articlesLoadingMore && news.articles.length > 0)) && (
+        <div className="news-load-more">
+          <button className="button button--ghost" type="button"
+            disabled={news.articlesLoadingMore || !news.hasMoreArticles} onClick={news.loadMoreArticles}>
+            {news.articlesLoadingMore ? "Loading news…" : "Load more news"}
+          </button>
+        </div>
       )}
 
       <section>

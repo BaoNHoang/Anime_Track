@@ -35,7 +35,7 @@ async function mockNewsFeeds(page: Page, extraStories = 0, withImages = false) {
   return requests;
 }
 
-test("news balances three cached catalogs without exceeding eight title requests", async ({ page }) => {
+test("news loads cached eight-title batches up to 24 sources without reshuffling earlier stories", async ({ page }) => {
   const requests = await mockNewsFeeds(page);
   await page.goto("/news");
   const actions = page.getByRole("button", { name: /^View anime:/ });
@@ -46,19 +46,31 @@ test("news balances three cached catalogs without exceeding eight title requests
   // The shared header independently loads its airing shuffle candidates.
   const newsRequests = () => requests.filter((path) => !path.includes("filter=airing"));
   expect(newsRequests()).toHaveLength(11);
+  const earlierHeadlines = await page.locator(".news-lead h2, .news-card h3").allTextContents();
+  await page.getByRole("button", { name: "Load more news", exact: true }).click();
+  await expect(actions).toHaveCount(16, { timeout: 15_000 });
+  expect((await page.locator(".news-lead h2, .news-card h3").allTextContents()).slice(0, 8))
+    .toEqual(earlierHeadlines);
+  await page.getByRole("button", { name: "Load more news", exact: true }).click();
+  await expect(actions).toHaveCount(24, { timeout: 15_000 });
+  await expect(page.getByRole("button", { name: "Load more news", exact: true })).toHaveCount(0);
+  expect(newsRequests()).toHaveLength(27);
   await page.reload();
   await expect(actions).toHaveCount(8);
-  expect(newsRequests()).toHaveLength(11);
+  expect(newsRequests()).toHaveLength(27);
 });
 
-test("news keeps one headline per title without expandable related stories", async ({ page }) => {
+test("news shows multiple distinct stories as full cards without related-story expanders", async ({ page }) => {
   await mockNewsFeeds(page, 2);
   await page.goto("/news");
-  await expect(page.getByRole("button", { name: /^View anime:/ })).toHaveCount(8, { timeout: 15_000 });
-  const mainStories = page.locator(".news-lead, .briefing-story, .news-card");
-  await expect(mainStories).toHaveCount(8);
+  const animeActions = page.getByRole("button", { name: /^View anime:/ });
+  await expect(animeActions).toHaveCount(24, { timeout: 15_000 });
+  await expect(page.locator(".news-card")).toHaveCount(23);
+  await expect(page.locator(".news-card p")).toHaveCount(23);
+  const titles = await animeActions.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label")));
+  expect(titles.every((title, index) => !index || title !== titles[index - 1])).toBe(true);
   await expect(page.locator("main details")).toHaveCount(0);
-  await expect(page.getByText(/Follow-up/)).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Follow-up 1-1", exact: true })).toBeVisible();
   await expect(page.getByText(/More about this title/)).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
 });
@@ -95,7 +107,7 @@ test("hidden previews persist and only revealed stories load images and show exc
   await expect(lead.locator("img, p")).toHaveCount(0);
   await toggle.uncheck();
   await expect(lead.locator("img")).toBeVisible();
-  await expect(page.locator(".news-card p")).toHaveCount(3);
+  await expect(page.locator(".news-card p")).toHaveCount(7);
   await page.reload();
   await expect(toggle).not.toBeChecked();
 });
@@ -122,4 +134,18 @@ test("compact thumbnails fall back to anime artwork and remain hidden until reve
   await expect(thumbnail).toBeVisible();
   await expect(page.locator(".news-card__thumbnail")).toHaveCount(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+});
+
+test("readers can load another batch when the first titles have no news", async ({ page }) => {
+  await mockNewsFeeds(page);
+  const initialIds = new Set([1, 2, 3, 101, 102, 103, 201, 202]);
+  await page.route("**/v1/anime/*/news", (route) => {
+    const id = Number(new URL(route.request().url()).pathname.match(/\/anime\/(\d+)/)?.[1]);
+    return initialIds.has(id) ? route.fulfill({ json: { data: [] } }) : route.fallback();
+  });
+  await page.goto("/news");
+  await expect(page.getByText("No current headlines were found.")).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: "Load more news", exact: true }).click();
+  await expect(page.getByRole("button", { name: /^View anime:/ })).toHaveCount(8, { timeout: 15_000 });
+  await expect(page.getByText("No current headlines were found.")).toHaveCount(0);
 });
