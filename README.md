@@ -19,6 +19,8 @@ does not scrape providers or host episodes.
 - `docs/engineering-history.md` records architecture, data flows, caching
   internals, security decisions, verification evidence, risks, and append-only
   chronological milestones.
+- [News sources and tabs](docs/news-sources.md) explains News navigation,
+  catalog dates, official release calendars, and source caching.
 
 ## Feature reference
 
@@ -114,8 +116,11 @@ rows through Supabase's Data API under the current RLS policy.
   trailer availability, tracking controls, and favorites.
 - The header provides catalog search and a shuffle action that opens a random
   currently airing title.
-- News uses equal-weight article cards and links to the original publisher.
-  Banime also builds a trailer feed from current catalog trailer metadata.
+- News has six URL-addressable tabs: Headlines, MyAnimeList, Trailers, Anime
+  releases, Manga, and Figures. See the [News guide](docs/news-sources.md) for
+  keyboard controls and official sources. Only the active panel loads and
+  queries its sources, reusing cached data when available. Manga shows series
+  publication dates; Figures links to manufacturers' official calendars.
   View anime opens the existing details drawer to add or update the title in your library.
   News starts with eight current-season, upcoming, and popular titles. Load more news
   adds eight titles at a time, up to 24, while title news stays cached for 15 minutes.
@@ -295,7 +300,7 @@ rows through Supabase's Data API under the current RLS policy.
 | --- | --- | --- |
 | `/` | Personalized recommendations, current season, coming soon, historical shelves, headlines, and top airing | Public |
 | `/discover` | Search, feed presets, filters, sorting, and catalog pagination | Public |
-| `/news` | Anime headlines and trailer feed | Public |
+| `/news` | Headlines, MyAnimeList reporting, trailers, anime/manga catalog releases, and official figure calendars | Public |
 | `/profile` | Identity, statistics, activity, airing next, genres, favorites, and profile editing | Signed-in user |
 | `/library` | Personal tracking grid, search, filters, sorting, and pagination | Signed-in user |
 | `/notifications` | Scheduled-release alerts and clear actions | Signed-in user |
