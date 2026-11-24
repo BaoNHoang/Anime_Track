@@ -24,8 +24,3 @@ export interface AnimePromo {
   videoUrl?: string;
   embedUrl: string;
 }
-
-export interface AnimeNewsFeed {
-  articles: AnimeNewsArticle[];
-  promos: AnimePromo[];
-}

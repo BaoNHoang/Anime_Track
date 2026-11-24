@@ -3833,7 +3833,7 @@ p {
 }
 
 .news-release-card__heading img { width: 100%; height: 100%; object-fit: cover; }
-.news-release-card__heading > div { min-width: 0; }
+.news-release-card__heading > div { min-width: 0; overflow-wrap: anywhere; }
 .news-release-card h3 { margin: 6px 0; font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; }
 .news-release-card h3 a { color: var(--ink); }
 .news-release-card__heading span,

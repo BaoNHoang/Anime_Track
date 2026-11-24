@@ -16,7 +16,7 @@ export function MyAnimeListNews() {
   return <div className="page-stack">
     <NewsPreviewControls hidden={previews.hidePreviews} onChange={previews.toggle} />
     <p className="news-tab-note">More anime and manga reporting from MyAnimeList, beyond the titles in the main feed.</p>
-    {result.isPending && <NewsGridSkeleton />}
+    {result.isPending && <NewsGridSkeleton label="Loading MyAnimeList news" />}
     {result.isError && <ErrorState message="MyAnimeList news could not be loaded." onRetry={() => void result.refetch()} />}
     {result.data?.items.length === 0 && <p className="schedule-empty">No current MyAnimeList stories were found.</p>}
     {result.data && <div className="news-grid">{result.data.items.map((article) => (

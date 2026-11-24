@@ -24,7 +24,7 @@ export function MangaReleases() {
     <nav className="news-calendar-links" aria-label="Manga publisher calendars">{MANGA_RELEASE_SOURCES.map((source) => (
       <a key={source.url} href={source.url} target="_blank" rel="noreferrer">{source.name}</a>
     ))}</nav>
-    {result.isPending && <NewsGridSkeleton />}
+    {result.isPending && <NewsGridSkeleton label="Loading manga" />}
     {result.isError && <ErrorState message="Manga could not be loaded." onRetry={() => void result.refetch()} />}
     {result.data?.items.length === 0 && <p className="schedule-empty">No {feed} manga were found. Try another feed or a publisher calendar.</p>}
     {result.data && <div className="news-release-grid">{result.data.items.map((manga) => (

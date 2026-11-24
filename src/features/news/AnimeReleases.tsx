@@ -13,7 +13,7 @@ export function AnimeReleases() {
   const result = useTopAnime("upcoming", page);
   return <div className="page-stack">
     <p className="news-tab-note">Upcoming series and films. Premiere dates may change.</p>
-    {result.isPending && <NewsGridSkeleton />}
+    {result.isPending && <NewsGridSkeleton label="Loading upcoming anime" />}
     {result.isError && <ErrorState message="Upcoming anime could not be loaded." onRetry={() => void result.refetch()} />}
     {result.data?.items.length === 0 && <p className="schedule-empty">No upcoming anime were found.</p>}
     {result.data && <div className="news-release-grid">{result.data.items.map((anime) => (
