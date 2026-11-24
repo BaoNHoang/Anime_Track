@@ -77,6 +77,9 @@ function safeMyAnimeListPath(value: unknown, pathPattern: RegExp) {
 export const safeMyAnimeListAnimeUrl = (value: unknown) =>
   safeMyAnimeListPath(value, /^\/anime\/\d+(?:\/|$)/);
 
+export const safeMyAnimeListMangaUrl = (value: unknown) =>
+  safeMyAnimeListPath(value, /^\/manga\/\d+(?:\/|$)/);
+
 export const safeMyAnimeListNewsUrl = (value: unknown) =>
   safeMyAnimeListPath(value, /^\/news\/\d+(?:\/|$)/);
 
