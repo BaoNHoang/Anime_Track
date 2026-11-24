@@ -22,10 +22,8 @@ time, up to 24 titles, with at most three distinct stories per title. Batches
 append without reshuffling earlier stories. **View anime** opens the existing
 details drawer for library controls.
 
-Headlines and MyAnimeList share a browser-saved **Hide article previews**
-preference. It hides story images and excerpts until individually revealed;
-headlines and trailers may still contain spoilers. Story links open the
-original publisher, and trailers open their catalog-supplied video destination.
+Story links open the original publisher, and trailers open their
+catalog-supplied video destination.
 
 ## Reading release dates
 

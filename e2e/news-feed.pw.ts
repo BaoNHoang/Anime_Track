@@ -75,44 +75,25 @@ test("news shows multiple distinct stories as full cards without related-story e
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
 });
 
-test("hidden previews persist and only revealed stories load images and show excerpts", async ({ page }) => {
+test("article images and excerpts remain visible even with an old hidden-preview preference", async ({ page }) => {
   await page.addInitScript(() => {
-    if (localStorage.getItem("banime:news:hide-previews:v1") === null) {
-      localStorage.setItem("banime:news:hide-previews:v1", "true");
-    }
+    localStorage.setItem("banime:news:hide-previews:v1", "true");
   });
   await mockNewsFeeds(page, 0, true);
-  const imageRequests: string[] = [];
-  page.on("request", (request) => {
-    if (request.url().includes("cdn.myanimelist.net")) imageRequests.push(request.url());
-  });
   await page.goto("/news");
   await expect(page.getByRole("button", { name: /^View anime:/ })).toHaveCount(8, { timeout: 15_000 });
-  const toggle = page.getByRole("checkbox", { name: "Hide article previews" });
   const lead = page.locator(".news-lead");
-  await expect(toggle).toBeChecked();
-  await expect(page.getByText("Headlines and trailers may still contain spoilers.")).toBeVisible();
-  await expect(lead.getByRole("heading")).toBeVisible();
-  await expect(lead.locator("img, p")).toHaveCount(0);
-  await expect(page.locator(".news-card p")).toHaveCount(0);
-  expect(imageRequests).toEqual([]);
-  const reveal = lead.getByRole("button", { name: /^Reveal preview:/ });
-  await reveal.focus();
-  await page.keyboard.press("Enter");
+  await expect(page.getByRole("checkbox", { name: "Hide article previews" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Reveal preview:/ })).toHaveCount(0);
   await expect(lead.locator("img")).toBeVisible();
   await expect(lead.locator("p")).toHaveText("Announcement details.");
-  await expect(page.locator(".news-card p")).toHaveCount(0);
-  await page.reload();
-  await expect(toggle).toBeChecked();
-  await expect(lead.locator("img, p")).toHaveCount(0);
-  await toggle.uncheck();
-  await expect(lead.locator("img")).toBeVisible();
   await expect(page.locator(".news-card p")).toHaveCount(7);
   await page.reload();
-  await expect(toggle).not.toBeChecked();
+  await expect(lead.locator("img")).toBeVisible();
+  await expect(lead.locator("p")).toHaveText("Announcement details.");
 });
 
-test("compact thumbnails fall back to anime artwork and remain hidden until revealed", async ({ page }) => {
+test("compact thumbnails fall back to anime artwork", async ({ page }) => {
   await mockNewsFeeds(page, 0, true);
   await page.route("https://cdn.myanimelist.net/images/news/**", (route) => route.fulfill({ status: 404 }));
   await page.goto("/news");
@@ -128,11 +109,6 @@ test("compact thumbnails fall back to anime artwork and remain hidden until reve
   const headingBox = await card.getByRole("heading").boundingBox();
   expect(mediaBox!.width).toBe(64);
   expect(headingBox!.x).toBeGreaterThan(mediaBox!.x + mediaBox!.width);
-  await page.getByRole("checkbox", { name: "Hide article previews" }).check();
-  await expect(page.locator(".news-card__thumbnail")).toHaveCount(0);
-  await card.getByRole("button", { name: /^Reveal preview:/ }).click();
-  await expect(thumbnail).toBeVisible();
-  await expect(page.locator(".news-card__thumbnail")).toHaveCount(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
 });
 

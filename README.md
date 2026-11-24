@@ -126,8 +126,6 @@ rows through Supabase's Data API under the current RLS policy.
   adds eight titles at a time, up to 24, while title news stays cached for 15 minutes.
   Up to three distinct stories per anime appear as full cards, with titles mixed
   to reduce repeated runs. New batches append without reshuffling earlier stories.
-  Hide article previews remembers this browser's preference and hides story images
-  and excerpts until individually revealed. Headlines and trailers can still contain spoilers.
   Regular story cards use compact, lazy-loaded thumbnails with anime-poster fallbacks.
 
 ### Personal anime tracking

@@ -20,7 +20,6 @@ export function MangaReleases() {
           onClick={() => setSelection({ feed: value, page: 1 })}>{label}</button>
       ))}
     </div>
-    <p className="news-tab-note">Series publication dates are shown below. For English volume releases, visit a publisher calendar.</p>
     <nav className="news-calendar-links" aria-label="Manga publisher calendars">{MANGA_RELEASE_SOURCES.map((source) => (
       <a key={source.url} href={source.url} target="_blank" rel="noreferrer">{source.name}</a>
     ))}</nav>

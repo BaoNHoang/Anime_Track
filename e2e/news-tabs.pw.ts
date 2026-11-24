@@ -60,7 +60,7 @@ test("release tabs are linkable, lazy, cached, and keep manga separate from the 
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
 });
 
-test("tabs support manual keyboard selection and publisher news reuses preview protection", async ({ page }) => {
+test("tabs support manual keyboard selection and publisher news shows article excerpts", async ({ page }) => {
   await mockReleaseCatalogs(page);
   await page.goto("/news?tab=figures");
   const selected = page.getByRole("tab", { name: "Figures", exact: true });
@@ -72,9 +72,7 @@ test("tabs support manual keyboard selection and publisher news reuses preview p
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/tab=myanimelist/);
   await expect(page.getByRole("heading", { name: "Publisher announcement" })).toBeVisible();
-  await page.getByRole("checkbox", { name: "Hide article previews" }).check();
-  await expect(page.getByText("Publisher article details.")).toHaveCount(0);
-  await page.getByRole("button", { name: "Reveal preview: Publisher announcement" }).click();
+  await expect(page.getByRole("checkbox", { name: "Hide article previews" })).toHaveCount(0);
   await expect(page.getByText("Publisher article details.")).toBeVisible();
   await page.getByRole("tab", { name: "MyAnimeList", exact: true }).focus();
   await page.keyboard.press("End");
