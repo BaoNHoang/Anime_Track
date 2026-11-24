@@ -11,7 +11,6 @@ export function MyAnimeListNews() {
   const result = useQuery({ queryKey: ["news", "myanimelist", page],
     queryFn: ({ signal }) => getPublisherNews(page, signal), staleTime: 15 * 60 * 1000, gcTime: 60 * 60 * 1000 });
   return <div className="page-stack">
-    <p className="news-tab-note">More anime and manga reporting from MyAnimeList, beyond the titles in the main feed.</p>
     {result.isPending && <NewsGridSkeleton label="Loading MyAnimeList news" />}
     {result.isError && <ErrorState message="MyAnimeList news could not be loaded." onRetry={() => void result.refetch()} />}
     {result.data?.items.length === 0 && <p className="schedule-empty">No current MyAnimeList stories were found.</p>}
