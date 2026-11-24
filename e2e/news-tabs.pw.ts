@@ -19,7 +19,7 @@ async function mockReleaseCatalogs(page: Page) {
     return route.fulfill({ json: { data: [{
       mal_id: 51, title: "Anime fifty-one", url: "https://myanimelist.net/anime/51", images: { jpg: {} },
       status: "Not yet aired", synopsis: "Anime synopsis.", trailer: { url: "https://www.youtube.com/watch?v=abc123" },
-      aired: { from: null }, type: "TV", genres: [], studios: []
+      aired: { from: "2027-04" }, type: "TV", genres: [], studios: []
     }], pagination: { has_next_page: false } } });
   });
   return requests;
@@ -48,7 +48,7 @@ test("release tabs are linkable, lazy, cached, and keep manga separate from the 
   await expect(page.getByText(/No upcoming manga were found/)).toBeVisible();
   await tabs.getByRole("tab", { name: "Anime releases", exact: true }).click();
   await expect(page.getByRole("button", { name: "View anime: Anime fifty-one" })).toBeVisible();
-  await expect(page.getByText("Premiere date not announced")).toBeVisible();
+  await expect(page.getByText("Premiere: Apr 2027")).toBeVisible();
   await tabs.getByRole("tab", { name: "Trailers", exact: true }).click();
   await expect(page.locator(".promo-card")).toHaveAttribute("href", "https://www.youtube.com/watch?v=abc123");
   const mangaRequestCount = requests.filter((path) => path.includes("/manga?")).length;
