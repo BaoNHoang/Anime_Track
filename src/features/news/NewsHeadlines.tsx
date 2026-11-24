@@ -7,8 +7,6 @@ import { useAnimeNews } from "../../hooks/useAnimeNews";
 import { NewsGridSkeleton } from "../../components/LoadingState";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
 import { NewsStoryCard, ViewAnimeButton } from "./NewsStoryCard";
-import { NewsPreviewControls, RevealPreviewButton } from "./NewsPreviewControls";
-import { useNewsPreviews } from "./useNewsPreviews";
 
 const publishedAtFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -22,15 +20,12 @@ function formatPublishedAt(value: string) {
 
 export function NewsHeadlines() {
   const news = useAnimeNews();
-  const { hidePreviews, hidden: previewHidden, reveal: revealPreview, toggle: toggleHiddenPreviews } = useNewsPreviews();
   const animeById = new Map(news.sourceAnime.map((anime) => [anime.id, anime]));
   const leadStory = news.articles[0];
   const moreStories = news.articles.slice(1);
 
   return (
     <div className="page-stack">
-      <NewsPreviewControls hidden={hidePreviews} onChange={toggleHiddenPreviews} />
-
       {news.articlesLoading && <NewsGridSkeleton />}
 
       {news.articlesError && !news.articles.length && (
@@ -43,19 +38,17 @@ export function NewsHeadlines() {
       {leadStory ? (
         <>
           <section aria-label="Latest anime stories" aria-busy={news.articlesRefreshing}>
-            <article className={`news-lead${previewHidden(leadStory) ? " news-lead--preview-hidden" : ""}`}>
-              {!previewHidden(leadStory) && <ImageWithFallback
+            <article className="news-lead">
+              <ImageWithFallback
                 src={leadStory.imageUrl}
                 fallbackSrc={leadStory.animeImageUrl}
                 decoding="async"
                 fallback={<div className="news-lead__fallback" aria-hidden="true" />}
-              />}
+              />
               <div className="news-lead__body">
                 <span className="news-label">Lead story · {leadStory.animeTitle}</span>
                 <h2>{leadStory.title}</h2>
-                {previewHidden(leadStory)
-                  ? <RevealPreviewButton article={leadStory} onReveal={revealPreview} />
-                  : <p>{leadStory.excerpt}</p>}
+                <p>{leadStory.excerpt}</p>
                 <div className="news-lead__meta">
                   <span>By {leadStory.author}</span>
                   <span>{formatPublishedAt(leadStory.publishedAt)}</span>
@@ -81,7 +74,7 @@ export function NewsHeadlines() {
               <div className="news-grid">
                 {moreStories.map((article) => (
                   <NewsStoryCard key={article.url} article={article} anime={animeById.get(article.animeId)}
-                    sourceLabel={article.animeTitle} previewHidden={previewHidden(article)} onReveal={revealPreview} />
+                    sourceLabel={article.animeTitle} />
                 ))}
               </div>
             </section>
