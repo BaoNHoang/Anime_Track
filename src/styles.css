@@ -3796,6 +3796,9 @@ p {
   line-height: 1.6;
 }
 
+.news-tabs button { border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; }
+.news-tabs button[aria-selected="true"] { border-bottom-color: var(--accent); color: var(--ink); }
+
 .news-release-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

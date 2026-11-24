@@ -29,8 +29,6 @@ export function NewsHeadlines() {
 
   return (
     <div className="page-stack">
-      <h1 className="visually-hidden">Anime news</h1>
-
       <NewsPreviewControls hidden={hidePreviews} onChange={toggleHiddenPreviews} />
 
       {news.articlesLoading && <NewsGridSkeleton />}
