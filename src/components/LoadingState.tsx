@@ -67,9 +67,9 @@ export function CompactListSkeleton({
   );
 }
 
-export function NewsGridSkeleton({ cards = 6 }: { cards?: number }) {
+export function NewsGridSkeleton({ cards = 6, label = "Loading anime news" }: { cards?: number; label?: string }) {
   return (
-    <LoadingRegion className="skeleton-region news-grid" label="Loading anime news">
+    <LoadingRegion className="skeleton-region news-grid" label={label}>
       {Array.from({ length: cards }, (_, index) => (
         <div className="news-skeleton" key={index}>
           <span className="skeleton news-skeleton__image" />

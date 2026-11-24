@@ -1,9 +1,8 @@
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQueries } from "@tanstack/react-query";
 import { useState } from "react";
 import { useCurrentSeason, useTopAnime } from "./useAnimeQueries";
 import {
   getNewsForAnime,
-  getPopularPromos,
   prepareLatestNews,
   selectNewsAnime,
   NEWS_SOURCE_BATCH_SIZE,
@@ -41,16 +40,6 @@ export function useAnimeNews() {
       refetchOnWindowFocus: false
     }))
   });
-  const promos = useQuery({
-    queryKey: ["anime", "news", "promos"],
-    queryFn: ({ signal }) => getPopularPromos(signal),
-    enabled: !season.isPending,
-    staleTime: 2 * 60 * 60 * 1000,
-    gcTime: 6 * 60 * 60 * 1000,
-    refetchInterval: 2 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false
-  });
-
   const seenUrls = new Set<string>();
   const articles = [];
   // Append each source batch so loading more cannot reshuffle earlier stories.
@@ -77,7 +66,6 @@ export function useAnimeNews() {
     loadMoreArticles: () => setSourceLimit((current) => Math.min(
       current + NEWS_SOURCE_BATCH_SIZE, candidates.length
     )),
-    promos: promos.data ?? [],
     articlesLoading:
       catalogPending || (articles.length === 0 && articleQueriesPending),
     articlesRefreshing:
@@ -86,12 +74,9 @@ export function useAnimeNews() {
     articlesError:
       catalogQueries.every((query) => query.isError) ||
       (!articleQueriesPending && articleQueries.some((query) => query.isError)),
-    promosLoading: promos.isPending,
-    promosError: promos.isError,
     refetchArticles: async () => {
       await Promise.all(catalogQueries.map((query) => query.refetch()));
       await Promise.all(articleQueries.map((query) => query.refetch()));
-    },
-    refetchPromos: promos.refetch
+    }
   };
 }

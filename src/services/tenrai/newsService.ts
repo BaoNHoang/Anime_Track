@@ -2,16 +2,13 @@ import type {
   AnimeNewsArticle,
   AnimePromo
 } from "../../domain/news/types";
-import {
-  safeAnimeImageUrl,
-  safeMyAnimeListNewsUrl,
-  truncateExternalText
-} from "../../domain/security/validation";
+import { truncateExternalText } from "../../domain/security/validation";
 import { tenraiGet } from "./client";
 import { getCurrentSeason } from "./animeService";
 import type { TenraiNewsResponse } from "./newsDto";
 import type { Anime } from "../../domain/anime/types";
 import { dedupeAnimeById } from "../../domain/anime/dedupe";
+import { mapNewsArticle } from "./newsMapper";
 
 const NEWS_CACHE_MS = 15 * 60 * 1000;
 export const NEWS_SOURCE_BATCH_SIZE = 8;
@@ -75,28 +72,23 @@ export async function getNewsForAnime(
     { signal, cacheMs: NEWS_CACHE_MS, cacheStorage: "local" }
   );
 
-  return response.data
-    .slice(0, 100)
-    .map((article) => ({
-      id: article.mal_id,
-      animeId,
-      animeTitle,
-      animeImageUrl,
-      title: truncateExternalText(article.title, 500),
-      url: safeMyAnimeListNewsUrl(article.url) ?? "",
-      publishedAt: article.date,
-      author: truncateExternalText(
-        article.author_username ?? "MyAnimeList",
-        200
-      ),
-      imageUrl: safeAnimeImageUrl(article.images.jpg.image_url),
-      excerpt: truncateExternalText(
-        article.excerpt ?? "Open the article to read the full story.",
-        2000
-      ),
-      comments: article.comments
-    }))
-    .filter((article) => article.url);
+  return response.data.slice(0, 100).flatMap((dto) => {
+    const article = mapNewsArticle(dto);
+    return article ? [{ ...article, animeId, animeTitle, animeImageUrl }] : [];
+  });
+}
+
+export async function getPublisherNews(page = 1, signal?: AbortSignal) {
+  const response = await tenraiGet<TenraiNewsResponse>(`/news?page=${page}&limit=24&sfw=true`,
+    { signal, cacheMs: NEWS_CACHE_MS, cacheStorage: "local" });
+  const seen = new Set<string>();
+  const items = response.data.slice(0, 24).flatMap((dto) => {
+    const article = mapNewsArticle(dto);
+    if (!article || seen.has(article.url)) return [];
+    seen.add(article.url);
+    return [article];
+  });
+  return { items, hasNextPage: Boolean(response.pagination?.has_next_page) };
 }
 
 export async function getPopularPromos(

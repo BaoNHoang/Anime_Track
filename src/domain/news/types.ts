@@ -1,8 +1,5 @@
-export interface AnimeNewsArticle {
+export interface NewsArticle {
   id: number;
-  animeId: number;
-  animeTitle: string;
-  animeImageUrl: string;
   title: string;
   url: string;
   publishedAt: string;
@@ -10,6 +7,12 @@ export interface AnimeNewsArticle {
   imageUrl?: string;
   excerpt: string;
   comments: number;
+}
+
+export interface AnimeNewsArticle extends NewsArticle {
+  animeId: number;
+  animeTitle: string;
+  animeImageUrl: string;
 }
 
 export interface AnimePromo {
@@ -20,9 +23,4 @@ export interface AnimePromo {
   promoTitle: string;
   videoUrl?: string;
   embedUrl: string;
-}
-
-export interface AnimeNewsFeed {
-  articles: AnimeNewsArticle[];
-  promos: AnimePromo[];
 }
