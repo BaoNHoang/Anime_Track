@@ -11,7 +11,7 @@ async function mockReleaseCatalogs(page: Page) {
       pagination: { has_next_page: url.searchParams.get("page") !== "2" }
     } });
     if (url.pathname.endsWith("/manga")) return route.fulfill({ json: {
-      data: url.searchParams.get("page") === "2" || url.searchParams.get("status") === "upcoming" ? [] : [{
+      data: url.searchParams.get("page") === "2" ? [] : [{
         mal_id: 71, title: "Manga seventy-one", url: "https://myanimelist.net/manga/71", images: { jpg: {} },
         status: "Publishing", synopsis: "Manga synopsis.", published: null
       }], pagination: { has_next_page: url.searchParams.get("page") !== "2" }
@@ -44,8 +44,15 @@ test("release tabs are linkable, lazy, cached, and keep manga separate from the 
   await expect(page.getByText(/No publishing manga were found/)).toBeVisible();
   await page.getByRole("button", { name: "Previous", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Manga seventy-one" })).toBeVisible();
-  await page.getByRole("button", { name: "Upcoming", exact: true }).click();
-  await expect(page.getByText(/No upcoming manga were found/)).toBeVisible();
+  const beforeUpcoming = requests.length;
+  await page.getByRole("button", { name: "Upcoming volumes", exact: true }).click();
+  const upcoming = page.getByRole("region", { name: "Upcoming manga volume releases" });
+  await expect(upcoming.getByRole("link")).toHaveCount(3);
+  await expect(upcoming.getByRole("link", { name: /VIZ/ })).toHaveAttribute("href", "https://www.viz.com/calendar");
+  await expect(upcoming.getByRole("link", { name: /Seven Seas/ })).toHaveAttribute("href", "https://sevenseasentertainment.com/release-dates/");
+  await expect(upcoming.getByRole("link", { name: /TOKYOPOP/ })).toHaveAttribute("href", "https://tokyopop.com/pages/release-calendar");
+  await expect(page.getByText(/No upcoming manga were found/)).toHaveCount(0);
+  expect(requests).toHaveLength(beforeUpcoming);
   await tabs.getByRole("tab", { name: "Anime releases", exact: true }).click();
   await expect(page.getByRole("button", { name: "View anime: Anime fifty-one" })).toBeVisible();
   await expect(page.getByText("Premiere: Apr 2027")).toBeVisible();
