@@ -6,7 +6,7 @@ export const FIGURE_RELEASE_SOURCES = [
 ] as const;
 
 export const MANGA_RELEASE_SOURCES = [
-  { name: "VIZ release calendar", url: "https://www.viz.com/calendar" },
-  { name: "Seven Seas release dates", url: "https://sevenseasentertainment.com/release-dates/" },
-  { name: "TOKYOPOP release calendar", url: "https://tokyopop.com/pages/release-calendar" }
+  { name: "VIZ", url: "https://www.viz.com/calendar", description: "Upcoming manga volumes and books, organized by release month." },
+  { name: "Seven Seas", url: "https://sevenseasentertainment.com/release-dates/", description: "Upcoming print volumes and books with publisher release dates." },
+  { name: "TOKYOPOP", url: "https://tokyopop.com/pages/release-calendar", description: "New manga volumes and upcoming publication dates." }
 ] as const;

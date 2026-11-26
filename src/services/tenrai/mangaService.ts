@@ -1,4 +1,4 @@
-import type { Manga, MangaFeed } from "../../domain/manga/types";
+import type { Manga, MangaCatalogFeed } from "../../domain/manga/types";
 import { safeAnimeImageUrl, safeMyAnimeListMangaUrl, truncateExternalText } from "../../domain/security/validation";
 import { tenraiGet } from "./client";
 
@@ -14,13 +14,13 @@ interface MangaDto {
   score?: number | null;
 }
 
-export async function getMangaReleases(feed: MangaFeed, page = 1, signal?: AbortSignal) {
+export async function getMangaReleases(feed: MangaCatalogFeed, page = 1, signal?: AbortSignal) {
   const params = new URLSearchParams({ type: "manga", limit: "24", page: String(page), sfw: "true" });
   if (feed === "popular") params.set("filter", "bypopularity");
   else {
     params.set("status", feed);
     params.set("order_by", "start_date");
-    params.set("sort", feed === "upcoming" ? "asc" : "desc");
+    params.set("sort", "desc");
   }
   const response = await tenraiGet<{ data: MangaDto[]; pagination?: { has_next_page?: boolean } }>(
     `${feed === "popular" ? "/top/manga" : "/manga"}?${params}`,

@@ -11,10 +11,10 @@ it("loads bounded cached manga and rejects unsafe supplied links and images", as
     { mal_id: 12, title: "Manga", url: "https://evil.test/manga/12", images: { jpg: { image_url: "javascript:alert(1)" } }, published: null },
     { mal_id: 12, title: "Duplicate" }, { mal_id: -1, title: "Invalid" }
   ], pagination: { has_next_page: true } });
-  const result = await getMangaReleases("upcoming", 2);
+  const result = await getMangaReleases("publishing", 2);
   expect(get).toHaveBeenCalledWith(expect.stringContaining("/manga?"), expect.objectContaining({ cacheStorage: "local", cacheMs: 21_600_000 }));
   const params = new URL(get.mock.calls[0][0], "https://api.tenrai.org").searchParams;
-  expect(Object.fromEntries(params)).toMatchObject({ status: "upcoming", page: "2", sfw: "true", limit: "24" });
+  expect(Object.fromEntries(params)).toMatchObject({ status: "publishing", page: "2", sfw: "true", limit: "24" });
   expect(result.items).toEqual([expect.objectContaining({ id: 12, url: "https://myanimelist.net/manga/12", imageUrl: undefined, publication: "Publication date not announced" })]);
   expect(result.hasNextPage).toBe(true);
 });

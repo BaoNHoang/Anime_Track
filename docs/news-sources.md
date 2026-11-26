@@ -9,7 +9,7 @@ directly, and browser Back/Forward restores the selected category.
 | MyAnimeList | `/news?tab=myanimelist` | Paged anime and manga reporting from MyAnimeList through Tenrai |
 | Trailers | `/news?tab=trailers` | Up to eight current-season catalog trailer links |
 | Anime releases | `/news?tab=anime` | Paged upcoming anime series and films, with catalog premiere dates when known |
-| Manga | `/news?tab=manga` | Paged Publishing, Upcoming, and Popular manga feeds |
+| Manga | `/news?tab=manga` | Paged Publishing/Popular manga and publisher calendars for upcoming volumes |
 | Figures | `/news?tab=figures` | Directory of official manufacturer release calendars |
 
 An absent or unrecognized `tab` value opens Headlines. Selecting Headlines
@@ -32,8 +32,9 @@ month-only dates keep that precision; exact calendar days retain the source's
 day across time zones. Unknown dates are shown as unannounced.
 
 Manga cards show the series publication date or date range supplied by Tenrai,
-not the release date of an English volume or a chapter schedule. For English
-volume availability, follow the publisher calendars linked in Manga:
+not the release date of an English volume or a chapter schedule. **Upcoming
+volumes** opens the publisher calendars directly, without requesting the empty
+upcoming-series catalog. For English volume availability, follow these sources:
 
 - [VIZ release calendar](https://www.viz.com/calendar)
 - [Seven Seas release dates](https://sevenseasentertainment.com/release-dates/)

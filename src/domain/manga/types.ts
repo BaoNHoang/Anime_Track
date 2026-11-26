@@ -1,4 +1,5 @@
-export type MangaFeed = "publishing" | "upcoming" | "popular";
+export type MangaCatalogFeed = "publishing" | "popular";
+export type MangaFeed = MangaCatalogFeed | "upcoming";
 
 export interface Manga {
   id: number;
