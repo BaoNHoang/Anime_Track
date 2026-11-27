@@ -95,9 +95,8 @@ export function RecentActivity({ items }: { items?: TrackedAnime[] }) {
   const [now] = useState(() => Date.now());
   const recent = useMemo(
     () =>
-      items ??
-      [...trackedItems]
-        .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+      (items ?? [...trackedItems]
+        .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)))
         .slice(0, MAX_RECENT_ITEMS),
     [items, trackedItems]
   );
@@ -115,7 +114,7 @@ export function RecentActivity({ items }: { items?: TrackedAnime[] }) {
 
   return (
     <div className="activity-grid">
-      {recent.slice(0, MAX_RECENT_ITEMS).map((item) => <ActivityItem item={item} now={now} key={item.anime.id} />)}
+      {recent.map((item) => <ActivityItem item={item} now={now} key={item.anime.id} />)}
     </div>
   );
 }
