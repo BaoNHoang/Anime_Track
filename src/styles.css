@@ -2550,6 +2550,8 @@ p {
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius);
   color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
   text-align: center;
 }
 
