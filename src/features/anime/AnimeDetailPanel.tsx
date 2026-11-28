@@ -9,7 +9,7 @@ import {
   Trash2,
   X
 } from "../../components/OwnedIcons";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatNextAiring } from "../../domain/anime/airing";
 import {
   RELEASE_NOTIFICATION_LABELS,
@@ -38,11 +38,15 @@ import { EpisodeUndoToast } from "../../components/EpisodeUndoToast";
 import { ErrorState } from "../../components/ErrorState";
 import { ImageWithFallback } from "../../components/ImageWithFallback";
 import { isBoundedText } from "../../domain/security/validation";
+import { RelatedAnimeGuide } from "./RelatedAnimeGuide";
 
 export function AnimeDetailPanel() {
   const { selectedAnime, closeAnime } = useAnimePanel();
   const details = useAnimeDetails(selectedAnime?.id);
-  const anime = details.data ?? selectedAnime;
+  const anime = details.data?.anime ?? selectedAnime;
+  const selectedId = selectedAnime?.id;
+  const panelRef = useRef<HTMLElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const {
     addAnime,
     canManage,
@@ -164,6 +168,11 @@ export function AnimeDetailPanel() {
     };
   }, [closeAnime, selectedAnime]);
 
+  useEffect(() => {
+    if (panelRef.current) panelRef.current.scrollTop = 0;
+    headingRef.current?.focus({ preventScroll: true });
+  }, [selectedId]);
+
   if (!selectedAnime || !anime) return null;
 
   return (
@@ -174,6 +183,7 @@ export function AnimeDetailPanel() {
         aria-label="Close anime details"
       />
       <aside
+        ref={panelRef}
         className="detail-panel"
         role="dialog"
         aria-modal="true"
@@ -212,7 +222,7 @@ export function AnimeDetailPanel() {
                 </span>
               )}
             </div>
-            <h2 id="detail-title">
+            <h2 id="detail-title" ref={headingRef} tabIndex={-1}>
               {anime.titleEnglish || anime.title}
             </h2>
             {anime.titleEnglish && anime.titleEnglish !== anime.title && (
@@ -270,6 +280,10 @@ export function AnimeDetailPanel() {
               <p className="streaming-availability__empty">No official streaming provider was supplied for this title. Availability and sub/dub tracks can differ by provider and region.</p>
             )}
           </section>
+
+          {details.data && details.data.related.length > 0 && (
+            <RelatedAnimeGuide key={anime.id} related={details.data.related} />
+          )}
 
           {tracked ? (
             <section className="tracking-box">

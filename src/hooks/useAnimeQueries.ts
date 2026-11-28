@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery } from "@tanstack/react-query";
 import {
-  getAnimeById,
+  getAnimeDetails,
   browseAnime,
   browseAnimeByGenre,
   getCurrentSeason,
@@ -80,11 +80,15 @@ export function useAnimeGenre(genre?: string, page = 1) {
   });
 }
 
-export function useAnimeDetails(id?: number) {
-  return useQuery({
+export function animeDetailsQueryOptions(id?: number) {
+  return queryOptions({
     queryKey: ["anime", "detail", id],
-    queryFn: ({ signal }) => getAnimeById(id as number, signal),
+    queryFn: ({ signal }) => getAnimeDetails(id as number, signal),
     enabled: id !== undefined,
     staleTime: 30 * 60 * 1000
   });
+}
+
+export function useAnimeDetails(id?: number) {
+  return useQuery(animeDetailsQueryOptions(id));
 }

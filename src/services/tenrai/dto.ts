@@ -39,6 +39,7 @@ export interface TenraiAnimeDto {
   genres?: Array<{ name: string }>;
   studios?: Array<{ name: string }>;
   streaming?: Array<{ name: string; url: string }>;
+  relations?: TenraiAnimeRelationDto[];
 }
 
 export interface TenraiPagination {
@@ -61,6 +62,7 @@ export interface TenraiAnimeRelationDto {
   entry: Array<{
     mal_id: number;
     type: string;
+    name?: string;
   }>;
 }
 

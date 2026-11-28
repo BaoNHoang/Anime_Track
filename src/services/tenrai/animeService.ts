@@ -1,5 +1,6 @@
 import type { Anime, AnimePage } from "../../domain/anime/types";
 import { dedupeAnimeById } from "../../domain/anime/dedupe";
+import { truncateExternalText } from "../../domain/security/validation";
 import { tenraiGet } from "./client";
 import type {
   TenraiItemResponse,
@@ -225,15 +226,46 @@ export async function browseAnimeByGenre(
   return mapPage(response);
 }
 
+function fetchAnimeDetails(id: number, signal?: AbortSignal) {
+  return tenraiGet<TenraiItemResponse>(`/anime/${id}/full`, {
+    signal,
+    cacheMs: 30 * 60 * 1000
+  });
+}
+
 export async function getAnimeById(
   id: number,
   signal?: AbortSignal
 ): Promise<Anime> {
-  const response = await tenraiGet<TenraiItemResponse>(`/anime/${id}/full`, {
-    signal,
-    cacheMs: 30 * 60 * 1000
-  });
+  const response = await fetchAnimeDetails(id, signal);
   return mapTenraiAnime(response.data);
+}
+
+export interface RelatedAnime {
+  id: number;
+  title: string;
+  relationship: string;
+}
+
+function isAnimeRelationEntry(entry: TenraiRelationResponse["data"][number]["entry"][number]) {
+  return typeof entry?.type === "string" && entry.type.toLowerCase() === "anime" &&
+    Number.isInteger(entry.mal_id) && entry.mal_id > 0 && entry.mal_id <= 10_000_000;
+}
+
+export async function getAnimeDetails(id: number, signal?: AbortSignal) {
+  const { data } = await fetchAnimeDetails(id, signal);
+  const related = new Map<string, RelatedAnime>();
+  for (const group of Array.isArray(data.relations) ? data.relations : []) {
+    if (typeof group?.relation !== "string" || !Array.isArray(group.entry)) continue;
+    const relationship = truncateExternalText(group.relation, 80).trim();
+    if (!relationship) continue;
+    for (const entry of group.entry) {
+      if (!isAnimeRelationEntry(entry) || entry.mal_id === id || typeof entry.name !== "string") continue;
+      const title = truncateExternalText(entry.name, 500).trim();
+      if (title) related.set(`${relationship}:${entry.mal_id}`, { id: entry.mal_id, title, relationship });
+    }
+  }
+  return { anime: mapTenraiAnime(data), related: [...related.values()] };
 }
 
 export async function getAnimeSequels(
@@ -251,7 +283,6 @@ export async function getAnimeSequels(
   return response.data
     .filter((relation) => relation.relation.toLowerCase() === "sequel")
     .flatMap((relation) => relation.entry)
-    .filter((entry) => entry.type.toLowerCase() === "anime")
-    .map((entry) => entry.mal_id)
-    .filter((id) => Number.isInteger(id) && id > 0 && id <= 10_000_000);
+    .filter(isAnimeRelationEntry)
+    .map((entry) => entry.mal_id);
 }
