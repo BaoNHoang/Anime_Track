@@ -4664,6 +4664,72 @@ p {
   line-height: 1.72;
 }
 
+.related-anime {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--canvas);
+}
+
+.related-anime summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.related-anime summary span,
+.related-anime p,
+.related-anime small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.related-anime summary span {
+  margin-left: 4px;
+}
+
+.related-anime p {
+  margin: 6px 0 0;
+}
+
+.related-anime ul {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.related-anime li {
+  border-top: 1px solid var(--border);
+}
+
+.related-anime button {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 2px;
+  border: 0;
+  color: var(--ink);
+  background: transparent;
+  font-size: 13px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.related-anime button:hover:not(:disabled) {
+  color: var(--accent);
+}
+
+.related-anime button small {
+  display: block;
+}
+
+.related-anime button svg {
+  flex: none;
+}
+
 .airing-callout,
 .tracking-box {
   padding: 15px;
