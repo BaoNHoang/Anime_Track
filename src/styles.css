@@ -4949,12 +4949,13 @@ p {
   gap: 12px;
 }
 
-.recommendation-strip article,
-.recommendation-strip button {
+.recommendation-strip article {
+  display: grid;
+  grid-template-rows: 1fr auto;
   min-width: 0;
 }
 
-.recommendation-strip button {
+.recommendation-strip__card {
   display: grid;
   width: 100%;
   height: 100%;
@@ -4968,9 +4969,26 @@ p {
   text-align: left;
 }
 
-.recommendation-strip button:hover {
+.recommendation-strip__card:hover {
   border-color: var(--accent);
   transform: translateY(-1px);
+}
+
+.recommendation-dismiss {
+  justify-self: start;
+  min-height: 28px;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 5px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 11px;
+  text-align: left;
+}
+
+.recommendation-dismiss:hover {
+  color: var(--ink);
+  text-decoration: underline;
 }
 
 .recommendation-strip__poster {
